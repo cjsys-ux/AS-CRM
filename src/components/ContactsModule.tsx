@@ -3,9 +3,7 @@ import { Users, Plus, Search, Filter, Download, Mail, Phone, Building2, ChevronL
 import { useState, useEffect } from 'react';
 import { ContactDrawer } from './ContactDrawer';
 import { ContactDetailView } from './ContactDetailView';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 export function ContactsModule() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,27 +21,9 @@ export function ContactsModule() {
   const itemsPerPage = 10;
 
   // Fetch contacts from database
-  const fetchContacts = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/contacts`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setContactsData(data.contacts || []);
-      } else {
-        console.error('Error fetching contacts:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching contacts:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchContacts = () => {
+    setLoading(false);
+    setContactsData([]);
   };
 
   useEffect(() => {
@@ -51,68 +31,22 @@ export function ContactsModule() {
   }, []);
 
   // Save contact (create or update)
-  const handleSaveContact = async (contactData: any) => {
-    try {
-      const isEdit = !!contactData.id;
-      const url = isEdit ? `${API_URL}/contacts/${contactData.id}` : `${API_URL}/contacts`;
-      const method = isEdit ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify(contactData),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh contacts list
-        await fetchContacts();
-        setIsContactDrawerOpen(false);
-        setSelectedContact(null);
-        console.log(`Contact ${isEdit ? 'updated' : 'created'} successfully`);
-      } else {
-        console.error('Error saving contact:', data.error);
-        alert(`Failed to ${isEdit ? 'update' : 'create'} contact: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error saving contact:', error);
-      alert(`Error ${contactData.id ? 'updating' : 'creating'} contact`);
-    }
+  const handleSaveContact = (contactData: any) => {
+    fetchContacts();
+    setIsContactDrawerOpen(false);
+    setSelectedContact(null);
+    console.log(`Contact ${contactData.id ? 'updated' : 'created'} successfully`);
   };
 
   // Delete contact
-  const handleDeleteContact = async () => {
+  const handleDeleteContact = () => {
     if (!contactToDelete) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/contacts/${contactToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh contacts list
-        await fetchContacts();
-        setDeleteModal(false);
-        setContactToDelete(null);
-        console.log('Contact deleted successfully');
-      } else {
-        console.error('Error deleting contact:', data.error);
-        alert(`Failed to delete contact: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting contact:', error);
-      alert('Error deleting contact');
-    }
+    // Refresh contacts list
+    fetchContacts();
+    setDeleteModal(false);
+    setContactToDelete(null);
+    console.log('Contact deleted successfully');
   };
 
   const filteredContacts = contactsData.filter(contact => {

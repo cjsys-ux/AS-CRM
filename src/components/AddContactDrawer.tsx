@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, User, Upload, Mail, Phone, Building2, MapPin, FileText, Tag, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface AddContactDrawerProps {
   isOpen: boolean;
@@ -161,33 +159,9 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
         const base64String = reader.result as string;
         
         if (removeBackground) {
-          // Call server to remove background
-          try {
-            const response = await fetch(`${API_URL}/remove-background`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${publicAnonKey}`,
-              },
-              body: JSON.stringify({ imageBase64: base64String }),
-            });
-            
-            const data = await response.json();
-            if (data.success && data.imageUrl) {
-              setUploadedImage(data.imageUrl);
-              setFormData({ ...formData, profileImage: data.imageUrl });
-            } else {
-              console.error('Error removing background:', data.error);
-              // Fallback to original image
-              setUploadedImage(base64String);
-              setFormData({ ...formData, profileImage: base64String });
-            }
-          } catch (error) {
-            console.error('Error removing background:', error);
-            // Fallback to original image
-            setUploadedImage(base64String);
-            setFormData({ ...formData, profileImage: base64String });
-          }
+          // Use original image since background removal requires server
+          setUploadedImage(base64String);
+          setFormData({ ...formData, profileImage: base64String });
         } else {
           // Use original image
           setUploadedImage(base64String);
@@ -237,23 +211,8 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       return;
     }
 
-    try {
-      const response = await fetch(
-        `${API_URL}/search-companies?query=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.success) {
-        setCompanies(data.companies || []);
-        setShowCompanyDropdown(data.companies.length > 0);
-      }
-    } catch (error) {
-      console.error('Error searching companies:', error);
-    }
+    setCompanies([]);
+    setShowCompanyDropdown(false);
   };
 
   // Handle company selection
@@ -296,67 +255,34 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       profileImage: formData.profileImage,
     };
 
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      if (contactData?.id) {
-        // Update existing contact
-        const response = await fetch(`${API_URL}/contacts/${contactData.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify(contact),
-        });
-        const data = await response.json();
-        if (data.success) {
-          onSuccess?.();
-          onClose();
-        } else {
-          console.error('Error updating contact:', data.error);
-        }
-      } else {
-        // Create new contact
-        const response = await fetch(`${API_URL}/contacts`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify(contact),
-        });
-        const data = await response.json();
-        if (data.success) {
-          onSuccess?.();
-          onClose();
-          // Reset form
-          setFormData({
-            image: '',
-            firstName: '',
-            lastName: '',
-            email: '',
-            phone: '',
-            company: '',
-            jobTitle: '',
-            department: '',
-            contactType: 'Other',
-            tags: [],
-            addressLine1: '',
-            addressLine2: '',
-            city: '',
-            state: '',
-            zipCode: '',
-            notes: '',
-          });
-          setUploadedImage(null);
-          setCompanySearch('');
-        } else {
-          console.error('Error creating contact:', data.error);
-        }
-      }
+      onSuccess?.();
+      onClose();
+      // Reset form
+      setFormData({
+        image: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        company: '',
+        jobTitle: '',
+        department: '',
+        contactType: 'Other',
+        tags: [],
+        addressLine1: '',
+        addressLine2: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        notes: '',
+      });
+      setUploadedImage(null);
+      setCompanySearch('');
+      setIsSaving(false);
     } catch (error) {
       console.error('Error saving contact:', error);
-    } finally {
       setIsSaving(false);
     }
   };

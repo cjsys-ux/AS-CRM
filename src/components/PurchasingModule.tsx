@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react';
 import { DeletePurchaseOrderModal } from './DeletePurchaseOrderModal';
 import { EditPurchaseOrderDrawer } from './EditPurchaseOrderDrawer';
 import { PurchaseOrderDetailView } from './PurchaseOrderDetailView';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 type PurchaseOrder = {
   id: string;
@@ -39,27 +37,9 @@ export function PurchasingModule() {
   const [loading, setLoading] = useState(true);
 
   // Fetch purchase orders from database
-  const fetchPurchaseOrders = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/purchase-orders`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPurchaseOrders(data.orders || []);
-      } else {
-        console.error('Error fetching purchase orders:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching purchase orders:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchPurchaseOrders = () => {
+    setLoading(false);
+    setPurchaseOrders([]);
   };
 
   useEffect(() => {
@@ -133,26 +113,9 @@ export function PurchasingModule() {
 
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/purchase-orders/${orderToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchPurchaseOrders();
-        setDeleteModalOpen(false);
-        setOrderToDelete(null);
-      } else {
-        console.error('Error deleting purchase order:', data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting purchase order:', error);
-    }
+
+    setDeleteModalOpen(false);
+    setOrderToDelete(null);
   };
 
   const handleEditOrder = (order: PurchaseOrder) => {
@@ -161,26 +124,8 @@ export function PurchasingModule() {
   };
 
   const handleSaveOrder = async (updatedOrder: PurchaseOrder) => {
-    try {
-      const response = await fetch(`${API_URL}/purchase-orders/${updatedOrder.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify(updatedOrder),
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchPurchaseOrders();
-        setEditDrawerOpen(false);
-        setOrderToEdit(null);
-      } else {
-        console.error('Error updating purchase order:', data.error);
-      }
-    } catch (error) {
-      console.error('Error updating purchase order:', error);
-    }
+    setEditDrawerOpen(false);
+    setOrderToEdit(null);
   };
 
   const handleViewOrder = (orderId: string) => {
@@ -189,31 +134,12 @@ export function PurchasingModule() {
 
   // Handle status change from detail view
   const handleStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`${API_URL}/purchase-orders/${orderId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Update local state
-        setPurchaseOrders(prevOrders =>
-          prevOrders.map(order =>
-            order.id === orderId ? { ...order, status: newStatus } : order
-          )
-        );
-      } else {
-        console.error('Error updating status:', data.error);
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-    }
+    // Update local state
+    setPurchaseOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
   };
 
   // If viewing a specific PO, show detail view

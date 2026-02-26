@@ -1,10 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Package, Upload, FileText, TrendingUp, DollarSign, Calendar, Tag, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { CustomCalendar } from './CustomCalendar';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface AddProductDrawerProps {
   isOpen: boolean;
@@ -138,33 +136,9 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
         const base64String = reader.result as string;
         
         if (removeBackground) {
-          // Call server to remove background
-          try {
-            const response = await fetch(`${API_URL}/remove-background`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${publicAnonKey}`,
-              },
-              body: JSON.stringify({ imageBase64: base64String }),
-            });
-            
-            const data = await response.json();
-            if (data.success && data.imageUrl) {
-              setUploadedImage(data.imageUrl);
-              setFormData({ ...formData, image: data.imageUrl });
-            } else {
-              console.error('Error removing background:', data.error);
-              // Fallback to original image
-              setUploadedImage(base64String);
-              setFormData({ ...formData, image: base64String });
-            }
-          } catch (error) {
-            console.error('Error removing background:', error);
-            // Fallback to original image
-            setUploadedImage(base64String);
-            setFormData({ ...formData, image: base64String });
-          }
+          // Use original image since background removal requires server
+          setUploadedImage(base64String);
+          setFormData({ ...formData, image: base64String });
         } else {
           // Use original image
           setUploadedImage(base64String);
@@ -230,66 +204,29 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       image: formData.image,
     };
 
-    try {
-      if (productData?.id) {
-        // Update existing product
-        const response = await fetch(`${API_URL}/products/${productData.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify(product),
-        });
-        const data = await response.json();
-        if (data.success) {
-          onSuccess?.();
-          onClose();
-        } else {
-          console.error('Error updating product:', data.error);
-        }
-      } else {
-        // Create new product
-        const response = await fetch(`${API_URL}/products`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify(product),
-        });
-        const data = await response.json();
-        if (data.success) {
-          onSuccess?.();
-          onClose();
-          // Reset form
-          setFormData({
-            productName: '',
-            clientName: '',
-            vendor: '',
-            description: '',
-            competitorName: '',
-            competitorLink: '',
-            competitorPrice: '',
-            yearlyQty: '',
-            targetPrice: '',
-            itemType: 'Deploy',
-            dueDate: '',
-            priority: 'Medium',
-            projectManager: '',
-            internalSKU: '',
-            targetMargin: '',
-            status: 'New Product',
-            image: '',
-          });
-          setUploadedImage(null);
-        } else {
-          console.error('Error creating product:', data.error);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving product:', error);
-    }
+    onSuccess?.();
+    onClose();
+    // Reset form
+    setFormData({
+      productName: '',
+      clientName: '',
+      vendor: '',
+      description: '',
+      competitorName: '',
+      competitorLink: '',
+      competitorPrice: '',
+      yearlyQty: '',
+      targetPrice: '',
+      itemType: 'Deploy',
+      dueDate: '',
+      priority: 'Medium',
+      projectManager: '',
+      internalSKU: '',
+      targetMargin: '',
+      status: 'New Product',
+      image: '',
+    });
+    setUploadedImage(null);
   };
 
   return (

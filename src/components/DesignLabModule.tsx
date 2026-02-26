@@ -1,10 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Palette, Plus, Search, Eye, Edit2, Trash2, Download, ChevronLeft, ChevronRight, User, Calendar, Image as ImageIcon, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { DesignOrderDetailView } from './DesignOrderDetailView';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 type DesignProject = {
   id: string;
@@ -146,27 +144,9 @@ export function DesignLabModule() {
   const [selectedProject, setSelectedProject] = useState<DesignProject | null>(null);
 
   // Fetch design projects from database
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/design-projects`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setProjects(data.projects || []);
-      } else {
-        console.error('Error fetching design projects:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching design projects:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchProjects = () => {
+    setLoading(false);
+    setProjects([]);
   };
 
   useEffect(() => {
@@ -174,24 +154,8 @@ export function DesignLabModule() {
     // fetchProjects();
   }, []);
 
-  const handleDeleteProject = async (projectId: string) => {
-    try {
-      const response = await fetch(`${API_URL}/design-projects/${projectId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchProjects();
-      } else {
-        console.error('Error deleting design project:', data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting design project:', error);
-    }
+  const handleDeleteProject = (projectId: string) => {
+    setProjects(projects.filter(p => p.id !== projectId));
   };
 
   // Calculate KPIs

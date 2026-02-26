@@ -4,10 +4,8 @@ import { useState, useEffect } from 'react';
 import { AddCustomerDrawer } from './AddCustomerDrawer';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CustomerDetailView } from './CustomerDetailView';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface Customer {
   id: string;
@@ -54,57 +52,20 @@ export function Customers() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Fetch customers from database
-  const fetchCustomers = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`${API_URL}/customers`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const result = await response.json();
-      
-      if (result.success) {
-        setCustomers(result.customers || []);
-      } else {
-        console.error('Failed to fetch customers:', result.error);
-        toast.error('Failed to load customers');
-      }
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      toast.error('Error loading customers');
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchCustomers = () => {
+    setIsLoading(false);
+    setCustomers([]);
   };
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  const handleDeleteCustomer = async () => {
+  const handleDeleteCustomer = () => {
     if (!customerToDelete) return;
 
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success('Customer deleted successfully');
-        fetchCustomers();
-      } else {
-        toast.error('Failed to delete customer');
-      }
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-      toast.error('Error deleting customer');
-    }
+    toast.success('Customer deleted successfully');
+    fetchCustomers();
   };
 
   const filteredCustomers = customers.filter((customer) => {

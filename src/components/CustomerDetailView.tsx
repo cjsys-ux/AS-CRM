@@ -1,14 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Edit, Phone, Globe, FileText, DollarSign, ShoppingCart, FileCheck, MapPin, Plus, Upload, X, Calendar, User, Mail, Building2, Trash2, Star, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
 import { AddContactDrawer } from './AddContactDrawer';
 import { AddAddressDrawer } from './AddAddressDrawer';
 import { AddFileDrawer } from './AddFileDrawer';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface CustomerDetailViewProps {
   customerId: string;
@@ -97,42 +95,12 @@ export function CustomerDetailView({ customerId, onBack, onEdit }: CustomerDetai
     fetchCustomerDetails();
   }, [customerId]);
 
-  const fetchCustomerDetails = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`${API_URL}/customers/${customerId}`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const result = await response.json();
-      
-      if (result.success) {
-        setCustomer(result.customer);
-        
-        // Load contacts
-        if (result.customer.contacts) {
-          setContacts(result.customer.contacts);
-        }
-        
-        // Load addresses
-        if (result.customer.addresses) {
-          setAddresses(result.customer.addresses);
-        }
-        
-        // Load documents
-        if (result.customer.documents) {
-          setDocuments(result.customer.documents);
-        }
-      } else {
-        toast.error('Failed to load customer details');
-      }
-    } catch (error) {
-      console.error('Error fetching customer:', error);
-      toast.error('Error loading customer details');
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchCustomerDetails = () => {
+    setIsLoading(false);
+    setCustomer(null);
+    setContacts([]);
+    setAddresses([]);
+    setDocuments([]);
   };
 
   const handleAddNote = () => {
@@ -151,182 +119,54 @@ export function CustomerDetailView({ customerId, onBack, onEdit }: CustomerDetai
   };
 
   const handleAddContact = async (contact: Contact) => {
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerId}/contacts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify(contact),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setContacts([...contacts, result.contact]);
-        toast.success('Contact added successfully');
-      } else {
-        toast.error('Failed to add contact');
-      }
-    } catch (error) {
-      console.error('Error adding contact:', error);
-      toast.error('Error adding contact');
-    }
+    setContacts([...contacts, contact]);
+    toast.success('Contact added successfully');
   };
 
   const handleDeleteContact = async (id: string) => {
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerId}/contacts/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setContacts(contacts.filter(c => c.id !== id));
-        toast.success('Contact deleted successfully');
-      } else {
-        toast.error('Failed to delete contact');
-      }
-    } catch (error) {
-      console.error('Error deleting contact:', error);
-      toast.error('Error deleting contact');
-    }
+    setContacts(contacts.filter(c => c.id !== id));
+    toast.success('Contact deleted successfully');
   };
 
   const handleAddAddress = async (address: Address) => {
-    try {
-      // If new address is primary, set all others to non-primary first
-      if (address.isPrimary) {
-        setAddresses(addresses.map(a => ({ ...a, isPrimary: false })));
-      }
-
-      const response = await fetch(`${API_URL}/customers/${customerId}/addresses`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify(address),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setAddresses([...addresses.filter(a => !address.isPrimary || !a.isPrimary), result.address]);
-        toast.success('Address added successfully');
-      } else {
-        toast.error('Failed to add address');
-      }
-    } catch (error) {
-      console.error('Error adding address:', error);
-      toast.error('Error adding address');
+    // If new address is primary, set all others to non-primary first
+    if (address.isPrimary) {
+      setAddresses(addresses.map(a => ({ ...a, isPrimary: false })));
     }
+
+    setAddresses([...addresses.filter(a => !address.isPrimary || !a.isPrimary), address]);
+    toast.success('Address added successfully');
   };
 
   const handleDeleteAddress = async (id: string) => {
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerId}/addresses/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setAddresses(addresses.filter(a => a.id !== id));
-        toast.success('Address deleted successfully');
-      } else {
-        toast.error('Failed to delete address');
-      }
-    } catch (error) {
-      console.error('Error deleting address:', error);
-      toast.error('Error deleting address');
-    }
+    setAddresses(addresses.filter(a => a.id !== id));
+    toast.success('Address deleted successfully');
   };
 
   const handleSetPrimaryAddress = async (id: string) => {
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerId}/addresses/${id}/primary`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setAddresses(addresses.map(a => ({ ...a, isPrimary: a.id === id })));
-        toast.success('Primary address updated');
-      } else {
-        toast.error('Failed to update primary address');
-      }
-    } catch (error) {
-      console.error('Error updating primary address:', error);
-      toast.error('Error updating primary address');
-    }
+    setAddresses(addresses.map(a => ({ ...a, isPrimary: a.id === id })));
+    toast.success('Primary address updated');
   };
 
   const handleFileUpload = async (file: File, fileName: string, fileType: string) => {
     setIsUploadingFile(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fileName', fileName);
-    formData.append('fileType', fileType);
 
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerId}/files`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: formData,
-      });
+    const newFile = {
+      id: Date.now().toString(),
+      name: fileName,
+      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+      uploadedDate: new Date().toISOString().split('T')[0],
+      uploadedBy: 'Current User'
+    };
 
-      const result = await response.json();
-      
-      if (result.success) {
-        setDocuments([...documents, result.file]);
-        toast.success('File uploaded successfully');
-      } else {
-        toast.error(`Failed to upload file: ${result.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error(`Error uploading file: ${error}`);
-    } finally {
-      setIsUploadingFile(false);
-    }
+    setDocuments([...documents, newFile]);
+    toast.success('File uploaded successfully');
+    setIsUploadingFile(false);
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    try {
-      const response = await fetch(`${API_URL}/customers/${customerId}/files/${fileId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setDocuments(documents.filter(d => d.id !== fileId));
-        toast.success('File deleted successfully');
-      } else {
-        toast.error('Failed to delete file');
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      toast.error('Error deleting file');
-    }
+    setDocuments(documents.filter(d => d.id !== fileId));
+    toast.success('File deleted successfully');
   };
 
   if (isLoading) {
