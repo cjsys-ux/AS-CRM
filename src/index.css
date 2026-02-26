@@ -5911,7 +5911,17 @@
 }
 
 html {
+  height: 100%;
   font-size: var(--font-size);
+}
+
+body {
+  min-height: 100vh;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
 }
 
 @property --tw-translate-x {
