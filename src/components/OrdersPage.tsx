@@ -1,9 +1,7 @@
 import { motion } from 'motion/react';
 import { ShoppingCart, Plus, Search, Filter, Download, Eye, Edit2, Trash2, Package, Truck, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface Order {
   id: string;
@@ -56,29 +54,8 @@ export function OrdersPage() {
 
   // Fetch orders from database
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_URL}/orders`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        });
-        const data = await response.json();
-        if (data.success) {
-          setOrders(data.orders || []);
-        } else {
-          console.error('Error fetching orders:', data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
+    setLoading(false);
+    setOrders([]);
   }, []);
 
   // Calculate statistics from real data

@@ -3,7 +3,6 @@ import { Search, Plus, Edit, Trash2, Mail, Phone, ChevronLeft, ChevronRight } fr
 import { useState, useEffect } from 'react';
 import { UserDrawer } from './UserDrawer';
 import { DeleteUserModal } from './DeleteUserModal';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 interface User {
   id: string;
@@ -27,43 +26,12 @@ export function UserManagement() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
 
-  const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
-
   // Fetch users from database
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`${API_BASE}/users`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        if (data.users && data.users.length > 0) {
-          setUsers(data.users);
-        } else {
-          // Initialize with Patrick Lowenthal if no users exist
-          await initializeDefaultUser();
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      // Initialize with Patrick if fetch fails
-      await initializeDefaultUser();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const initializeDefaultUser = async () => {
+  const fetchUsers = () => {
     const defaultUser = {
       id: '1',
       name: 'Patrick Lowenthal',
@@ -75,72 +43,31 @@ export function UserManagement() {
       created: new Date().toISOString(),
     };
 
-    try {
-      const response = await fetch(`${API_BASE}/users`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(defaultUser),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setUsers([data.user]);
-      } else {
-        setUsers([defaultUser]);
-      }
-    } catch (error) {
-      console.error('Error initializing default user:', error);
-      setUsers([defaultUser]);
-    }
+    setUsers([defaultUser]);
+    setIsLoading(false);
   };
 
-  const handleSaveUser = async (formData: any) => {
-    try {
-      const userData = {
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        email: formData.email,
-        phone: formData.phone,
-        role: formData.role,
-        status: formData.status,
+  const handleSaveUser = (formData: any) => {
+    const userData = {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      phone: formData.phone,
+      role: formData.role,
+      status: formData.status,
+    };
+
+    if (selectedUser) {
+      setUsers(users.map(u => u.id === selectedUser.id ? { ...selectedUser, ...userData } : u));
+    } else {
+      const newUser: User = {
+        id: Date.now().toString(),
+        ...userData,
+        lastLogin: 'Just now',
       };
-
-      if (selectedUser) {
-        // Update existing user
-        const response = await fetch(`${API_BASE}/users/${selectedUser.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(userData),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          setUsers(users.map(u => u.id === selectedUser.id ? data.user : u));
-        }
-      } else {
-        // Create new user
-        const response = await fetch(`${API_BASE}/users`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(userData),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          setUsers([...users, data.user]);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving user:', error);
+      setUsers([...users, newUser]);
     }
+    setIsUserDrawerOpen(false);
+    setSelectedUser(null);
   };
 
   const handleDeleteUser = (user: User) => {
@@ -148,26 +75,12 @@ export function UserManagement() {
     setIsDeleteUserModalOpen(true);
   };
 
-  const confirmDeleteUser = async () => {
+  const confirmDeleteUser = () => {
     if (!selectedUser) return;
 
-    try {
-      const response = await fetch(`${API_BASE}/users/${selectedUser.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setUsers(users.filter(u => u.id !== selectedUser.id));
-        setSelectedUser(null);
-      }
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
+    setUsers(users.filter(u => u.id !== selectedUser.id));
+    setSelectedUser(null);
+    setIsDeleteUserModalOpen(false);
   };
 
   const handleEditUser = (user: User) => {

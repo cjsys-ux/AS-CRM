@@ -2,9 +2,7 @@ import { motion } from 'motion/react';
 import { FileText, Download, Trash2, Upload, File, Image as ImageIcon, FileSpreadsheet, Video, Music, Archive, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface FileItem {
   id: string;
@@ -79,18 +77,8 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
     fetchFiles();
   }, [productId]);
 
-  const fetchFiles = async () => {
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}/files`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setFiles(data.files);
-      }
-    } catch (error) {
-      console.error('Error fetching files:', error);
-    }
+  const fetchFiles = () => {
+    setFiles([]);
   };
 
   const filteredFiles = selectedCategory === 'all' 
@@ -99,37 +87,10 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
 
   const categories = ['all', ...Array.from(new Set(files.map(f => f.category)))];
 
-  const handleFileUpload = async (uploadedFiles: FileList | null) => {
+  const handleFileUpload = (uploadedFiles: FileList | null) => {
     if (!uploadedFiles || uploadedFiles.length === 0) return;
-    
-    setIsUploading(true);
-    
-    try {
-      for (let i = 0; i < uploadedFiles.length; i++) {
-        const file = uploadedFiles[i];
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category', 'General');
 
-        const response = await fetch(`${API_URL}/products/${productId}/files`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-          body: formData,
-        });
-
-        const data = await response.json();
-        if (!data.success) {
-          console.error('Error uploading file:', data.error);
-        }
-      }
-      
-      // Refresh files list
-      await fetchFiles();
-    } catch (error) {
-      console.error('Error uploading files:', error);
-    } finally {
-      setIsUploading(false);
-    }
+    setIsUploading(false);
   };
 
   const handleDeleteClick = (file: FileItem) => {
@@ -137,30 +98,12 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
     setDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (!fileToDelete) return;
-    
-    setIsDeleting(true);
-    
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}/files/${fileToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
 
-      const data = await response.json();
-      if (data.success) {
-        await fetchFiles();
-        setDeleteModalOpen(false);
-        setFileToDelete(null);
-      } else {
-        console.error('Error deleting file:', data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-    } finally {
-      setIsDeleting(false);
-    }
+    fetchFiles();
+    setDeleteModalOpen(false);
+    setFileToDelete(null);
   };
 
   return (

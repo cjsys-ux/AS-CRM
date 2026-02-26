@@ -5,7 +5,6 @@ import { AddShipmentDrawer } from './AddShipmentDrawer';
 import { EditShipmentDrawer } from './EditShipmentDrawer';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ShipmentDetailsModal } from './ShipmentDetailsModal';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 type ChildTracking = {
   trackingNumber: string;
@@ -85,27 +84,9 @@ export function ShipmentsModule() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchShipments = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c0840c88/shipments`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setShipments(data.shipments || []);
-      } else {
-        console.error('Failed to fetch shipments:', data.error);
-        setShipments([]);
-      }
-    } catch (error) {
-      console.error('Error fetching shipments:', error);
-      setShipments([]);
-    } finally {
-      setLoading(false);
-    }
+  const fetchShipments = () => {
+    setLoading(false);
+    setShipments([]);
   };
 
   useEffect(() => {
@@ -169,29 +150,9 @@ export function ShipmentsModule() {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!shipmentToDelete) return;
-    
-    try {
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-c0840c88/shipments/${shipmentToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        // Refresh the shipments list
-        await fetchShipments();
-        console.log('Shipment deleted successfully');
-      } else {
-        console.error('Failed to delete shipment:', data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting shipment:', error);
-    }
-    
+
     setDeleteModalOpen(false);
     setShipmentToDelete(null);
   };

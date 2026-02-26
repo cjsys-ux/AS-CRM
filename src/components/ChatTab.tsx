@@ -2,9 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, Trash2, User, Paperclip, X, Download, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface ChatMessage {
   id: string;
@@ -46,72 +44,15 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchMessages = async () => {
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}/chat`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setMessages(data.messages);
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
+  const fetchMessages = () => {
+    setMessages([]);
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if ((!newMessage.trim() && !attachedFile) || isSending) return;
 
-    setIsSending(true);
-
-    try {
-      if (attachedFile) {
-        // Send with file attachment
-        const formData = new FormData();
-        formData.append('message', newMessage || 'Shared a file');
-        formData.append('file', attachedFile);
-
-        const response = await fetch(`${API_URL}/products/${productId}/chat`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: formData,
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          await fetchMessages();
-          setNewMessage('');
-          setAttachedFile(null);
-        } else {
-          console.error('Error sending message:', data.error);
-        }
-      } else {
-        // Send text-only message
-        const response = await fetch(`${API_URL}/products/${productId}/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify({ message: newMessage }),
-        });
-
-        const data = await response.json();
-        if (data.success) {
-          await fetchMessages();
-          setNewMessage('');
-        } else {
-          console.error('Error sending message:', data.error);
-        }
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setIsSending(false);
-    }
+    setNewMessage('');
+    setAttachedFile(null);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,30 +67,11 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
     setDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (!messageToDelete) return;
 
-    setIsDeleting(true);
-
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}/chat/${messageToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        await fetchMessages();
-        setDeleteModalOpen(false);
-        setMessageToDelete(null);
-      } else {
-        console.error('Error deleting message:', data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting message:', error);
-    } finally {
-      setIsDeleting(false);
-    }
+    setDeleteModalOpen(false);
+    setMessageToDelete(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

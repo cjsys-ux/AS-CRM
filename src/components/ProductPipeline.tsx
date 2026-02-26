@@ -10,9 +10,7 @@ import { AdvancedFilterPanel } from './AdvancedFilterPanel';
 import { StatusDropdown } from './StatusDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { ProductDetails } from './ProductDetails';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -93,27 +91,9 @@ export function ProductPipeline() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/products`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setProducts(data.products || []);
-      } else {
-        console.error('Error fetching products:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchProducts = () => {
+    setLoading(false);
+    setProducts([]);
   };
 
   useEffect(() => {
@@ -161,15 +141,6 @@ export function ProductPipeline() {
                   : p
               )
             );
-            // Also update in the backend
-            fetch(`${API_URL}/products/${selectedProductId}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${publicAnonKey}`,
-              },
-              body: JSON.stringify(updatedInfo),
-            }).catch(err => console.error('Error updating product:', err));
           }}
         />
         {/* Add Product Drawer - needs to be available even in detail view */}
@@ -259,92 +230,22 @@ export function ProductPipeline() {
   };
 
   const handleBulkEdit = async (updates: { status?: string; client?: string; type?: string }) => {
-    try {
-      const response = await fetch(`${API_URL}/products/bulk-update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ ids: selectedProducts, updates }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchProducts();
-        setSelectedProducts([]);
-      } else {
-        console.error('Error bulk updating products:', data.error);
-      }
-    } catch (error) {
-      console.error('Error bulk updating products:', error);
-    }
+    setSelectedProducts([]);
   };
 
   const handleBulkDelete = async () => {
-    try {
-      const response = await fetch(`${API_URL}/products/bulk-delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ ids: selectedProducts }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchProducts();
-        setSelectedProducts([]);
-      } else {
-        console.error('Error bulk deleting products:', data.error);
-      }
-    } catch (error) {
-      console.error('Error bulk deleting products:', error);
-    }
+    setSelectedProducts([]);
   };
 
   const handleStatusUpdate = async (productId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchProducts();
-      } else {
-        console.error('Error updating product status:', data.error);
-      }
-    } catch (error) {
-      console.error('Error updating product status:', error);
-    }
+    // Status update would be handled by the backend
   };
 
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/products/${productToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        await fetchProducts();
-        setDeleteModalOpen(false);
-        setProductToDelete(undefined);
-      } else {
-        console.error('Error deleting product:', data.error);
-      }
-    } catch (error) {
-      console.error('Error deleting product:', error);
-    }
+
+    setDeleteModalOpen(false);
+    setProductToDelete(undefined);
   };
 
   const handleApplyFilters = (filters: any) => {

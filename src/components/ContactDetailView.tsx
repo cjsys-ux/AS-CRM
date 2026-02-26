@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Mail, Phone, Building2, Globe, MapPin, FileText, DollarSign, ShoppingCart, Package, Calendar, Edit, Trash2, MessageSquare, Video, Send, Upload, File, X, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface Contact {
   id: string;
@@ -44,33 +42,8 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
 
   // Fetch purchase orders for this contact
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_URL}/purchase-orders`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        });
-        const data = await response.json();
-        if (data.success) {
-          // Filter orders by contact's company
-          const filteredOrders = data.orders.filter((order: any) => 
-            order.vendor?.toLowerCase().includes(contact.company.toLowerCase()) ||
-            order.companyName?.toLowerCase().includes(contact.company.toLowerCase())
-          );
-          setOrders(filteredOrders);
-        }
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchOrders();
+    setLoading(false);
+    setOrders([]);
   }, [contact.company]);
 
   const handleDeleteClick = () => {

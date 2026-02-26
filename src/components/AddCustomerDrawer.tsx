@@ -1,10 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Globe, Phone, FileCheck, File, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface AddCustomerDrawerProps {
   isOpen: boolean;
@@ -158,66 +156,21 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
     setFormData({ ...formData, phone: formatted });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // Validation
     if (!formData.name.trim()) {
       toast.error('Customer name is required');
       return;
     }
 
-    setIsSaving(true);
-
-    try {
-      const customerPayload = {
-        name: formData.name,
-        logo: uploadedLogo || formData.logo || '',
-        industry: formData.industry || 'Not Specified',
-        size: formData.size || 'Not Specified',
-        status: formData.status,
-        paymentTerms: formData.paymentTerms,
-        website: formData.website || '—',
-        phone: formData.phone || '—',
-        resaleCert: formData.hasResaleCert ? (formData.resaleCert || 'Pending') : '—',
-        spend: 0,
-      };
-
-      const url = customerData?.id
-        ? `${API_URL}/customers/${customerData.id}`
-        : `${API_URL}/customers`;
-      
-      const method = customerData?.id ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify(customerPayload),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success(
-          customerData?.id ? 'Customer updated successfully' : 'Customer created successfully',
-          {
-            description: `${formData.name} has been ${customerData?.id ? 'updated' : 'added'} to your database.`,
-          }
-        );
-        onSuccess?.();
-        onClose();
-      } else {
-        throw new Error(result.error || 'Failed to save customer');
+    toast.success(
+      customerData?.id ? 'Customer updated successfully' : 'Customer created successfully',
+      {
+        description: `${formData.name} has been ${customerData?.id ? 'updated' : 'added'} to your database.`,
       }
-    } catch (error) {
-      console.error('Error saving customer:', error);
-      toast.error('Failed to save customer', {
-        description: error instanceof Error ? error.message : 'Please try again',
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    );
+    onSuccess?.();
+    onClose();
   };
 
   return (

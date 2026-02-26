@@ -1,9 +1,7 @@
 import { motion } from 'motion/react';
 import { Clock, CheckCircle, AlertCircle, User, Package, FileText, Upload, MessageSquare, Edit } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface TimelineEvent {
   id: string;
@@ -103,21 +101,9 @@ export function TimelineTab({ productId = 'PRD-001' }: TimelineTabProps) {
     fetchTimeline();
   }, [productId]);
 
-  const fetchTimeline = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/products/${productId}/timeline`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTimeline(data.events);
-      }
-    } catch (error) {
-      console.error('Error fetching timeline:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchTimeline = () => {
+    setTimeline([]);
+    setIsLoading(false);
   };
 
   return (

@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Mail, Phone, Globe, DollarSign, MapPin, Package, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
 interface AddVendorDrawerProps {
   isOpen: boolean;
@@ -121,39 +119,9 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
       reader.onloadend = async () => {
         const base64String = reader.result as string;
         
-        if (removeBackground) {
-          // Call server to remove background
-          try {
-            const response = await fetch(`${API_URL}/remove-background`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${publicAnonKey}`,
-              },
-              body: JSON.stringify({ imageBase64: base64String }),
-            });
-            
-            const data = await response.json();
-            if (data.success && data.imageUrl) {
-              setUploadedLogo(data.imageUrl);
-              setFormData({ ...formData, logo: data.imageUrl });
-            } else {
-              console.error('Error removing background:', data.error);
-              // Fallback to original image
-              setUploadedLogo(base64String);
-              setFormData({ ...formData, logo: base64String });
-            }
-          } catch (error) {
-            console.error('Error removing background:', error);
-            // Fallback to original image
-            setUploadedLogo(base64String);
-            setFormData({ ...formData, logo: base64String });
-          }
-        } else {
-          // Use original image
-          setUploadedLogo(base64String);
-          setFormData({ ...formData, logo: base64String });
-        }
+        // Use original image
+        setUploadedLogo(base64String);
+        setFormData({ ...formData, logo: base64String });
         
         setIsProcessingImage(false);
       };
@@ -189,89 +157,10 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const vendor = {
-      name: formData.vendorName,
-      logo: formData.logo,
-      status: formData.status,
-      contactName: formData.contactName,
-      email: formData.email,
-      phone: formData.phone,
-      wechatId: formData.wechatId,
-      type: formData.vendorType,
-      accountType: formData.accountType,
-      website: formData.website,
-      paymentTerms: formData.paymentTerms,
-      accountNumber: formData.accountNumber,
-      country: formData.country,
-      fobCity: formData.fobCity,
-      fobState: formData.fobState,
-      productsSupplied: formData.productsSupplied,
-      notes: formData.notes,
-    };
-
-    try {
-      if (vendorData?.id) {
-        // Update existing vendor
-        const response = await fetch(`${API_URL}/vendors/${vendorData.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify(vendor),
-        });
-        const data = await response.json();
-        if (data.success) {
-          onSuccess?.();
-          onClose();
-        } else {
-          console.error('Error updating vendor:', data.error);
-        }
-      } else {
-        // Create new vendor
-        const response = await fetch(`${API_URL}/vendors`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-          body: JSON.stringify(vendor),
-        });
-        const data = await response.json();
-        if (data.success) {
-          onSuccess?.();
-          onClose();
-          // Reset form
-          setFormData({
-            vendorName: '',
-            logo: '',
-            status: 'Active',
-            contactName: '',
-            email: '',
-            phone: '',
-            wechatId: '',
-            vendorType: 'Distributor',
-            accountType: 'Standalone',
-            website: '',
-            paymentTerms: '',
-            accountNumber: '',
-            country: '',
-            fobCity: '',
-            fobState: '',
-            productsSupplied: [],
-            notes: '',
-          });
-          setUploadedLogo(null);
-        } else {
-          console.error('Error creating vendor:', data.error);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving vendor:', error);
-    }
+    onSuccess?.();
+    onClose();
   };
 
   return (
