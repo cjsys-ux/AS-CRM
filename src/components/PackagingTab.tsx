@@ -1,0 +1,478 @@
+import { motion, AnimatePresence } from 'motion/react';
+import { Package, Upload, FileText, Image as ImageIcon, Download, Box, Trash2 } from 'lucide-react';
+import { ChecklistWidget } from './ChecklistWidget';
+import { UnitDropdown } from './UnitDropdown';
+import { FilterDropdown } from './FilterDropdown';
+import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { toast } from 'sonner';
+import { useState } from 'react';
+
+export function PackagingTab() {
+  const [mockups, setMockups] = useState<File[]>([]);
+  const [dielineFiles, setDielineFiles] = useState<File[]>([]);
+  const [specSheets, setSpecSheets] = useState<File[]>([]);
+  const [primaryPackaging, setPrimaryPackaging] = useState('');
+  const [packagingMaterial, setPackagingMaterial] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number; type: 'mockup' | 'dieline' | 'spec' } | null>(null);
+
+  const handleMockupUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      setMockups([...mockups, ...fileArray]);
+      toast.success(`${files.length} mockup${files.length > 1 ? 's' : ''} uploaded successfully`, {
+        description: 'Your packaging mockup files have been added.',
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleDielineUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      setDielineFiles([...dielineFiles, ...fileArray]);
+      toast.success(`${files.length} dieline file${files.length > 1 ? 's' : ''} uploaded successfully`, {
+        description: 'Your dieline/CAD files have been added.',
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleSpecUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      setSpecSheets([...specSheets, ...fileArray]);
+      toast.success(`${files.length} spec sheet${files.length > 1 ? 's' : ''} uploaded successfully`, {
+        description: 'Your packaging spec sheets have been added.',
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleDeleteFile = () => {
+    if (fileToDelete) {
+      switch (fileToDelete.type) {
+        case 'mockup':
+          setMockups(mockups.filter((_, i) => i !== fileToDelete.index));
+          break;
+        case 'dieline':
+          setDielineFiles(dielineFiles.filter((_, i) => i !== fileToDelete.index));
+          break;
+        case 'spec':
+          setSpecSheets(specSheets.filter((_, i) => i !== fileToDelete.index));
+          break;
+      }
+      setDeleteModalOpen(false);
+      setFileToDelete(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Packaging Dimensions */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+          <Box className="w-5 h-5 text-blue-600" />
+          <h3 className="font-bold text-slate-900">Packaging Dimensions</h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <UnitDropdown
+                  options={['in', 'cm', 'mm']}
+                  defaultOption="in"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Width</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <UnitDropdown
+                  options={['in', 'cm', 'mm']}
+                  defaultOption="in"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Height</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                <UnitDropdown
+                  options={['in', 'cm', 'mm']}
+                  defaultOption="in"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Packaging Type */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+          <Package className="w-5 h-5 text-green-600" />
+          <h3 className="font-bold text-slate-900">Packaging Type</h3>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Primary Packaging</label>
+            <FilterDropdown
+              value={primaryPackaging}
+              onChange={setPrimaryPackaging}
+              options={[
+                { value: '', label: 'Select packaging type...' },
+                { value: 'Poly Bag', label: 'Poly Bag' },
+                { value: 'Box', label: 'Box' },
+                { value: 'Blister Pack', label: 'Blister Pack' },
+                { value: 'Clamshell', label: 'Clamshell' },
+                { value: 'Custom', label: 'Custom' }
+              ]}
+              fullWidth
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Material</label>
+            <FilterDropdown
+              value={packagingMaterial}
+              onChange={setPackagingMaterial}
+              options={[
+                { value: '', label: 'Select material...' },
+                { value: 'Cardboard', label: 'Cardboard' },
+                { value: 'Plastic', label: 'Plastic' },
+                { value: 'Biodegradable', label: 'Biodegradable' },
+                { value: 'Metal', label: 'Metal' },
+                { value: 'Glass', label: 'Glass' },
+                { value: 'Other', label: 'Other' }
+              ]}
+              fullWidth
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Special Requirements</label>
+            <textarea
+              rows={3}
+              placeholder="Enter any special packaging requirements..."
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Packaging Mockups */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ImageIcon className="w-5 h-5 text-pink-600" />
+            <h3 className="font-bold text-slate-900">Packaging Mockups</h3>
+          </div>
+          <label htmlFor="mockup-upload">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Mockup
+            </motion.div>
+          </label>
+          <input
+            id="mockup-upload"
+            type="file"
+            multiple
+            accept="*/*"
+            onChange={handleMockupUpload}
+            className="hidden"
+          />
+        </div>
+        <div className="p-6">
+          {mockups.length > 0 ? (
+            <div className="space-y-2">
+              <AnimatePresence>
+                {mockups.map((file, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-pink-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{file.name}</p>
+                        <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          const url = URL.createObjectURL(file);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = file.name;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setFileToDelete({ file, index, type: 'mockup' });
+                          setDeleteModalOpen(true);
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+                <ImageIcon className="w-8 h-8 text-slate-400" />
+              </div>
+              <h4 className="font-bold text-slate-900 mb-2">No packaging mockups uploaded</h4>
+              <p className="text-sm text-slate-600 mb-4">
+                Upload images of packaging designs or mockups
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Dieline & CAD Files */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FileText className="w-5 h-5 text-purple-600" />
+            <h3 className="font-bold text-slate-900">Dieline & CAD Files</h3>
+          </div>
+          <label htmlFor="dieline-upload">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Files
+            </motion.div>
+          </label>
+          <input
+            id="dieline-upload"
+            type="file"
+            multiple
+            accept="*/*"
+            onChange={handleDielineUpload}
+            className="hidden"
+          />
+        </div>
+        <div className="p-6">
+          {dielineFiles.length > 0 ? (
+            <div className="space-y-2">
+              <AnimatePresence>
+                {dielineFiles.map((file, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{file.name}</p>
+                        <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          const url = URL.createObjectURL(file);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = file.name;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setFileToDelete({ file, index, type: 'dieline' });
+                          setDeleteModalOpen(true);
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+                <FileText className="w-8 h-8 text-slate-400" />
+              </div>
+              <h4 className="font-bold text-slate-900 mb-2">No dieline files uploaded</h4>
+              <p className="text-sm text-slate-600 mb-4">
+                Upload AI, PDF, or CAD files for packaging production
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Packaging Spec Sheet */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Download className="w-5 h-5 text-orange-600" />
+            <h3 className="font-bold text-slate-900">Packaging Spec Sheet</h3>
+          </div>
+          <label htmlFor="spec-upload">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <Upload className="w-4 h-4" />
+              Upload Spec Sheet
+            </motion.div>
+          </label>
+          <input
+            id="spec-upload"
+            type="file"
+            multiple
+            accept="*/*"
+            onChange={handleSpecUpload}
+            className="hidden"
+          />
+        </div>
+        <div className="p-6">
+          {specSheets.length > 0 ? (
+            <div className="space-y-2">
+              <AnimatePresence>
+                {specSheets.map((file, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{file.name}</p>
+                        <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          const url = URL.createObjectURL(file);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = file.name;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setFileToDelete({ file, index, type: 'spec' });
+                          setDeleteModalOpen(true);
+                        }}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+                <FileText className="w-8 h-8 text-slate-400" />
+              </div>
+              <h4 className="font-bold text-slate-900 mb-2">No spec sheet uploaded</h4>
+              <p className="text-sm text-slate-600 mb-4">
+                Upload detailed packaging specifications
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Checklist - Moved to Bottom */}
+      <ChecklistWidget
+        items={[
+          { id: '1', label: 'Packaging Mockup', completed: false },
+          { id: '2', label: 'Packaging Template', completed: false },
+          { id: '3', label: 'Dieline/CAD Files', completed: false },
+          { id: '4', label: 'Packaging Spec Sheet', completed: false }
+        ]}
+      />
+
+      {/* Delete Document Modal */}
+      <DeleteDocumentModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteFile}
+        fileName={fileToDelete?.file.name || ''}
+      />
+    </div>
+  );
+}
