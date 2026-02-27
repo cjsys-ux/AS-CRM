@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getMgmtToken } from '../_mgmt-token';
+import { getMailer } from '../_mailer';
+import { renderInviteEmail } from '../_templates/invite-email';
 
 /** Generate a random password that satisfies Auth0's default password policy */
 function generateTempPassword(): string {
@@ -61,6 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       password: tempPassword,
       blocked: status === 'Inactive',
       email_verified: false,
+      verify_email: false, // suppress Auth0's own verification email — we send our own invite
       user_metadata: {
         phone: phone ?? '',
         role: role ?? 'Sales Rep',
@@ -90,11 +93,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }),
   });
 
+  // Capture the ticket URL so we can send it in our own custom email.
   // A ticket failure is non-fatal — the user is created and the admin can
   // resend the invite later. We log the error but still return success.
-  if (!ticketRes.ok) {
+  let activationLink: string | null = null;
+  let ticketError: string | null = null;
+  if (ticketRes.ok) {
+    const ticketData = await ticketRes.json().catch(() => ({}));
+    activationLink = ticketData.ticket ?? null;
+  } else {
     const ticketErr = await ticketRes.json().catch(() => ({}));
-    console.error('Failed to send password-change ticket:', ticketErr.message || ticketRes.status);
+    ticketError = ticketErr.message || `HTTP ${ticketRes.status}`;
+    console.error('Failed to create password-change ticket:', ticketError);
+  }
+
+  // Send the branded invite email via our own SMTP mailer (non-fatal).
+  let emailSent = false;
+  let emailError: string | null = null;
+  if (activationLink) {
+    try {
+      const mailer = getMailer();
+      const html = renderInviteEmail({
+        firstName,
+        companyName: process.env.COMPANY_NAME ?? 'ActivateSwag',
+        activationLink,
+        currentYear: new Date().getFullYear().toString(),
+      });
+      await mailer.sendMail({
+        from: process.env.SMTP_FROM ?? 'ActivateSwag <noreply@activateswag.com>',
+        to: email,
+        subject: 'Welcome to ActivateSwag \u2013 Create Your Password',
+        html,
+      });
+      emailSent = true;
+    } catch (mailErr) {
+      emailError = mailErr instanceof Error ? mailErr.message : String(mailErr);
+      console.error('Failed to send invite email:', emailError);
+    }
   }
 
   return res.status(201).json({
@@ -107,6 +142,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: newUser.blocked ? 'Inactive' : 'Active',
       lastLogin: 'Never',
       created: newUser.created_at ?? new Date().toISOString(),
+    },
+    invite: {
+      ticketCreated: activationLink !== null,
+      ticketError,
+      emailSent,
+      emailError,
     },
   });
 }
