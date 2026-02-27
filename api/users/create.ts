@@ -97,15 +97,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // A ticket failure is non-fatal — the user is created and the admin can
   // resend the invite later. We log the error but still return success.
   let activationLink: string | null = null;
+  let ticketError: string | null = null;
   if (ticketRes.ok) {
     const ticketData = await ticketRes.json().catch(() => ({}));
     activationLink = ticketData.ticket ?? null;
   } else {
     const ticketErr = await ticketRes.json().catch(() => ({}));
-    console.error('Failed to create password-change ticket:', ticketErr.message || ticketRes.status);
+    ticketError = ticketErr.message || `HTTP ${ticketRes.status}`;
+    console.error('Failed to create password-change ticket:', ticketError);
   }
 
   // Send the branded invite email via our own SMTP mailer (non-fatal).
+  let emailSent = false;
+  let emailError: string | null = null;
   if (activationLink) {
     try {
       const mailer = getMailer();
@@ -121,8 +125,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         subject: 'Welcome to ActivateSwag \u2013 Create Your Password',
         html,
       });
+      emailSent = true;
     } catch (mailErr) {
-      console.error('Failed to send invite email:', mailErr);
+      emailError = mailErr instanceof Error ? mailErr.message : String(mailErr);
+      console.error('Failed to send invite email:', emailError);
     }
   }
 
@@ -136,6 +142,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: newUser.blocked ? 'Inactive' : 'Active',
       lastLogin: 'Never',
       created: newUser.created_at ?? new Date().toISOString(),
+    },
+    invite: {
+      ticketCreated: activationLink !== null,
+      ticketError,
+      emailSent,
+      emailError,
     },
   });
 }
