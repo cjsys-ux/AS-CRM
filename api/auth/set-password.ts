@@ -55,11 +55,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userUrl = `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`;
   const patchHeaders = { Authorization: `Bearer ${mgmtToken}`, 'Content-Type': 'application/json' };
 
-  // Auth0 does not allow updating password and email_verified in the same request
+  // Auth0 does not allow updating password and email_verified in the same request.
+  // connection is required when changing a password for a database user.
   const patchRes = await fetch(userUrl, {
     method: 'PATCH',
     headers: patchHeaders,
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ password, connection: 'Username-Password-Authentication' }),
   });
 
   if (!patchRes.ok) {
