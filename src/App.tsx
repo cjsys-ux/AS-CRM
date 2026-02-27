@@ -22,6 +22,7 @@ import { EmailTemplatesModule } from './components/EmailTemplatesModule';
 import { AmazonDistributionModule } from './components/AmazonDistributionModule';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
+import { SetPasswordPage } from './components/SetPasswordPage';
 
 export interface UserProfile {
   firstName: string;
@@ -118,6 +119,13 @@ export default function App() {
         return <Dashboard />;
     }
   };
+
+  // Show the custom Create Password screen when an invite token is in the URL.
+  // This must render regardless of auth state, so check before the guards below.
+  const setupToken = new URLSearchParams(window.location.search).get('token');
+  if (setupToken) {
+    return <SetPasswordPage />;
+  }
 
   if (isLoading) {
     return (

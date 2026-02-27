@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getMgmtToken } from '../_mgmt-token';
 import { getMailer } from '../_mailer';
 import { renderInviteEmail } from '../_templates/invite-email';
+import { signInviteToken } from '../auth/setup-password';
 
 /** Generate a random password that satisfies Auth0's default password policy */
 function generateTempPassword(): string {
@@ -81,33 +82,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const newUser = await createRes.json();
 
-  // Step 2: Send a password-change ticket so the new user can set their own password
-  // Requires the M2M app to have the `create:user_tickets` scope
-  const ticketRes = await fetch(`https://${domain}/api/v2/tickets/password-change`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user_id: newUser.user_id,
-      mark_email_as_verified: true,
-      includeEmailInRedirect: false,
-    }),
-  });
+  // Step 2: Generate a signed invite token so the new user can set their own password
+  // via the custom in-app Create Password screen (/create-password?token=...).
+  const inviteSecret = process.env.INVITE_SECRET;
+  const appUrl = (process.env.APP_URL ?? '').replace(/\/$/, '');
 
-  // Capture the ticket URL so we can send it in our own custom email.
-  // A ticket failure is non-fatal — the user is created and the admin can
-  // resend the invite later. We log the error but still return success.
   let activationLink: string | null = null;
-  let ticketError: string | null = null;
-  if (ticketRes.ok) {
-    const ticketData = await ticketRes.json().catch(() => ({}));
-    activationLink = ticketData.ticket ?? null;
+  if (inviteSecret && appUrl) {
+    const inviteToken = signInviteToken(
+      {
+        sub: newUser.user_id,
+        email: newUser.email,
+        firstName,
+        exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      },
+      inviteSecret
+    );
+    activationLink = `${appUrl}/create-password?token=${encodeURIComponent(inviteToken)}`;
   } else {
-    const ticketErr = await ticketRes.json().catch(() => ({}));
-    ticketError = ticketErr.message || `HTTP ${ticketRes.status}`;
-    console.error('Failed to create password-change ticket:', ticketError);
+    console.warn(
+      'INVITE_SECRET or APP_URL is not configured — invite email will not be sent.'
+    );
   }
 
-  // Send the branded invite email via our own SMTP mailer (non-fatal).
+  // Step 3: Send the branded invite email via our own SMTP mailer (non-fatal).
   let emailSent = false;
   let emailError: string | null = null;
   if (activationLink) {
@@ -144,8 +142,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created: newUser.created_at ?? new Date().toISOString(),
     },
     invite: {
-      ticketCreated: activationLink !== null,
-      ticketError,
       emailSent,
       emailError,
     },
