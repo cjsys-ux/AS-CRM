@@ -3,6 +3,7 @@ import { Search, Plus, Edit, Trash2, Mail, Phone, ChevronLeft, ChevronRight } fr
 import { useState, useEffect } from 'react';
 import { UserDrawer } from './UserDrawer';
 import { DeleteUserModal } from './DeleteUserModal';
+import { Toast } from './Toast';
 
 interface User {
   id: string;
@@ -25,46 +26,71 @@ export function UserManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isToastVisible, setIsToastVisible] = useState(false);
 
-  // Fetch users from database
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = () => {
-    const defaultUser = {
-      id: '1',
-      name: 'Patrick Lowenthal',
-      email: 'patrick@activateswag.com',
-      phone: '(305) 215-2199',
-      role: 'Super Admin',
-      status: 'Active' as 'Active',
-      lastLogin: 'Just now',
-      created: new Date().toISOString(),
-    };
-
-    setUsers([defaultUser]);
-    setIsLoading(false);
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+    setIsToastVisible(true);
   };
 
-  const handleSaveUser = (formData: any) => {
-    const userData = {
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role,
-      status: formData.status,
-    };
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/users/list');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load users.');
+      setUsers(Array.isArray(data.users) ? data.users : []);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to load users.', 'error');
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const handleSaveUser = async (formData: any): Promise<void> => {
     if (selectedUser) {
-      setUsers(users.map(u => u.id === selectedUser.id ? { ...selectedUser, ...userData } : u));
+      // Edit existing user
+      const res = await fetch('/api/users/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          status: formData.status,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update user.');
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? data.user : u));
+      showToast(`${data.user.name} has been updated.`);
     } else {
-      const newUser: User = {
-        id: Date.now().toString(),
-        ...userData,
-        lastLogin: 'Just now',
-      };
-      setUsers([...users, newUser]);
+      // Create new user
+      const res = await fetch('/api/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          status: formData.status,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create user.');
+      setUsers(prev => [data.user, ...prev]);
+      showToast(`${data.user.name} added. A password-setup email has been sent.`);
     }
     setIsUserDrawerOpen(false);
     setSelectedUser(null);
@@ -75,10 +101,15 @@ export function UserManagement() {
     setIsDeleteUserModalOpen(true);
   };
 
-  const confirmDeleteUser = () => {
+  const confirmDeleteUser = async (): Promise<void> => {
     if (!selectedUser) return;
-
-    setUsers(users.filter(u => u.id !== selectedUser.id));
+    const params = new URLSearchParams({ userId: selectedUser.id });
+    const res = await fetch(`/api/users/delete?${params.toString()}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete user.');
+    const deletedName = selectedUser.name;
+    setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
+    showToast(`${deletedName} has been deleted.`);
     setSelectedUser(null);
     setIsDeleteUserModalOpen(false);
   };
@@ -110,9 +141,9 @@ export function UserManagement() {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -192,87 +223,113 @@ export function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {currentUsers.map((user, index) => (
-                <motion.tr
-                  key={user.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {user.name.split(' ').map(n => n[0]).join('')}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="border-b border-slate-100">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-slate-200 rounded-full animate-pulse" />
+                        <div className="space-y-1">
+                          <div className="w-32 h-3 bg-slate-200 rounded animate-pulse" />
+                          <div className="w-24 h-2 bg-slate-100 rounded animate-pulse" />
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-semibold text-slate-900">{user.name}</div>
-                        <div className="text-sm text-slate-500">ID: {user.id}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="w-40 h-3 bg-slate-200 rounded animate-pulse" />
+                        <div className="w-24 h-2 bg-slate-100 rounded animate-pulse" />
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-slate-700">
-                        <Mail className="w-4 h-4 text-slate-400" />
-                        {user.email}
+                    </td>
+                    <td className="px-6 py-4"><div className="w-20 h-6 bg-slate-200 rounded-full animate-pulse" /></td>
+                    <td className="px-6 py-4"><div className="w-16 h-6 bg-slate-200 rounded-full animate-pulse" /></td>
+                    <td className="px-6 py-4"><div className="w-20 h-3 bg-slate-200 rounded animate-pulse" /></td>
+                    <td className="px-6 py-4"><div className="w-16 h-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
+                  </tr>
+                ))
+              ) : (
+                currentUsers.map((user, index) => (
+                  <motion.tr
+                    key={user.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                          {user.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900">{user.name}</div>
+                          <div className="text-sm text-slate-500">ID: {user.id.split('|')[1] ?? user.id}</div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <Phone className="w-4 h-4 text-slate-400" />
-                        {user.phone}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-slate-700">
+                          <Mail className="w-4 h-4 text-slate-400" />
+                          {user.email}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <Phone className="w-4 h-4 text-slate-400" />
+                          {user.phone || '—'}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
-                      user.status === 'Active'
-                        ? 'bg-green-100 text-green-700 border-green-200'
-                        : 'bg-red-100 text-red-700 border-red-200'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-slate-600">{user.lastLogin}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleEditUser(user)}
-                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDeleteUser(user)}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </motion.button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
+                        user.status === 'Active'
+                          ? 'bg-green-100 text-green-700 border-green-200'
+                          : 'bg-red-100 text-red-700 border-red-200'
+                      }`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-slate-600">{user.lastLogin}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleEditUser(user)}
+                          className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeleteUser(user)}
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </motion.button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
             </tbody>
           </table>
 
-          {filteredUsers.length === 0 && (
+          {!isLoading && filteredUsers.length === 0 && (
             <div className="text-center py-12">
               <p className="text-slate-500">No users found matching your search.</p>
             </div>
           )}
 
           {/* Pagination */}
-          {filteredUsers.length > 0 && (
+          {!isLoading && filteredUsers.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-slate-600">
@@ -289,7 +346,7 @@ export function UserManagement() {
                   <option value={50}>50 per page</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -301,7 +358,7 @@ export function UserManagement() {
                   <ChevronLeft className="w-4 h-4" />
                   Previous
                 </motion.button>
-                
+
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.ceil(filteredUsers.length / rowsPerPage) }, (_, i) => i + 1).map((page) => (
                     <motion.button
@@ -319,7 +376,7 @@ export function UserManagement() {
                     </motion.button>
                   ))}
                 </div>
-                
+
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -339,16 +396,16 @@ export function UserManagement() {
       {/* User Drawer */}
       <UserDrawer
         isOpen={isUserDrawerOpen}
-        onClose={() => setIsUserDrawerOpen(false)}
+        onClose={() => { setIsUserDrawerOpen(false); setSelectedUser(null); }}
         mode={selectedUser ? 'edit' : 'add'}
         user={selectedUser ? {
-          id: parseInt(selectedUser.id),
+          id: selectedUser.id,
           name: selectedUser.name,
           email: selectedUser.email,
           phone: selectedUser.phone,
           role: selectedUser.role,
           status: selectedUser.status,
-          created: selectedUser.lastLogin
+          created: selectedUser.created ?? selectedUser.lastLogin,
         } : undefined}
         onSave={handleSaveUser}
       />
@@ -356,10 +413,20 @@ export function UserManagement() {
       {/* Delete User Modal */}
       <DeleteUserModal
         isOpen={isDeleteUserModalOpen}
-        onClose={() => setIsDeleteUserModalOpen(false)}
+        onClose={() => { setIsDeleteUserModalOpen(false); setSelectedUser(null); }}
         user={selectedUser}
         onConfirm={confirmDeleteUser}
       />
+
+      {/* Toast notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={isToastVisible}
+          onClose={() => setIsToastVisible(false)}
+        />
+      )}
     </div>
   );
 }

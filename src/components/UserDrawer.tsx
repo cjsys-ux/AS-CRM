@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Mail, Phone, Shield, Calendar } from 'lucide-react';
+import { X, User, Mail, Phone, Shield, Calendar, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ModernDropdown } from './ModernDropdown';
 
@@ -8,7 +8,7 @@ interface UserDrawerProps {
   onClose: () => void;
   mode: 'add' | 'edit';
   user?: {
-    id: number;
+    id: string;
     name: string;
     email: string;
     role: string;
@@ -16,7 +16,7 @@ interface UserDrawerProps {
     created: string;
     phone?: string;
   };
-  onSave?: (userData: any) => void;
+  onSave?: (userData: any) => Promise<void>;
 }
 
 export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerProps) {
@@ -28,9 +28,13 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
     role: 'Sales Rep',
     status: 'Active',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [drawerError, setDrawerError] = useState('');
 
-  // Update form data when user prop changes
+  // Reset form when user or open state changes
   useEffect(() => {
+    setDrawerError('');
+    setIsSubmitting(false);
     if (user) {
       setFormData({
         firstName: user.name.split(' ')[0] || '',
@@ -55,7 +59,7 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
   const formatPhoneNumber = (value: string) => {
     const phoneNumber = value.replace(/[^\d]/g, '');
     const phoneNumberLength = phoneNumber.length;
-    
+
     if (phoneNumberLength < 4) return phoneNumber;
     if (phoneNumberLength < 7) {
       return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
@@ -68,14 +72,20 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
     setFormData({ ...formData, phone: formatted });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Submitting:', formData);
-    if (onSave) {
-      onSave(formData);
+    setDrawerError('');
+    setIsSubmitting(true);
+    try {
+      if (onSave) {
+        await onSave(formData);
+        // Parent is responsible for closing the drawer on success
+      }
+    } catch (err: unknown) {
+      setDrawerError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+    } finally {
+      setIsSubmitting(false);
     }
-    onClose();
   };
 
   return (
@@ -103,7 +113,7 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
             <div className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 px-8 py-6 overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400/20 rounded-full blur-2xl" />
-              
+
               <div className="relative flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-1">
@@ -154,7 +164,6 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
                       }
                       placeholder="Last Name"
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                      required
                     />
                   </div>
                 </div>
@@ -219,10 +228,20 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
                   </div>
                 )}
 
+                {/* Error banner */}
+                {drawerError && (
+                  <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                    {drawerError}
+                  </div>
+                )}
+
                 {/* Info box */}
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> {mode === 'add' ? 'The user will receive an email invitation to set up their password.' : 'Changes will take effect immediately.'}
+                    <strong>Note:</strong>{' '}
+                    {mode === 'add'
+                      ? 'The user will receive an email invitation to set up their password.'
+                      : 'Changes will take effect immediately.'}
                   </p>
                 </div>
               </div>
@@ -236,18 +255,26 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-3 bg-white border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+                  whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                   type="submit"
-                  onClick={handleSubmit}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all"
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {mode === 'add' ? 'Add User' : 'Save Changes'}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {mode === 'add' ? 'Creating...' : 'Saving...'}
+                    </>
+                  ) : (
+                    mode === 'add' ? 'Add User' : 'Save Changes'
+                  )}
                 </motion.button>
               </div>
             </div>
