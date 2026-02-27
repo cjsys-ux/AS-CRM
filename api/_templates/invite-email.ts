@@ -11,8 +11,17 @@ export const INVITE_EMAIL_TEMPLATE = `<!DOCTYPE html>
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(to right, #9333ea, #a855f7); padding: 40px; text-align: center;">
+            <td style="background: linear-gradient(to right, #9333ea, #a855f7); background-color: #9333ea; padding: 40px; text-align: center;">
+              <!--[if gte mso 9]>
+              <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                <v:fill type="gradient" color="#9333ea" color2="#a855f7" angle="90"/>
+                <v:textbox inset="0,0,0,0">
+              <![endif]-->
               <h1 style="color: #ffffff; margin: 0; font-size: 32px;">Welcome to ActivateSwag!</h1>
+              <!--[if gte mso 9]>
+                </v:textbox>
+              </v:rect>
+              <![endif]-->
             </td>
           </tr>
 
@@ -31,7 +40,7 @@ export const INVITE_EMAIL_TEMPLATE = `<!DOCTYPE html>
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="{{activationLink}}" style="display: inline-block; background: linear-gradient(to right, #9333ea, #a855f7); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Create Password</a>
+                    <a href="{{activationLink}}" style="display: inline-block; background: linear-gradient(to right, #9333ea, #a855f7); background-color: #9333ea; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Create Password</a>
                   </td>
                 </tr>
               </table>
