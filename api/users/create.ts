@@ -63,6 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       password: tempPassword,
       blocked: status === 'Inactive',
       email_verified: false,
+      verify_email: false, // suppress Auth0's own verification email — we send our own invite
       user_metadata: {
         phone: phone ?? '',
         role: role ?? 'Sales Rep',
