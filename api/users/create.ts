@@ -120,7 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         currentYear: new Date().getFullYear().toString(),
       });
       await mailer.sendMail({
-        from: process.env.SMTP_FROM ?? 'ActivateSwag <noreply@activateswag.com>',
+        from: process.env.OUTLOOK_FROM_EMAIL ?? 'noreply@activateswag.com',
         to: email,
         subject: 'Welcome to ActivateSwag \u2013 Create Your Password',
         html,
