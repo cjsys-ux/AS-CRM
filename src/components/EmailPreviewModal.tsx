@@ -240,68 +240,48 @@ function getWelcomeEmailHTML(): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #9333ea 0%, #a855f7 100%); padding: 50px 40px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -0.5px;">Welcome to ActivateSwag!</h1>
-              <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">We're excited to have you on board</p>
+            <td style="background: linear-gradient(to right, #9333ea, #a855f7); padding: 40px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 32px;">Welcome to ActivateSwag!</h1>
             </td>
           </tr>
-          
+
           <!-- Content -->
           <tr>
-            <td style="padding: 50px 40px;">
-              <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 24px; font-weight: 700;">Hi {{firstName}},</h2>
-              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0;">
-                We're thrilled to have you join <strong>{{companyName}}</strong>! Your account has been successfully created and you're ready to get started on your journey with us.
+            <td style="padding: 40px;">
+              <h2 style="color: #1e293b; margin-top: 0;">Hi {{firstName}},</h2>
+              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                We're excited to have you join {{companyName}}! Your account has been created and you're ready to get started.
               </p>
-              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 30px 0;">
-                To complete your setup and secure your account, please create your password by clicking the button below:
+              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                To complete your setup, please create your password by clicking the button below:
               </p>
-              
+
               <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 40px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="{{activationLink}}" style="display: inline-block; background: linear-gradient(135deg, #9333ea 0%, #a855f7 100%); color: #ffffff; text-decoration: none; padding: 18px 50px; border-radius: 12px; font-weight: 700; font-size: 16px; box-shadow: 0 10px 25px rgba(147, 51, 234, 0.3);">Create Your Password</a>
+                    <a href="{{activationLink}}" style="display: inline-block; background: linear-gradient(to right, #9333ea, #a855f7); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Create Password</a>
                   </td>
                 </tr>
               </table>
-              
-              <div style="background-color: #f8fafc; border-left: 4px solid #9333ea; padding: 20px; border-radius: 8px; margin: 30px 0;">
-                <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
-                  <strong style="color: #475569;">Important:</strong> This link will expire in 48 hours for security reasons. If you didn't request this account, you can safely ignore this email.
-                </p>
-              </div>
 
-              <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 30px 0 0 0;">
-                If you have any questions, our support team is here to help!
+              <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                If you didn't request this account, you can safely ignore this email.
               </p>
             </td>
           </tr>
-          
+
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8fafc; padding: 40px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="color: #94a3b8; font-size: 14px; margin: 0 0 10px 0; font-weight: 600;">
-                ActivateSwag Command Center
-              </p>
-              <p style="color: #cbd5e1; font-size: 12px; margin: 0 0 15px 0;">
-                Your complete CRM solution for promotional products
-              </p>
-              <div style="margin: 20px 0;">
-                <a href="#" style="color: #9333ea; text-decoration: none; margin: 0 10px; font-size: 12px; font-weight: 600;">Help Center</a>
-                <span style="color: #cbd5e1;">•</span>
-                <a href="#" style="color: #9333ea; text-decoration: none; margin: 0 10px; font-size: 12px; font-weight: 600;">Contact Support</a>
-                <span style="color: #cbd5e1;">•</span>
-                <a href="#" style="color: #9333ea; text-decoration: none; margin: 0 10px; font-size: 12px; font-weight: 600;">Privacy Policy</a>
-              </div>
-              <p style="color: #94a3b8; font-size: 12px; margin: 20px 0 0 0;">
+            <td style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="color: #64748b; font-size: 14px; margin: 0;">
                 © {{currentYear}} ActivateSwag. All rights reserved.
               </p>
             </td>
