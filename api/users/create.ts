@@ -93,7 +93,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const newUser = await createRes.json();
 
   // Step 2: Generate a signed invite token linking to our custom set-password page
-  const appUrl = process.env.APP_URL ?? 'https://crm.activateswag.com';
+  const host = req.headers.host ?? '';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const appUrl = process.env.APP_URL ?? `${protocol}://${host}`;
   const inviteToken = createInviteToken(newUser.user_id, email);
   const activationLink = `${appUrl}/set-password?token=${inviteToken}`;
 
