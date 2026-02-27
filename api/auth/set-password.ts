@@ -52,10 +52,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: `Management token error: ${message}` });
   }
 
-  const patchRes = await fetch(`https://${domain}/api/v2/users/${encodeURIComponent(userId)}`, {
+  const userUrl = `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`;
+  const patchHeaders = { Authorization: `Bearer ${mgmtToken}`, 'Content-Type': 'application/json' };
+
+  // Auth0 does not allow updating password and email_verified in the same request
+  const patchRes = await fetch(userUrl, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${mgmtToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, email_verified: true }),
+    headers: patchHeaders,
+    body: JSON.stringify({ password }),
   });
 
   if (!patchRes.ok) {
@@ -64,6 +68,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: err.message || 'Failed to set password. Please check password requirements and try again.',
     });
   }
+
+  // Mark email as verified in a separate request
+  await fetch(userUrl, {
+    method: 'PATCH',
+    headers: patchHeaders,
+    body: JSON.stringify({ email_verified: true }),
+  });
 
   // Auto-login: exchange credentials for tokens
   const tokenRes = await fetch(`https://${domain}/oauth/token`, {
