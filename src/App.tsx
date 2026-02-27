@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
+import { useAuth } from './context/AuthContext';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -35,7 +35,7 @@ export interface UserProfile {
 }
 
 export default function App() {
-  const { isAuthenticated, isLoading, user, logout } = useAuth0();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -64,7 +64,7 @@ export default function App() {
 
   const handleNavigate = (page: string) => {
     if (page === 'logout') {
-      logout({ logoutParams: { returnTo: window.location.origin } });
+      logout();
       setCurrentPage('dashboard');
     } else {
       setCurrentPage(page);
