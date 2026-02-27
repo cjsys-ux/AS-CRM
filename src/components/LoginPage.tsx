@@ -71,7 +71,7 @@ export function LoginPage() {
           >
             <h1 className="text-4xl font-black tracking-tight leading-none text-white mb-2">
               <span className="text-white">Activate</span>
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 text-transparent bg-clip-text">Swag</span>
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">Swag</span>
             </h1>
             <p className="text-blue-200">Command Center</p>
           </motion.div>
