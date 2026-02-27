@@ -19,24 +19,39 @@ export interface AuthTokens {
 }
 
 // Calls Auth0's Resource Owner Password Grant endpoint.
-// Requires "Password" grant type enabled on the Auth0 Application,
-// and a "Default Directory" (database connection) set in the Auth0 Tenant settings.
+// Auth0 dashboard requirements:
+//   1. Application → Advanced → Grant Types → enable "Password"
+//   2. Tenant Settings → API Authorization → Default Directory = "Username-Password-Authentication"
+//   3. Application → Settings → Allowed Web Origins → add your dev/prod URLs
 export async function loginWithCredentials(
   email: string,
   password: string
 ): Promise<{ tokens: AuthTokens; user: Auth0User }> {
-  const tokenRes = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'http://auth0.com/oauth/grant-type/password-realm',
-      realm: 'Username-Password-Authentication',
-      username: email,
-      password,
-      client_id: AUTH0_CLIENT_ID,
-      scope: 'openid profile email',
-    }),
-  });
+  if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID) {
+    throw new Error(
+      'Auth0 is not configured. Add VITE_AUTH0_DOMAIN and VITE_AUTH0_CLIENT_ID to .env.local'
+    );
+  }
+
+  let tokenRes: Response;
+  try {
+    tokenRes = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'http://auth0.com/oauth/grant-type/password-realm',
+        realm: 'Username-Password-Authentication',
+        username: email,
+        password,
+        client_id: AUTH0_CLIENT_ID,
+        scope: 'openid profile email',
+      }),
+    });
+  } catch {
+    throw new Error(
+      `Unable to reach Auth0 (${AUTH0_DOMAIN}). Check your internet connection and that the domain is correct.`
+    );
+  }
 
   if (!tokenRes.ok) {
     const err = await tokenRes.json().catch(() => ({}));
