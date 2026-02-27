@@ -46,7 +46,7 @@ export const INVITE_EMAIL_TEMPLATE = `<!DOCTYPE html>
           <tr>
             <td style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
               <p style="color: #64748b; font-size: 14px; margin: 0;">
-                &copy; {{currentYear}} ActivateSwag. All rights reserved.
+                © {{currentYear}} ActivateSwag. All rights reserved.
               </p>
             </td>
           </tr>
