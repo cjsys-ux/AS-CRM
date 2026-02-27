@@ -93,7 +93,7 @@ export function UserManagement() {
       if (data.invite?.emailSent) {
         showToast(`${data.user.name} added. A password-setup email has been sent.`);
       } else {
-        const reason = data.invite?.emailError || data.invite?.ticketError || 'SMTP may not be configured.';
+        const reason = data.invite?.emailError || 'SMTP may not be configured.';
         showToast(`${data.user.name} added, but the invite email failed: ${reason}`, 'error');
       }
     }

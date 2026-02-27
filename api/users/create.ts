@@ -88,7 +88,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const appUrl = (process.env.APP_URL ?? '').replace(/\/$/, '');
 
   let activationLink: string | null = null;
-  if (inviteSecret && appUrl) {
+  let emailSent = false;
+  let emailError: string | null = null;
+
+  if (!inviteSecret || !appUrl) {
+    emailError = 'Server is missing INVITE_SECRET or APP_URL — add them to your environment variables.';
+    console.warn('INVITE_SECRET or APP_URL is not configured — invite email will not be sent.');
+  } else {
     const inviteToken = signInviteToken(
       {
         sub: newUser.user_id,
@@ -99,15 +105,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       inviteSecret
     );
     activationLink = `${appUrl}/create-password?token=${encodeURIComponent(inviteToken)}`;
-  } else {
-    console.warn(
-      'INVITE_SECRET or APP_URL is not configured — invite email will not be sent.'
-    );
   }
 
   // Step 3: Send the branded invite email via our own SMTP mailer (non-fatal).
-  let emailSent = false;
-  let emailError: string | null = null;
   if (activationLink) {
     try {
       const mailer = getMailer();
