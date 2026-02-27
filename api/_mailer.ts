@@ -14,10 +14,10 @@ export function getMailer(): Transporter {
     return cachedTransporter;
   }
 
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = process.env.OUTLOOK_SMTP_HOST;
+  const port = process.env.OUTLOOK_SMTP_PORT;
+  const user = process.env.OUTLOOK_SMTP_USER;
+  const pass = process.env.OUTLOOK_SMTP_PASSWORD;
 
   if (!host || !port || !user || !pass) {
     throw new Error('SMTP environment variables are not fully configured.');
@@ -26,7 +26,8 @@ export function getMailer(): Transporter {
   cachedTransporter = nodemailer.createTransport({
     host,
     port: parseInt(port, 10),
-    secure: parseInt(port, 10) === 465, // true for port 465 (SMTPS), false for 587 (STARTTLS)
+    secure: process.env.OUTLOOK_SMTP_SECURE === 'true',
+    requireTLS: true,
     auth: { user, pass },
   });
 
