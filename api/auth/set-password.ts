@@ -93,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!tokenRes.ok) {
     // Password was set successfully but auto-login failed — return partial success
-    return res.status(200).json({ success: true, autoLogin: false });
+    return res.status(200).json({ success: true, autoLogin: false, email });
   }
 
   const tokens = await tokenRes.json();
@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
 
   if (!userRes.ok) {
-    return res.status(200).json({ success: true, autoLogin: false });
+    return res.status(200).json({ success: true, autoLogin: false, email });
   }
 
   const user = await userRes.json();

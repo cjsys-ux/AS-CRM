@@ -11,6 +11,8 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const passwordJustSet = new URLSearchParams(window.location.search).get('passwordSet') === '1';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -85,6 +87,12 @@ export function LoginPage() {
           >
             <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
             <p className="text-blue-200 mb-8">Sign in to your account to continue</p>
+
+            {passwordJustSet && (
+              <div className="px-4 py-3 rounded-xl bg-green-500/20 border border-green-400/30 text-green-200 text-sm mb-6">
+                Your password has been set. Please sign in with your new credentials.
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email field */}

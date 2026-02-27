@@ -42,11 +42,36 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
       }
 
       if (data.autoLogin && data.tokens && data.user) {
+        // Auto-login succeeded — store tokens and go to dashboard
         sessionStorage.setItem('as_crm_access_token', data.tokens.access_token);
         sessionStorage.setItem('as_crm_user', JSON.stringify(data.user));
+        window.location.replace('/');
+      } else {
+        // Auto-login failed but password was saved — try the login endpoint directly
+        // using the email returned by the server and the password the user just typed
+        if (data.email) {
+          try {
+            const loginRes = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: data.email, password }),
+            });
+            if (loginRes.ok) {
+              const loginData = await loginRes.json();
+              if (loginData.tokens?.access_token && loginData.user) {
+                sessionStorage.setItem('as_crm_access_token', loginData.tokens.access_token);
+                sessionStorage.setItem('as_crm_user', JSON.stringify(loginData.user));
+                window.location.replace('/');
+                return;
+              }
+            }
+          } catch {
+            // network error — fall through to login redirect
+          }
+        }
+        // All login attempts failed — redirect to login page with a success banner
+        window.location.replace('/login?passwordSet=1');
       }
-
-      window.location.replace('/');
     } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {
