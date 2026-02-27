@@ -1,34 +1,12 @@
-import { motion, AnimatePresence } from 'motion/react';
-import { Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { motion } from 'motion/react';
+import { ArrowRight } from 'lucide-react';
+import { useAuth0 } from '@auth0/auth0-react';
 
-interface LoginPageProps {
-  onLogin: () => void;
-}
+export function LoginPage() {
+  const { loginWithRedirect } = useAuth0();
 
-export function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState('patrick@activateswag.com');
-  const [password, setPassword] = useState('1234');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Allow any credentials to sign in
-    onLogin();
-  };
-
-  const handlePasswordReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Show success message
-    setResetEmailSent(true);
-  };
-
-  const handleBackToLogin = () => {
-    setShowForgotPassword(false);
-    setResetEmailSent(false);
-    setResetEmail('');
+  const handleSignIn = () => {
+    loginWithRedirect();
   };
 
   return (
@@ -90,146 +68,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             transition={{ delay: 0.3 }}
             className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20"
           >
-            <AnimatePresence mode="wait">
-              {!showForgotPassword ? (
-                <motion.div
-                  key="login"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
-                  <p className="text-blue-200 mb-6">Sign in to your account to continue</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Welcome back</h2>
+            <p className="text-blue-200 mb-8">Sign in to your account to continue</p>
 
-                  <form onSubmit={handleSubmit} className="space-y-5">
-                    {/* Email Field */}
-                    <div>
-                      <label className="block text-sm font-semibold text-white mb-2">Email</label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Enter your email"
-                          className="w-full pl-12 pr-4 py-3.5 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all backdrop-blur-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Password Field */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-semibold text-white">Password</label>
-                        <motion.button
-                          type="button"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-sm font-semibold text-blue-300 hover:text-blue-200 transition-colors"
-                        >
-                          Forgot Password?
-                        </motion.button>
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Enter your password"
-                          className="w-full pl-12 pr-4 py-3.5 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all backdrop-blur-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    {/* Login Button */}
-                    <motion.button
-                      type="submit"
-                      whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl flex items-center justify-center gap-2 group"
-                    >
-                      Sign In
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </motion.button>
-                  </form>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="forgot"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <h2 className="text-2xl font-bold text-white mb-2">Forgot Password</h2>
-                  <p className="text-blue-200 mb-6">Enter your email to reset your password</p>
-
-                  <form onSubmit={handlePasswordReset} className="space-y-5">
-                    {/* Email Field */}
-                    <div>
-                      <label className="block text-sm font-semibold text-white mb-2">Email</label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
-                        <input
-                          type="email"
-                          value={resetEmail}
-                          onChange={(e) => setResetEmail(e.target.value)}
-                          placeholder="Enter your email"
-                          className="w-full pl-12 pr-4 py-3.5 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder:text-blue-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all backdrop-blur-sm"
-                          required
-                          disabled={resetEmailSent}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Success Message */}
-                    {resetEmailSent && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-4 bg-green-500/20 border-2 border-green-400/40 rounded-xl"
-                      >
-                        <p className="text-green-300 font-medium text-center">
-                          ✉️ Check your email for password reset instructions
-                        </p>
-                        <p className="text-green-200/80 text-sm text-center mt-1">
-                          We've sent a reset link to {resetEmail}
-                        </p>
-                      </motion.div>
-                    )}
-
-                    {/* Back to Login Link */}
-                    <motion.button
-                      type="button"
-                      onClick={handleBackToLogin}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="text-sm font-semibold text-blue-300 hover:text-blue-200 transition-colors flex items-center gap-1"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      Back to Login
-                    </motion.button>
-
-                    {/* Reset Password Button */}
-                    {!resetEmailSent && (
-                      <motion.button
-                        type="submit"
-                        whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl"
-                      >
-                        Reset Password
-                      </motion.button>
-                    )}
-                  </form>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <motion.button
+              onClick={handleSignIn}
+              whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl flex items-center justify-center gap-2 group"
+            >
+              Sign In
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </motion.button>
           </motion.div>
 
           {/* Footer */}
