@@ -35,6 +35,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Local test account — bypasses Auth0 so the UI can be accessed while
+    // the Auth0 integration is being configured.
+    if (email === 'admin@activateswag.com' && password === 'admin123') {
+      const localUser: Auth0User = {
+        sub: 'local|1',
+        name: 'Test Admin',
+        email: 'admin@activateswag.com',
+        email_verified: true,
+      };
+      sessionStorage.setItem(TOKEN_KEY, 'local-dev-token');
+      sessionStorage.setItem(USER_KEY, JSON.stringify(localUser));
+      setUser(localUser);
+      setIsAuthenticated(true);
+      return;
+    }
+
     const { tokens, user: authUser } = await loginWithCredentials(email, password);
     sessionStorage.setItem(TOKEN_KEY, tokens.access_token);
     sessionStorage.setItem(USER_KEY, JSON.stringify(authUser));
