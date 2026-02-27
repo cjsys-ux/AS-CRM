@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useAuth0 } from './context/Auth0Context';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -19,6 +20,7 @@ import { AnalyticsModule } from './components/AnalyticsModule';
 import { PurchasingModule } from './components/PurchasingModule';
 import { EmailTemplatesModule } from './components/EmailTemplatesModule';
 import { AmazonDistributionModule } from './components/AmazonDistributionModule';
+import { LoadingPage } from './components/LoadingPage';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 
@@ -34,23 +36,37 @@ export interface UserProfile {
 }
 
 export default function App() {
+  const { isAuthenticated, isLoading, user, logout } = useAuth0();
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    firstName: 'Patrick',
-    lastName: 'Lowenthal',
-    email: 'patrick@activateswag.com',
-    phone: '(305) 215-2199',
-    profileImage: 'https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlcnNvbiUyMGhlYWRzaG90fGVufDF8fHx8MTc3MDI1NDAyM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    jobTitle: 'Product Manager',
-    department: 'Product',
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // Map Auth0 user to UserProfile interface
+  const mappedUserProfile: UserProfile = {
+    firstName: user?.given_name || user?.name?.split(' ')[0] || 'User',
+    lastName: user?.family_name || user?.name?.split(' ')[1] || '',
+    email: user?.email || '',
+    phone: user?.phone_number || '',
+    profileImage: user?.picture || 'https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlcnNvbiUyMGhlYWRzaG90fGVufDF8fHx8MTc3MDI1NDAyM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    jobTitle: 'Team Member',
+    department: 'General',
     timezone: 'America/New_York',
-  });
+  };
+
+  // Update profile when user is loaded
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      setUserProfile(mappedUserProfile);
+    }
+  }, [isAuthenticated, user, isLoading]);
 
   const handleNavigate = (page: string) => {
     if (page === 'logout') {
-      setIsLoggedIn(false);
+      logout({
+        logoutParams: {
+          returnTo: window.location.origin,
+        },
+      });
       setCurrentPage('dashboard');
     } else {
       setCurrentPage(page);
@@ -105,23 +121,33 @@ export default function App() {
     }
   };
 
-  // Show login page if not logged in
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  // Show loading page while Auth0 is initializing
+  if (isLoading) {
+    return <LoadingPage />;
+  }
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  // Show dashboard if authenticated and user profile is loaded
+  if (!userProfile) {
+    return <LoadingPage />;
   }
 
   return (
     <div className="size-full flex bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-      <Sidebar 
-        onNavigate={handleNavigate} 
+      <Sidebar
+        onNavigate={handleNavigate}
         isMobileMenuOpen={isMobileMenuOpen}
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
-      
+
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar 
-          onNavigate={handleNavigate} 
+        <TopBar
+          onNavigate={handleNavigate}
           userProfile={userProfile}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />

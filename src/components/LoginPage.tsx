@@ -1,27 +1,32 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth0 } from '../context/Auth0Context';
 
 interface LoginPageProps {
-  onLogin: () => void;
+  onLogin?: () => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState('patrick@activateswag.com');
-  const [password, setPassword] = useState('1234');
+  const { loginWithRedirect } = useAuth0();
+  const [email, setEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Allow any credentials to sign in
-    onLogin();
+    // Redirect to Auth0 login
+    await loginWithRedirect({
+      appState: { returnTo: window.location.pathname },
+    });
   };
 
   const handlePasswordReset = (e: React.FormEvent) => {
     e.preventDefault();
-    // Show success message
+    // Redirect to Auth0 password reset
+    // Auth0 handles password reset through their hosted pages
+    // For now, show the success message
     setResetEmailSent(true);
   };
 
