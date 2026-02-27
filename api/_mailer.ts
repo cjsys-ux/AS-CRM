@@ -27,6 +27,7 @@ export function getMailer(): Transporter {
     host,
     port: parseInt(port, 10),
     secure: process.env.OUTLOOK_SMTP_SECURE === 'true',
+    requireTLS: true,
     auth: { user, pass },
   });
 
