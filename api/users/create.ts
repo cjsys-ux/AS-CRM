@@ -1,7 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
 import { getMgmtToken } from '../_mgmt-token';
 import { getMailer } from '../_mailer';
 import { renderInviteEmail } from '../_templates/invite-email';
+
+/** Generate a signed invite token containing userId and email, valid for 7 days */
+function createInviteToken(userId: string, email: string): string {
+  const payload = Buffer.from(
+    JSON.stringify({ userId, email, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })
+  ).toString('base64url');
+  const secret = process.env.INVITE_TOKEN_SECRET ?? process.env.AUTH0_MGMT_CLIENT_SECRET ?? '';
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
 
 /** Generate a random password that satisfies Auth0's default password policy */
 function generateTempPassword(): string {
@@ -81,55 +92,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const newUser = await createRes.json();
 
-  // Step 2: Send a password-change ticket so the new user can set their own password
-  // Requires the M2M app to have the `create:user_tickets` scope
-  const ticketRes = await fetch(`https://${domain}/api/v2/tickets/password-change`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      user_id: newUser.user_id,
-      mark_email_as_verified: true,
-      includeEmailInRedirect: false,
-    }),
-  });
-
-  // Capture the ticket URL so we can send it in our own custom email.
-  // A ticket failure is non-fatal — the user is created and the admin can
-  // resend the invite later. We log the error but still return success.
-  let activationLink: string | null = null;
-  let ticketError: string | null = null;
-  if (ticketRes.ok) {
-    const ticketData = await ticketRes.json().catch(() => ({}));
-    activationLink = ticketData.ticket ?? null;
-  } else {
-    const ticketErr = await ticketRes.json().catch(() => ({}));
-    ticketError = ticketErr.message || `HTTP ${ticketRes.status}`;
-    console.error('Failed to create password-change ticket:', ticketError);
-  }
+  // Step 2: Generate a signed invite token linking to our custom set-password page
+  const appUrl = process.env.APP_URL ?? 'https://crm.activateswag.com';
+  const inviteToken = createInviteToken(newUser.user_id, email);
+  const activationLink = `${appUrl}/set-password?token=${inviteToken}`;
 
   // Send the branded invite email via our own SMTP mailer (non-fatal).
   let emailSent = false;
   let emailError: string | null = null;
-  if (activationLink) {
-    try {
-      const mailer = getMailer();
-      const html = renderInviteEmail({
-        firstName,
-        companyName: process.env.COMPANY_NAME ?? 'ActivateSwag',
-        activationLink,
-        currentYear: new Date().getFullYear().toString(),
-      });
-      await mailer.sendMail({
-        from: process.env.OUTLOOK_FROM_EMAIL ?? 'noreply@activateswag.com',
-        to: email,
-        subject: 'Welcome to ActivateSwag \u2013 Create Your Password',
-        html,
-      });
-      emailSent = true;
-    } catch (mailErr) {
-      emailError = mailErr instanceof Error ? mailErr.message : String(mailErr);
-      console.error('Failed to send invite email:', emailError);
-    }
+  try {
+    const mailer = getMailer();
+    const html = renderInviteEmail({
+      firstName,
+      companyName: process.env.COMPANY_NAME ?? 'ActivateSwag',
+      activationLink,
+      currentYear: new Date().getFullYear().toString(),
+    });
+    await mailer.sendMail({
+      from: process.env.OUTLOOK_FROM_EMAIL ?? 'noreply@activateswag.com',
+      to: email,
+      subject: 'Welcome to ActivateSwag \u2013 Create Your Password',
+      html,
+    });
+    emailSent = true;
+  } catch (mailErr) {
+    emailError = mailErr instanceof Error ? mailErr.message : String(mailErr);
+    console.error('Failed to send invite email:', emailError);
   }
 
   return res.status(201).json({
@@ -144,8 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created: newUser.created_at ?? new Date().toISOString(),
     },
     invite: {
-      ticketCreated: activationLink !== null,
-      ticketError,
+      inviteTokenCreated: true,
       emailSent,
       emailError,
     },

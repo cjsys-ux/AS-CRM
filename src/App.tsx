@@ -13,6 +13,7 @@ import { OrdersPage } from './components/OrdersPage';
 import { ProfileSettings } from './components/ProfileSettings';
 import { SettingsPage } from './components/SettingsPage';
 import { LoginPage } from './components/LoginPage';
+import { SetPasswordPage } from './components/SetPasswordPage';
 import { ShipmentsModule } from './components/ShipmentsModule';
 import { ContactsModule } from './components/ContactsModule';
 import { ProductDatabaseModule } from './components/ProductDatabaseModule';
@@ -118,6 +119,13 @@ export default function App() {
         return <Dashboard />;
     }
   };
+
+  // Intercept invite password-setup links before the auth gate
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteToken = urlParams.get('token');
+  if (window.location.pathname === '/set-password' && inviteToken) {
+    return <SetPasswordPage token={inviteToken} />;
+  }
 
   if (isLoading) {
     return (
