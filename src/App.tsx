@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -34,23 +35,36 @@ export interface UserProfile {
 }
 
 export default function App() {
+  const { isAuthenticated, isLoading, user, logout } = useAuth0();
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    firstName: 'Patrick',
-    lastName: 'Lowenthal',
-    email: 'patrick@activateswag.com',
-    phone: '(305) 215-2199',
-    profileImage: 'https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlcnNvbiUyMGhlYWRzaG90fGVufDF8fHx8MTc3MDI1NDAyM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    jobTitle: 'Product Manager',
-    department: 'Product',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    profileImage: '',
+    jobTitle: '',
+    department: '',
     timezone: 'America/New_York',
   });
 
+  useEffect(() => {
+    if (user) {
+      const nameParts = (user.name || '').split(' ');
+      setUserProfile((prev) => ({
+        ...prev,
+        firstName: user.given_name || nameParts[0] || '',
+        lastName: user.family_name || nameParts.slice(1).join(' ') || '',
+        email: user.email || '',
+        profileImage: user.picture || prev.profileImage,
+      }));
+    }
+  }, [user]);
+
   const handleNavigate = (page: string) => {
     if (page === 'logout') {
-      setIsLoggedIn(false);
+      logout({ logoutParams: { returnTo: window.location.origin } });
       setCurrentPage('dashboard');
     } else {
       setCurrentPage(page);
@@ -105,9 +119,16 @@ export default function App() {
     }
   };
 
-  // Show login page if not logged in
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  if (isLoading) {
+    return (
+      <div className="size-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="text-white text-xl font-semibold animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
   }
 
   return (
