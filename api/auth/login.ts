@@ -35,8 +35,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!tokenRes.ok) {
     const err = await tokenRes.json().catch(() => ({}));
+    const rawError: string = err.error_description || err.message || '';
+    // Map Auth0's generic "Unauthorized" / grant-not-enabled errors to a clearer message
+    const isConfigError =
+      rawError.toLowerCase() === 'unauthorized' ||
+      rawError.toLowerCase().includes('grant type');
     return res.status(tokenRes.status).json({
-      error: err.error_description || err.message || 'Invalid email or password.',
+      error: isConfigError
+        ? 'Login is not configured on the server. Please contact your administrator.'
+        : rawError || 'Invalid email or password.',
     });
   }
 
