@@ -264,6 +264,7 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
                   whileHover={!isSubmitting ? { scale: 1.02 } : {}}
                   whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                   type="submit"
+                  onClick={handleSubmit}
                   disabled={isSubmitting}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
