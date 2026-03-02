@@ -253,20 +253,49 @@ export function ProductPipeline() {
   };
 
   const handleBulkEdit = async (updates: { status?: string; client?: string; type?: string }) => {
+    await Promise.all(
+      selectedProducts.map((id) =>
+        fetch('/api/projects/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, ...updates }),
+        })
+      )
+    );
+    setProducts((prev) =>
+      prev.map((p) => (selectedProducts.includes(p.id) ? { ...p, ...updates } : p))
+    );
     setSelectedProducts([]);
   };
 
   const handleBulkDelete = async () => {
+    await Promise.all(
+      selectedProducts.map((id) =>
+        fetch(`/api/projects/delete?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      )
+    );
+    setProducts((prev) => prev.filter((p) => !selectedProducts.includes(p.id)));
     setSelectedProducts([]);
   };
 
   const handleStatusUpdate = async (productId: string, newStatus: string) => {
-    // Status update would be handled by the backend
+    await fetch('/api/projects/update', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: productId, status: newStatus }),
+    });
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, status: newStatus } : p))
+    );
   };
 
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
 
+    await fetch(`/api/projects/delete?id=${encodeURIComponent(productToDelete.id)}`, {
+      method: 'DELETE',
+    });
+    setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
     setDeleteModalOpen(false);
     setProductToDelete(undefined);
   };
