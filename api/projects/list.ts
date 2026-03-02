@@ -50,6 +50,15 @@ type MongoUpload = {
 const defaultImage =
   'https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=800&h=500&fit=crop';
 
+
+function safeGetPublicS3Url(key: string): string | null {
+  try {
+    return getPublicS3Url(key);
+  } catch {
+    return null;
+  }
+}
+
 function toNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -73,7 +82,7 @@ function getUploadImageUrl(upload: MongoUpload | undefined): string | null {
   if (upload.fileUrl?.startsWith('http://') || upload.fileUrl?.startsWith('https://')) {
     return upload.fileUrl;
   }
-  if (upload.key) return getPublicS3Url(upload.key);
+  if (upload.key) return safeGetPublicS3Url(upload.key);
   return null;
 }
 
@@ -85,11 +94,17 @@ function resolveProjectImage(project: MongoProject, uploadByEntityId: Map<string
 
   const s3ObjectKey = project.imageKey ?? project.s3Key ?? project.fileKey ?? project.key;
   if (s3ObjectKey) {
-    return { imageUrl: getPublicS3Url(s3ObjectKey), fromMongoImageField: true };
+    const s3Url = safeGetPublicS3Url(s3ObjectKey);
+    if (s3Url) {
+      return { imageUrl: s3Url, fromMongoImageField: true };
+    }
   }
 
   if (directImage) {
-    return { imageUrl: getPublicS3Url(directImage), fromMongoImageField: true };
+    const s3Url = safeGetPublicS3Url(directImage);
+    if (s3Url) {
+      return { imageUrl: s3Url, fromMongoImageField: true };
+    }
   }
 
   const projectId = project.id ?? project._id?.toString();
