@@ -56,6 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const mgmtDomain = process.env.AUTH0_DOMAIN ?? process.env.VITE_AUTH0_DOMAIN;
   const authDomain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
   const clientId = process.env.VITE_AUTH0_CLIENT_ID;
+  const clientSecret = process.env.AUTH0_CLIENT_SECRET;
   if (!mgmtDomain || !authDomain || !clientId) {
     return res.status(500).json({ error: 'Auth0 environment variables are not configured.' });
   }
@@ -122,6 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         username: email,
         password,
         client_id: clientId,
+        ...(clientSecret ? { client_secret: clientSecret } : {}),
         scope: 'openid profile email',
       }),
     });
