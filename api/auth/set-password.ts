@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { userId, email } = verified;
 
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
   const clientId = process.env.VITE_AUTH0_CLIENT_ID;
   if (!domain || !clientId) {
     return res.status(500).json({ error: 'Auth0 environment variables are not configured.' });
@@ -57,11 +57,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Auth0 does not allow updating password and email_verified in the same request.
   // connection is required when changing a password for a database user.
-  const patchRes = await fetch(userUrl, {
-    method: 'PATCH',
-    headers: patchHeaders,
-    body: JSON.stringify({ password, connection: 'Username-Password-Authentication' }),
-  });
+  let patchRes: Response;
+  try {
+    patchRes = await fetch(userUrl, {
+      method: 'PATCH',
+      headers: patchHeaders,
+      body: JSON.stringify({ password, connection: 'Username-Password-Authentication' }),
+    });
+  } catch (fetchErr) {
+    console.error('Password PATCH fetch error:', fetchErr);
+    return res.status(502).json({
+      error: 'Unable to reach Auth0 to set password. Please try again later.',
+    });
+  }
 
   if (!patchRes.ok) {
     const err = await patchRes.json().catch(() => ({}));
@@ -70,42 +78,87 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // Mark email as verified in a separate request
-  await fetch(userUrl, {
-    method: 'PATCH',
-    headers: patchHeaders,
-    body: JSON.stringify({ email_verified: true }),
-  });
+  // Mark email as verified in a separate request (non-fatal — password is already set)
+  try {
+    const verifyRes = await fetch(userUrl, {
+      method: 'PATCH',
+      headers: patchHeaders,
+      body: JSON.stringify({ email_verified: true }),
+    });
+    if (!verifyRes.ok) {
+      const verifyErr = await verifyRes.json().catch(() => ({}));
+      console.error('Failed to mark email_verified:', verifyErr.message || verifyRes.status);
+    }
+  } catch (verifyFetchErr) {
+    console.error('email_verified PATCH fetch error:', verifyFetchErr);
+  }
 
   // Auto-login: exchange credentials for tokens
-  const tokenRes = await fetch(`https://${domain}/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'http://auth0.com/oauth/grant-type/password-realm',
-      realm: 'Username-Password-Authentication',
-      username: email,
-      password,
-      client_id: clientId,
-      scope: 'openid profile email',
-    }),
-  });
+  let tokenRes: Response;
+  try {
+    tokenRes = await fetch(`https://${domain}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'http://auth0.com/oauth/grant-type/password-realm',
+        realm: 'Username-Password-Authentication',
+        username: email,
+        password,
+        client_id: clientId,
+        scope: 'openid profile email',
+      }),
+    });
+  } catch (tokenFetchErr) {
+    console.error('Auto-login fetch error:', tokenFetchErr);
+    return res.status(200).json({
+      success: true,
+      autoLogin: false,
+      email,
+      message: 'Password set successfully. Please log in manually.',
+    });
+  }
 
   if (!tokenRes.ok) {
-    // Password was set successfully but auto-login failed — return partial success
-    return res.status(200).json({ success: true, autoLogin: false });
+    const tokenErr = await tokenRes.json().catch(() => ({}));
+    console.error(
+      'Auto-login failed:',
+      tokenErr.error || tokenRes.status,
+      tokenErr.error_description || ''
+    );
+    return res.status(200).json({
+      success: true,
+      autoLogin: false,
+      email,
+      message: 'Password set successfully. Please log in manually.',
+    });
   }
 
   const tokens = await tokenRes.json();
 
-  const userRes = await fetch(`https://${domain}/userinfo`, {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
-  });
+  let userRes: Response;
+  try {
+    userRes = await fetch(`https://${domain}/userinfo`, {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+  } catch (userFetchErr) {
+    console.error('Userinfo fetch error:', userFetchErr);
+    return res.status(200).json({
+      success: true,
+      autoLogin: false,
+      email,
+      message: 'Password set successfully. Please log in manually.',
+    });
+  }
 
   if (!userRes.ok) {
-    return res.status(200).json({ success: true, autoLogin: false });
+    return res.status(200).json({
+      success: true,
+      autoLogin: false,
+      email,
+      message: 'Password set successfully. Please log in manually.',
+    });
   }
 
   const user = await userRes.json();
-  return res.status(200).json({ success: true, autoLogin: true, tokens, user });
+  return res.status(200).json({ success: true, autoLogin: true, tokens, user, email });
 }

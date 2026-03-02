@@ -5,7 +5,14 @@ import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    const prefill = sessionStorage.getItem('as_crm_prefill_email');
+    if (prefill) {
+      sessionStorage.removeItem('as_crm_prefill_email');
+      return prefill;
+    }
+    return '';
+  });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

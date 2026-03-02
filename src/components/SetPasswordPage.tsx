@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ArrowRight, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 interface SetPasswordPageProps {
   token: string;
@@ -13,6 +13,7 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,11 +43,18 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
       }
 
       if (data.autoLogin && data.tokens && data.user) {
+        // Auto-login succeeded — store session and redirect
         sessionStorage.setItem('as_crm_access_token', data.tokens.access_token);
         sessionStorage.setItem('as_crm_user', JSON.stringify(data.user));
+        window.location.replace('/');
+        return;
       }
 
-      window.location.replace('/');
+      // Password was set but auto-login failed — show success state
+      if (data.email) {
+        sessionStorage.setItem('as_crm_prefill_email', data.email);
+      }
+      setSuccess(true);
     } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {
@@ -115,98 +123,121 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
             transition={{ delay: 0.3 }}
             className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20"
           >
-            <h2 className="text-2xl font-bold text-white mb-2">Create Your Password</h2>
-            <p className="text-blue-200 mb-8">
-              You're almost there — set up your account to get started
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Password field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-blue-200" htmlFor="password">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="new-password"
-                    className="w-full px-4 py-3 pr-11 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+            {success ? (
+              <>
+                <div className="text-center">
+                  <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                  <h2 className="text-2xl font-bold text-white mb-2">Password Set Successfully!</h2>
+                  <p className="text-blue-200 mb-8">
+                    Your account is ready. Please log in with your new password.
+                  </p>
                 </div>
-              </div>
-
-              {/* Confirm Password field */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-blue-200" htmlFor="confirm-password">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="confirm-password"
-                    type={showConfirm ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="new-password"
-                    className="w-full px-4 py-3 pr-11 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Error message */}
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="px-4 py-3 rounded-xl bg-red-500/20 border border-red-400/30 text-red-200 text-sm"
+                <motion.button
+                  onClick={() => window.location.replace('/')}
+                  whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl flex items-center justify-center gap-2 group"
                 >
-                  {error}
-                </motion.div>
-              )}
+                  Go to Login
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-bold text-white mb-2">Create Your Password</h2>
+                <p className="text-blue-200 mb-8">
+                  You're almost there — set up your account to get started
+                </p>
 
-              {/* Submit button */}
-              <motion.button
-                type="submit"
-                disabled={isLoading}
-                whileHover={!isLoading ? { scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' } : {}}
-                whileTap={!isLoading ? { scale: 0.98 } : {}}
-                className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Setting up…
-                  </>
-                ) : (
-                  <>
-                    Set Password
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </motion.button>
-            </form>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Password field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-blue-200" htmlFor="password">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        autoComplete="new-password"
+                        className="w-full px-4 py-3 pr-11 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password field */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-blue-200" htmlFor="confirm-password">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="confirm-password"
+                        type={showConfirm ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        autoComplete="new-password"
+                        className="w-full px-4 py-3 pr-11 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error message */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="px-4 py-3 rounded-xl bg-red-500/20 border border-red-400/30 text-red-200 text-sm"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+
+                  {/* Submit button */}
+                  <motion.button
+                    type="submit"
+                    disabled={isLoading}
+                    whileHover={!isLoading ? { scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' } : {}}
+                    whileTap={!isLoading ? { scale: 0.98 } : {}}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Setting up…
+                      </>
+                    ) : (
+                      <>
+                        Set Password
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </motion.button>
+                </form>
+              </>
+            )}
           </motion.div>
 
           {/* Footer */}
