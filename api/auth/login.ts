@@ -58,6 +58,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'clients and must not send a client secret.',
       });
     }
+    if (
+      typeof err.error_description === 'string' &&
+      err.error_description.includes('Connection must be enabled')
+    ) {
+      return res.status(401).json({
+        error:
+          'Auth0 configuration error: the Username-Password-Authentication connection ' +
+          'is not enabled for this application. Go to Auth0 → Applications → [your app] ' +
+          '→ Connections tab and enable Username-Password-Authentication.',
+      });
+    }
     return res.status(tokenRes.status).json({
       error: err.error_description || err.message || 'Invalid email or password.',
     });
