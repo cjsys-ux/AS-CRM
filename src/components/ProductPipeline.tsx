@@ -62,6 +62,11 @@ type Product = {
   image: string;
 };
 
+type ProjectsApiResponse = {
+  projects?: Product[];
+  error?: string;
+};
+
 export function ProductPipeline() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,10 +95,28 @@ export function ProductPipeline() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchProducts = () => {
-    setLoading(false);
-    setProducts([]);
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/projects/list');
+      const payload = (await response.json()) as ProjectsApiResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load projects from MongoDB.');
+      }
+
+      setProducts(Array.isArray(payload.projects) ? payload.projects : []);
+    } catch (fetchError) {
+      const message = fetchError instanceof Error ? fetchError.message : 'Failed to load pipeline projects.';
+      setProducts([]);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -264,7 +287,7 @@ export function ProductPipeline() {
   const inProgressCount = products.filter(p => p.status === 'In Progress').length;
   const readyForLiveCount = products.filter(p => p.status === 'Ready For Live').length;
   const liveCount = products.filter(p => p.status === 'Live').length;
-  const avgPrice = totalValue / totalProducts;
+  const avgPrice = totalProducts > 0 ? totalValue / totalProducts : 0;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -712,9 +735,15 @@ export function ProductPipeline() {
                             >
                               <Package className="w-12 h-12 text-slate-400" />
                             </motion.div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-2">No Products Yet</h3>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                              {loading ? 'Loading Projects...' : error ? 'Unable to Load Projects' : 'No Products Yet'}
+                            </h3>
                             <p className="text-slate-500 mb-6 max-w-md">
-                              Get started by adding your first product to the pipeline. Track development stages, manage inventory, and monitor progress all in one place.
+                              {loading
+                                ? 'Syncing your MongoDB projects collection into the Product Pipeline.'
+                                : error
+                                  ? error
+                                  : 'Get started by adding your first product to the pipeline. Track development stages, manage inventory, and monitor progress all in one place.'}
                             </p>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
