@@ -15,7 +15,7 @@ export async function getMgmtToken(): Promise<string> {
     return cachedToken;
   }
 
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_MGMT_CLIENT_ID;
   const clientSecret = process.env.AUTH0_MGMT_CLIENT_SECRET;
   const audience = process.env.AUTH0_MGMT_AUDIENCE;
