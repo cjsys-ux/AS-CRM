@@ -15,10 +15,14 @@ export async function getMgmtToken(): Promise<string> {
     return cachedToken;
   }
 
-  const domain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
+  // Prefer AUTH0_DOMAIN (original tenant domain) over VITE_AUTH0_DOMAIN (may be a
+  // custom domain). Auth0's Management API is only reachable at the original tenant
+  // domain — custom domains do not expose /api/v2/.
+  const domain = process.env.AUTH0_DOMAIN ?? process.env.VITE_AUTH0_DOMAIN;
   const clientId = process.env.AUTH0_MGMT_CLIENT_ID;
   const clientSecret = process.env.AUTH0_MGMT_CLIENT_SECRET;
-  const audience = process.env.AUTH0_MGMT_AUDIENCE;
+  // Derive audience from the resolved domain if not explicitly overridden.
+  const audience = process.env.AUTH0_MGMT_AUDIENCE ?? (domain ? `https://${domain}/api/v2/` : undefined);
 
   if (!domain || !clientId || !clientSecret || !audience) {
     throw new Error('Auth0 management API environment variables are not fully configured.');
