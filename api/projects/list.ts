@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
+import { getPublicS3Url } from '../_s3';
 
 type MongoProject = {
   _id?: ObjectId;
@@ -29,6 +30,10 @@ type MongoProject = {
   targetMargin?: string | number;
   image?: string;
   imageUrl?: string;
+  imageKey?: string;
+  s3Key?: string;
+  key?: string;
+  fileKey?: string;
 };
 
 const defaultImage =
@@ -50,6 +55,24 @@ function normalizeStatus(status?: string): string {
   if (value.includes('ready')) return 'Ready For Live';
   if (value === 'live') return 'Live';
   return status ?? 'New Product';
+}
+
+function resolveProjectImage(project: MongoProject): string {
+  const directImage = project.image ?? project.imageUrl;
+  if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
+    return directImage;
+  }
+
+  const s3ObjectKey = project.imageKey ?? project.s3Key ?? project.fileKey ?? project.key;
+  if (s3ObjectKey) {
+    return getPublicS3Url(s3ObjectKey);
+  }
+
+  if (directImage) {
+    return getPublicS3Url(directImage);
+  }
+
+  return defaultImage;
 }
 
 function mapProject(project: MongoProject) {
@@ -74,7 +97,7 @@ function mapProject(project: MongoProject) {
     projectManager: project.projectManager ?? project.manager ?? 'Unassigned',
     internalSKU: project.internalSKU ?? project.sku ?? '',
     targetMargin: project.targetMargin ? String(project.targetMargin) : '',
-    image: project.image ?? project.imageUrl ?? defaultImage,
+    image: resolveProjectImage(project),
   };
 }
 
