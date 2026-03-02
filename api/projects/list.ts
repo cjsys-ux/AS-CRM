@@ -34,6 +34,17 @@ type MongoProject = {
   s3Key?: string;
   key?: string;
   fileKey?: string;
+  thumbnail?: string;
+  productImage?: string;
+};
+
+type MongoUpload = {
+  _id?: ObjectId;
+  entityId?: string;
+  fileType?: string;
+  fileUrl?: string;
+  key?: string;
+  createdAt?: Date;
 };
 
 const defaultImage =
@@ -57,29 +68,45 @@ function normalizeStatus(status?: string): string {
   return status ?? 'New Product';
 }
 
-function resolveProjectImage(project: MongoProject): string {
-  const directImage = project.image ?? project.imageUrl;
+function getUploadImageUrl(upload: MongoUpload | undefined): string | null {
+  if (!upload) return null;
+  if (upload.fileUrl?.startsWith('http://') || upload.fileUrl?.startsWith('https://')) {
+    return upload.fileUrl;
+  }
+  if (upload.key) return getPublicS3Url(upload.key);
+  return null;
+}
+
+function resolveProjectImage(project: MongoProject, uploadByEntityId: Map<string, MongoUpload>): { imageUrl: string; fromMongoImageField: boolean } {
+  const directImage = project.image ?? project.imageUrl ?? project.thumbnail ?? project.productImage;
   if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
-    return directImage;
+    return { imageUrl: directImage, fromMongoImageField: true };
   }
 
   const s3ObjectKey = project.imageKey ?? project.s3Key ?? project.fileKey ?? project.key;
   if (s3ObjectKey) {
-    return getPublicS3Url(s3ObjectKey);
+    return { imageUrl: getPublicS3Url(s3ObjectKey), fromMongoImageField: true };
   }
 
   if (directImage) {
-    return getPublicS3Url(directImage);
+    return { imageUrl: getPublicS3Url(directImage), fromMongoImageField: true };
   }
 
-  return defaultImage;
+  const projectId = project.id ?? project._id?.toString();
+  const uploadImage = projectId ? getUploadImageUrl(uploadByEntityId.get(projectId)) : null;
+  if (uploadImage) {
+    return { imageUrl: uploadImage, fromMongoImageField: false };
+  }
+
+  return { imageUrl: defaultImage, fromMongoImageField: false };
 }
 
-function mapProject(project: MongoProject) {
+function mapProject(project: MongoProject, uploadByEntityId: Map<string, MongoUpload>) {
   const yearlyQty = toNumber(project.yearlyQty ?? project.yearlyQuantity, 0);
   const pricePerUnit = toNumber(project.pricePerUnit ?? project.unitPrice, 0);
   const computedTotal = yearlyQty * pricePerUnit;
   const totalValue = toNumber(project.totalValue, computedTotal);
+  const resolvedImage = resolveProjectImage(project, uploadByEntityId);
 
   return {
     id: project.id ?? project._id?.toString() ?? `project-${Math.random().toString(36).slice(2, 10)}`,
@@ -97,7 +124,7 @@ function mapProject(project: MongoProject) {
     projectManager: project.projectManager ?? project.manager ?? 'Unassigned',
     internalSKU: project.internalSKU ?? project.sku ?? '',
     targetMargin: project.targetMargin ? String(project.targetMargin) : '',
-    image: resolveProjectImage(project),
+    image: resolvedImage.imageUrl,
   };
 }
 
@@ -114,7 +141,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .sort({ _id: -1 })
       .toArray()) as MongoProject[];
 
-    return res.status(200).json({ projects: projects.map(mapProject) });
+    const projectIds = projects
+      .map((project) => project.id ?? project._id?.toString())
+      .filter((value): value is string => Boolean(value));
+
+    const uploads = (await db
+      .collection<MongoUpload>('uploads')
+      .find({
+        entityId: { $in: projectIds },
+        fileType: { $regex: '^image/', $options: 'i' },
+      })
+      .sort({ createdAt: -1 })
+      .toArray()) as MongoUpload[];
+
+    const uploadByEntityId = new Map<string, MongoUpload>();
+    for (const upload of uploads) {
+      if (upload.entityId && !uploadByEntityId.has(upload.entityId)) {
+        uploadByEntityId.set(upload.entityId, upload);
+      }
+    }
+
+    return res.status(200).json({ projects: projects.map((project) => mapProject(project, uploadByEntityId)) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch projects from MongoDB.';
     return res.status(500).json({ error: message });

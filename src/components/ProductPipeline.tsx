@@ -781,6 +781,9 @@ export function ProductPipeline() {
                               src={product.image}
                               alt={product.name}
                               className="w-48 h-32 rounded-xl object-cover border-2 border-slate-200 shadow-md cursor-pointer"
+                              onError={(event) => {
+                                event.currentTarget.src = 'https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=800&h=500&fit=crop';
+                              }}
                               onClick={() => {
                                 setImagePopup({ isOpen: true, imageUrl: product.image, productName: product.name });
                               }}
