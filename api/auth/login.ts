@@ -50,6 +50,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'and enable the Password grant.',
       });
     }
+    if (err.error === 'access_denied' && err.error_description === 'Unauthorized') {
+      return res.status(401).json({
+        error:
+          'Authentication configuration error: Auth0 rejected the client credentials. ' +
+          'If AUTH0_CLIENT_SECRET is set in Vercel, remove it — SPA apps are public ' +
+          'clients and must not send a client secret.',
+      });
+    }
     return res.status(tokenRes.status).json({
       error: err.error_description || err.message || 'Invalid email or password.',
     });
