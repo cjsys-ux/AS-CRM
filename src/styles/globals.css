@@ -124,6 +124,10 @@
     @apply border-border outline-ring/50;
   }
 
+  html, body, #root {
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
