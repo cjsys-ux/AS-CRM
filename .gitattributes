@@ -1,0 +1,28 @@
+# Normalize text files and avoid accidental binary detection
+* text=auto
+
+# Force common source/docs formats as text
+*.md text
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.json text
+*.yml text
+*.yaml text
+*.css text
+*.html text
+*.sh text
+
+# Mark common binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.mp3 binary
+*.mp4 binary
