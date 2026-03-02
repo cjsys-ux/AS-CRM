@@ -12,6 +12,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const domain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
   const clientId = process.env.VITE_AUTH0_CLIENT_ID;
+  // Optional: required only when the Auth0 app type is "Regular Web Application"
+  // (confidential client). Set AUTH0_CLIENT_SECRET in Vercel if logins return
+  // "unauthorized_client".
+  const clientSecret = process.env.AUTH0_CLIENT_SECRET;
 
   if (!domain || !clientId) {
     return res.status(500).json({
@@ -29,12 +33,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       username: email,
       password,
       client_id: clientId,
+      ...(clientSecret ? { client_secret: clientSecret } : {}),
       scope: 'openid profile email',
     }),
   });
 
   if (!tokenRes.ok) {
     const err = await tokenRes.json().catch(() => ({}));
+    // Provide a clear, actionable message when the Password grant type is not
+    // enabled for this Auth0 application.
+    if (err.error === 'unauthorized_client') {
+      return res.status(401).json({
+        error:
+          'Login is not enabled for this Auth0 application. In your Auth0 Dashboard, ' +
+          'go to Applications → [your app] → Settings → Advanced Settings → Grant Types ' +
+          'and enable the Password grant.',
+      });
+    }
+    if (err.error === 'access_denied' && err.error_description === 'Unauthorized') {
+      return res.status(401).json({
+        error:
+          'Authentication configuration error: Auth0 rejected the client credentials. ' +
+          'If AUTH0_CLIENT_SECRET is set in Vercel, remove it — SPA apps are public ' +
+          'clients and must not send a client secret.',
+      });
+    }
+    if (
+      typeof err.error_description === 'string' &&
+      err.error_description.includes('Connection must be enabled')
+    ) {
+      return res.status(401).json({
+        error:
+          'Auth0 configuration error: the Username-Password-Authentication connection ' +
+          'is not enabled for this application. Go to Auth0 → Applications → [your app] ' +
+          '→ Connections tab and enable Username-Password-Authentication.',
+      });
+    }
     return res.status(tokenRes.status).json({
       error: err.error_description || err.message || 'Invalid email or password.',
     });

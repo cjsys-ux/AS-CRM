@@ -20,6 +20,19 @@ function verifyInviteToken(token: string): { userId: string; email: string } | n
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // GET — pre-validate the invite token before the user fills the form.
+  if (req.method === 'GET') {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ valid: false, error: 'Token required.' });
+    }
+    const verified = verifyInviteToken(token);
+    if (!verified) {
+      return res.status(200).json({ valid: false });
+    }
+    return res.status(200).json({ valid: true, email: verified.email });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -37,9 +50,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { userId, email } = verified;
 
-  const domain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
+  // VITE_AUTH0_DOMAIN may be a custom domain — fine for user-facing auth endpoints
+  // (/oauth/token, /userinfo) but Auth0's Management API (/api/v2/) is only
+  // reachable at the original tenant domain.  Use AUTH0_DOMAIN for mgmt calls.
+  const mgmtDomain = process.env.AUTH0_DOMAIN ?? process.env.VITE_AUTH0_DOMAIN;
+  const authDomain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
   const clientId = process.env.VITE_AUTH0_CLIENT_ID;
-  if (!domain || !clientId) {
+  const clientSecret = process.env.AUTH0_CLIENT_SECRET;
+  if (!mgmtDomain || !authDomain || !clientId) {
     return res.status(500).json({ error: 'Auth0 environment variables are not configured.' });
   }
 
@@ -52,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: `Management token error: ${message}` });
   }
 
-  const userUrl = `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`;
+  const userUrl = `https://${mgmtDomain}/api/v2/users/${encodeURIComponent(userId)}`;
   const patchHeaders = { Authorization: `Bearer ${mgmtToken}`, 'Content-Type': 'application/json' };
 
   // Auth0 does not allow updating password and email_verified in the same request.
@@ -96,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Auto-login: exchange credentials for tokens
   let tokenRes: Response;
   try {
-    tokenRes = await fetch(`https://${domain}/oauth/token`, {
+    tokenRes = await fetch(`https://${authDomain}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -105,6 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         username: email,
         password,
         client_id: clientId,
+        ...(clientSecret ? { client_secret: clientSecret } : {}),
         scope: 'openid profile email',
       }),
     });
@@ -137,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let userRes: Response;
   try {
-    userRes = await fetch(`https://${domain}/userinfo`, {
+    userRes = await fetch(`https://${authDomain}/userinfo`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
   } catch (userFetchErr) {

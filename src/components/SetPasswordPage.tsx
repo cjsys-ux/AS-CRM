@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 interface SetPasswordPageProps {
   token: string;
@@ -14,6 +14,27 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isValidating, setIsValidating] = useState(true);
+  const [tokenValid, setTokenValid] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    const validate = async () => {
+      try {
+        const res = await fetch(`/api/auth/set-password?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (res.ok && data.valid) {
+          setTokenValid(true);
+          setUserEmail(data.email || '');
+        }
+      } catch {
+        // network error — leave tokenValid false
+      } finally {
+        setIsValidating(false);
+      }
+    };
+    validate();
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +82,42 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
       setIsLoading(false);
     }
   };
+
+  if (isValidating) {
+    return (
+      <div className="size-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!tokenValid) {
+    return (
+      <div className="size-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md text-center bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20"
+        >
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-3">Link Expired</h1>
+          <p className="text-blue-200 mb-8 leading-relaxed">
+            This password setup link is no longer valid. Please contact your administrator to
+            receive a new invitation.
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl"
+          >
+            Go to Sign In
+            <ArrowRight className="w-4 h-4" />
+          </a>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="size-full flex bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
@@ -146,7 +203,9 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
               <>
                 <h2 className="text-2xl font-bold text-white mb-2">Create Your Password</h2>
                 <p className="text-blue-200 mb-8">
-                  You're almost there — set up your account to get started
+                  {userEmail
+                    ? `Set your password to continue with ${userEmail}`
+                    : "You're almost there — set up your account to get started"}
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
