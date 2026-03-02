@@ -338,7 +338,7 @@ export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMen
         </div>
 
         {/* Menu */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+        <div className="flex-1 overflow-hidden px-3 py-4 space-y-0.5">
           <div className="mb-2">
             <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Main</h2>
             {menuData.map((item, index) => renderMenuItem(item, index))}
@@ -361,7 +361,7 @@ export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMen
   return (
     <>
       {/* Desktop Sidebar - Always visible on desktop */}
-      <div className="hidden lg:block h-screen w-72 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden border-r border-slate-700/50 shadow-2xl flex-shrink-0">
+      <div className="hidden lg:block h-full w-72 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden border-r border-slate-700/50 shadow-2xl flex-shrink-0">
         <SidebarContent />
       </div>
 
