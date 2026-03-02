@@ -9,19 +9,31 @@
 let cachedToken: string | null = null;
 let tokenExpiresAt = 0; // Unix ms
 
+/** Resolve the Auth0 tenant domain from environment variables. */
+export function getAuth0Domain(): string {
+  const domain = process.env.AUTH0_DOMAIN ?? process.env.VITE_AUTH0_DOMAIN;
+  if (!domain) {
+    throw new Error('Neither AUTH0_DOMAIN nor VITE_AUTH0_DOMAIN is set.');
+  }
+  return domain;
+}
+
 export async function getMgmtToken(): Promise<string> {
   const now = Date.now();
   if (cachedToken && now < tokenExpiresAt - 60_000) {
     return cachedToken;
   }
 
-  const domain = process.env.AUTH0_DOMAIN;
+  const domain = getAuth0Domain();
   const clientId = process.env.AUTH0_MGMT_CLIENT_ID;
   const clientSecret = process.env.AUTH0_MGMT_CLIENT_SECRET;
   const audience = process.env.AUTH0_MGMT_AUDIENCE;
 
-  if (!domain || !clientId || !clientSecret || !audience) {
-    throw new Error('Auth0 management API environment variables are not fully configured.');
+  if (!clientId || !clientSecret || !audience) {
+    throw new Error(
+      'Auth0 management API environment variables are not fully configured. ' +
+      'Ensure AUTH0_MGMT_CLIENT_ID, AUTH0_MGMT_CLIENT_SECRET, and AUTH0_MGMT_AUDIENCE are set.'
+    );
   }
 
   const res = await fetch(`https://${domain}/oauth/token`, {

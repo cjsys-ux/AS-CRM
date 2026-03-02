@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import { getMgmtToken } from '../_mgmt-token';
+import { getMgmtToken, getAuth0Domain } from '../_mgmt-token';
 
 function verifyInviteToken(token: string): { userId: string; email: string } | null {
   const parts = token.split('.');
@@ -37,22 +37,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { userId, email } = verified;
 
-  const domain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN;
   const clientId = process.env.VITE_AUTH0_CLIENT_ID;
-  if (!domain || !clientId) {
-    return res.status(500).json({ error: 'Auth0 environment variables are not configured.' });
+  if (!clientId) {
+    return res.status(500).json({ error: 'VITE_AUTH0_CLIENT_ID is not configured.' });
   }
 
   // Set the user's password via Management API
+  let mgmtDomain: string;
   let mgmtToken: string;
   try {
+    mgmtDomain = getAuth0Domain();
     mgmtToken = await getMgmtToken();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return res.status(500).json({ error: `Management token error: ${message}` });
   }
 
-  const userUrl = `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`;
+  const userUrl = `https://${mgmtDomain}/api/v2/users/${encodeURIComponent(userId)}`;
   const patchHeaders = { Authorization: `Bearer ${mgmtToken}`, 'Content-Type': 'application/json' };
 
   // Auth0 does not allow updating password and email_verified in the same request.
@@ -94,9 +95,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Auto-login: exchange credentials for tokens
+  const authDomain = process.env.VITE_AUTH0_DOMAIN ?? process.env.AUTH0_DOMAIN ?? mgmtDomain;
   let tokenRes: Response;
   try {
-    tokenRes = await fetch(`https://${domain}/oauth/token`, {
+    tokenRes = await fetch(`https://${authDomain}/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -137,7 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let userRes: Response;
   try {
-    userRes = await fetch(`https://${domain}/userinfo`, {
+    userRes = await fetch(`https://${authDomain}/userinfo`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
   } catch (userFetchErr) {

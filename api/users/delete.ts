@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getMgmtToken } from '../_mgmt-token';
+import { getMgmtToken, getAuth0Domain } from '../_mgmt-token';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'DELETE') {
@@ -13,13 +13,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'userId query parameter is required.' });
   }
 
-  const domain = process.env.AUTH0_DOMAIN;
-  if (!domain) {
-    return res.status(500).json({ error: 'AUTH0_DOMAIN is not configured on the server.' });
-  }
-
+  let domain: string;
   let token: string;
   try {
+    domain = getAuth0Domain();
     token = await getMgmtToken();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
