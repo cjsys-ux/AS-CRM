@@ -27,3 +27,26 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+
+# Binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.ico
+*.pdf
+*.zip
+*.tar
+*.gz
+*.7z
+*.mp3
+*.mp4
+*.mov
+*.avi
+*.exe
+*.dll
+*.so
+*.dylib
