@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('patrick@activateswag.com');
-  const [password, setPassword] = useState('1234');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
