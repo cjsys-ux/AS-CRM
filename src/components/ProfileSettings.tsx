@@ -54,6 +54,8 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [toastMessage, setToastMessage] = useState('Profile updated successfully!');
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.sub || user.sub.startsWith('local|')) return;
@@ -80,95 +82,108 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     setFormData({ ...formData, phone: formatted });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const showError = (msg: string) => {
+    setToastMessage(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  // Selecting a file only creates a local preview — no upload happens yet.
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Reset input so re-selecting the same file triggers onChange again
     e.target.value = '';
 
-    const allowedTypes = ['image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      setToastMessage('Only JPG and PNG images are supported.');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      showError('Only JPG and PNG images are supported.');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setToastMessage('Image must be under 2 MB.');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      showError('Image must be under 2 MB.');
       return;
     }
 
-    setIsUploadingImage(true);
-    try {
-      // 1. Get a presigned URL from the server
-      const presignRes = await fetch('/api/files/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          entityType: 'profile',
-          entityId: user?.sub ?? 'unknown',
-        }),
-      });
-      if (!presignRes.ok) throw new Error('Failed to get upload URL.');
-      const { uploadUrl, key, fileUrl } = await presignRes.json();
+    // Revoke any previous preview URL to free memory
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
 
-      // 2. Upload directly to S3
-      const s3Res = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!s3Res.ok) throw new Error('Failed to upload image to storage.');
-
-      // 3. Record upload metadata in MongoDB (fire-and-forget)
-      fetch('/api/files/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          key,
-          fileName: file.name,
-          fileType: file.type,
-          size: file.size,
-          entityType: 'profile',
-          entityId: user?.sub ?? 'unknown',
-          uploadedBy: user?.sub ?? 'unknown',
-        }),
-      }).catch(() => {});
-
-      // 4. Save the S3 URL to Auth0 (and delete the old image from S3)
-      if (user?.sub && !user.sub.startsWith('local|')) {
-        const updateRes = await fetch('/api/users/update', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.sub,
-            profileImage: fileUrl,
-            oldProfileImage: formData.profileImage,
-          }),
-        });
-        if (!updateRes.ok) throw new Error('Failed to save profile image.');
-      }
-
-      // 5. Update local state immediately so the avatar reflects the new image
-      setFormData((prev) => ({ ...prev, profileImage: fileUrl }));
-      onUpdate({ ...formData, profileImage: fileUrl });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Image upload failed.';
-      setToastMessage(msg);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    } finally {
-      setIsUploadingImage(false);
-    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setPendingImageFile(file);
+    setFormData((prev) => ({ ...prev, profileImage: url }));
   };
 
-  const handleSave = () => {
-    onUpdate(formData);
+  const handleSave = async () => {
+    let savedProfile = { ...formData };
+
+    if (pendingImageFile && user?.sub) {
+      setIsUploadingImage(true);
+      try {
+        // 1. Get presigned URL
+        const presignRes = await fetch('/api/files/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: pendingImageFile.name,
+            fileType: pendingImageFile.type,
+            entityType: 'profile',
+            entityId: user.sub,
+          }),
+        });
+        if (!presignRes.ok) throw new Error('Failed to get upload URL.');
+        const { uploadUrl, key, fileUrl } = await presignRes.json();
+
+        // 2. Upload directly to S3
+        const s3Res = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': pendingImageFile.type },
+          body: pendingImageFile,
+        });
+        if (!s3Res.ok) throw new Error('Failed to upload image to storage.');
+
+        // 3. Record upload metadata in MongoDB (fire-and-forget)
+        fetch('/api/files/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            fileName: pendingImageFile.name,
+            fileType: pendingImageFile.type,
+            size: pendingImageFile.size,
+            entityType: 'profile',
+            entityId: user.sub,
+            uploadedBy: user.sub,
+          }),
+        }).catch(() => {});
+
+        // 4. Persist URL in Auth0 and delete old S3 image
+        if (!user.sub.startsWith('local|')) {
+          const updateRes = await fetch('/api/users/update', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.sub,
+              profileImage: fileUrl,
+              oldProfileImage: userProfile.profileImage,
+            }),
+          });
+          if (!updateRes.ok) throw new Error('Failed to save profile image.');
+        }
+
+        // Swap preview URL for the real S3 URL
+        URL.revokeObjectURL(previewUrl!);
+        setPreviewUrl(null);
+        setPendingImageFile(null);
+        savedProfile = { ...savedProfile, profileImage: fileUrl };
+        setFormData(savedProfile);
+      } catch (err) {
+        setIsUploadingImage(false);
+        showError(err instanceof Error ? err.message : 'Image upload failed.');
+        return; // keep editing so user can retry
+      }
+      setIsUploadingImage(false);
+    }
+
+    onUpdate(savedProfile);
     setIsEditing(false);
     setToastMessage('Profile updated successfully!');
     setShowToast(true);
@@ -176,6 +191,11 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   };
 
   const handleCancel = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setPendingImageFile(null);
     setFormData(userProfile);
     setIsEditing(false);
   };
