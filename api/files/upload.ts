@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if ((entityType as string) === 'profile' && entityId) {
       const safeId = normalizePart(entityId as string);
       const ext = safeFileName.includes('.') ? safeFileName.split('.').pop()! : 'jpg';
-      key = `Profile-images/${safeId}/profile.${ext}`;
+      key = `profile-images/${safeId}/profile.${ext}`;
     } else {
       const scope = normalizePart(entityType || 'general');
       const scopeId = normalizePart(entityId || 'unscoped');

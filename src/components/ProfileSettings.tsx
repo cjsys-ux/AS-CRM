@@ -57,6 +57,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   const [toastMessage, setToastMessage] = useState('Profile updated successfully!');
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (!user?.sub || user.sub.startsWith('local|')) return;
@@ -119,6 +120,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setPendingImageFile(file);
+    setImageError(false);
     setFormData((prev) => ({ ...prev, profileImage: url }));
   };
 
@@ -724,10 +726,11 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               <div className="h-24 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 relative">
                 <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
                   <div className="relative group">
-                    {formData.profileImage ? (
+                    {formData.profileImage && !imageError ? (
                       <img
                         src={formData.profileImage}
                         alt="Profile"
+                        onError={() => setImageError(true)}
                         className="w-24 h-24 rounded-full border-4 border-white shadow-xl object-cover"
                       />
                     ) : (

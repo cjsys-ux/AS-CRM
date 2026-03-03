@@ -15,7 +15,8 @@ function extractS3Key(url: string): string | null {
     }
   } catch { /* not parseable as URL */ }
   // Legacy direct S3 URL formats
-  let idx = url.indexOf('/Profile-images/');
+  let idx = url.indexOf('/profile-images/');
+  if (idx === -1) idx = url.indexOf('/Profile-images/');
   if (idx !== -1) return url.slice(idx + 1);
   idx = url.indexOf('/uploads/');
   if (idx !== -1) return url.slice(idx + 1);
