@@ -83,7 +83,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (profileImage !== undefined) {
-    patch.picture = profileImage;
+    // Auth0 validates `picture` as a URI and rejects relative paths like
+    // /api/files/image?key=…  Store the proxy URL in user_metadata instead.
+    metaPatch.profile_image_key = profileImage as string;
   }
 
   if (Object.keys(patch).length === 0) {

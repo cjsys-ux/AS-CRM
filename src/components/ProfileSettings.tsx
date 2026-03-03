@@ -18,6 +18,7 @@ interface AuthStatus {
   last_login: string | null;
   email_verified: boolean | null;
   blocked: boolean;
+  profile_image_key: string | null;
 }
 
 function formatRelativeDate(isoString: string): string {
@@ -61,8 +62,17 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     if (!user?.sub || user.sub.startsWith('local|')) return;
     fetch(`/api/users/me?userId=${encodeURIComponent(user.sub)}`)
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setAuthStatus(data); })
+      .then((data: AuthStatus | null) => {
+        if (!data) return;
+        setAuthStatus(data);
+        // Restore the profile image stored in Auth0 user_metadata on page load
+        if (data.profile_image_key) {
+          setFormData((prev) => ({ ...prev, profileImage: data.profile_image_key! }));
+          onUpdate({ ...userProfile, profileImage: data.profile_image_key! });
+        }
+      })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.sub]);
 
   const formatPhoneNumber = (value: string) => {
