@@ -122,6 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: updated.blocked ? 'Inactive' : 'Active',
       lastLogin: updated.last_login ? formatRelativeDate(updated.last_login) : 'Never',
       created: updated.created_at ?? '',
+      profileImage: updated.picture ?? '',
     },
   });
 }
