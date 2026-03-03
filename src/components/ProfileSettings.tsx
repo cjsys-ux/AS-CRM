@@ -118,8 +118,15 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     if (pendingImageFile && user?.sub) {
       setIsUploadingImage(true);
       try {
-        // 1. Get presigned URL
-        const presignRes = await fetch('/api/files/presign', {
+        // 1. Convert file to base64 and upload server-side (avoids S3 CORS)
+        const fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(pendingImageFile);
+        });
+
+        const uploadRes = await fetch('/api/files/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -127,21 +134,14 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             fileType: pendingImageFile.type,
             entityType: 'profile',
             entityId: user.sub,
+            fileData,
           }),
         });
-        if (!presignRes.ok) {
-          const errBody = await presignRes.json().catch(() => ({}));
-          throw new Error(errBody?.error ?? `Presign failed (${presignRes.status}).`);
+        if (!uploadRes.ok) {
+          const errBody = await uploadRes.json().catch(() => ({}));
+          throw new Error(errBody?.error ?? `Upload failed (${uploadRes.status}).`);
         }
-        const { uploadUrl, key, fileUrl } = await presignRes.json();
-
-        // 2. Upload directly to S3
-        const s3Res = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': pendingImageFile.type },
-          body: pendingImageFile,
-        });
-        if (!s3Res.ok) throw new Error(`S3 upload failed (${s3Res.status}).`);
+        const { key, fileUrl } = await uploadRes.json();
 
         // 3. Record upload metadata in MongoDB (fire-and-forget)
         fetch('/api/files/complete', {

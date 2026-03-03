@@ -6,9 +6,11 @@ import { getS3Client, getS3Bucket } from '../_s3';
 /** Extract an S3 object key from one of our public bucket URLs.
  *  Returns null if the URL doesn't look like an object we own. */
 function extractS3Key(url: string): string | null {
-  const idx = url.indexOf('/uploads/');
-  if (idx === -1) return null;
-  return url.slice(idx + 1); // e.g. "uploads/profile/auth0|xxx/..."
+  let idx = url.indexOf('/Profile-images/');
+  if (idx !== -1) return url.slice(idx + 1);
+  idx = url.indexOf('/uploads/');
+  if (idx !== -1) return url.slice(idx + 1);
+  return null;
 }
 
 function formatRelativeDate(isoString: string): string {

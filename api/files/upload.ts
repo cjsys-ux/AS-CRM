@@ -1,9 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getS3Bucket, getS3Client, getPublicS3Url } from '../_s3';
-
-const PRESIGN_EXPIRY_SECONDS = 300;
 
 function normalizePart(input: string): string {
   return input
@@ -17,10 +14,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { fileName, fileType, entityType, entityId } = req.body ?? {};
+  const { fileName, fileType, entityType, entityId, fileData } = req.body ?? {};
 
-  if (!fileName || !fileType) {
-    return res.status(400).json({ error: 'fileName and fileType are required.' });
+  if (!fileName || !fileType || !fileData) {
+    return res.status(400).json({ error: 'fileName, fileType, and fileData are required.' });
   }
 
   try {
@@ -40,24 +37,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       key = `uploads/${scope}/${scopeId}/${Date.now()}-${safeFileName}`;
     }
 
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: fileType as string,
-    });
+    const buffer = Buffer.from(fileData as string, 'base64');
 
-    const uploadUrl = await getSignedUrl(s3, command, {
-      expiresIn: PRESIGN_EXPIRY_SECONDS,
-    });
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: fileType as string,
+      }),
+    );
 
     return res.status(200).json({
-      uploadUrl,
       key,
       fileUrl: getPublicS3Url(key),
-      expiresIn: PRESIGN_EXPIRY_SECONDS,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to generate presigned URL.';
+    const message = error instanceof Error ? error.message : 'Upload failed.';
     return res.status(500).json({ error: message });
   }
 }
