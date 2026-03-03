@@ -1,18 +1,44 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Mail, Phone, Briefcase, Building2, Camera, Save, Edit3, Key, X, Check, Shield, Monitor, Smartphone, MapPin, Clock, QrCode, AlertCircle } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { TimezonePicker } from './TimezonePicker';
 import { Toast } from './Toast';
 import { UserProfile } from '../App';
 import { SetupAuthenticatorModal } from './SetupAuthenticatorModal';
 import { SetupSMSModal } from './SetupSMSModal';
+import { useAuth } from '../context/AuthContext';
 
 interface ProfileSettingsProps {
   userProfile: UserProfile;
   onUpdate: (profile: UserProfile) => void;
 }
 
+interface AuthStatus {
+  created_at: string | null;
+  last_login: string | null;
+  email_verified: boolean | null;
+  blocked: boolean;
+}
+
+function formatRelativeDate(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 14) return 'Last week';
+  if (diffDays < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatCreatedDate(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
 export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps) {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'twoFactor' | 'sessions' | 'password'>('profile');
@@ -25,6 +51,15 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAuthenticatorModalOpen, setIsAuthenticatorModalOpen] = useState(false);
   const [isSMSModalOpen, setIsSMSModalOpen] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+
+  useEffect(() => {
+    if (!user?.sub || user.sub.startsWith('local|')) return;
+    fetch(`/api/users/me?userId=${encodeURIComponent(user.sub)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setAuthStatus(data); })
+      .catch(() => {});
+  }, [user?.sub]);
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -643,24 +678,34 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Account Status</h3>
-                  <p className="text-sm text-purple-100">Active & Verified</p>
+                  <p className="text-sm text-purple-100">
+                    {authStatus?.blocked
+                      ? 'Inactive'
+                      : (authStatus?.email_verified ?? user?.email_verified) === false
+                        ? 'Active & Unverified'
+                        : 'Active & Verified'}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-100">Created Date</span>
-                  <span className="font-semibold">Jan, 2024</span>
+                  <span className="font-semibold">
+                    {authStatus?.created_at ? formatCreatedDate(authStatus.created_at) : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-100">Last Login</span>
-                  <span className="font-semibold">Today</span>
+                  <span className="font-semibold">
+                    {authStatus?.last_login ? formatRelativeDate(authStatus.last_login) : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-100">Email Status</span>
                   <span className="flex items-center gap-1.5 font-semibold">
                     <Check className="w-4 h-4" />
-                    Verified
+                    {(authStatus?.email_verified ?? user?.email_verified) ? 'Verified' : 'Not Verified'}
                   </span>
                 </div>
               </div>

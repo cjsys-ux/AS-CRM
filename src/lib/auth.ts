@@ -6,6 +6,8 @@ export interface Auth0User {
   email?: string;
   picture?: string;
   email_verified?: boolean;
+  created_at?: string;
+  last_login?: string;
 }
 
 export interface AuthTokens {
