@@ -1,5 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getMgmtToken } from '../_mgmt-token';
+import { getS3Client, getS3Bucket } from '../_s3';
+
+/** Extract an S3 object key from one of our public bucket URLs.
+ *  Returns null if the URL doesn't look like an object we own. */
+function extractS3Key(url: string): string | null {
+  const idx = url.indexOf('/uploads/');
+  if (idx === -1) return null;
+  return url.slice(idx + 1); // e.g. "uploads/profile/auth0|xxx/..."
+}
 
 function formatRelativeDate(isoString: string): string {
   const date = new Date(isoString);
@@ -16,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userId, firstName, lastName, email, phone, role, status } = req.body ?? {};
+  const { userId, firstName, lastName, email, phone, role, status, profileImage, oldProfileImage } = req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required.' });
@@ -61,8 +71,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     patch.user_metadata = metaPatch;
   }
 
+  if (profileImage !== undefined) {
+    patch.picture = profileImage;
+  }
+
   if (Object.keys(patch).length === 0) {
     return res.status(400).json({ error: 'No fields provided for update.' });
+  }
+
+  // Delete the previous profile image from S3 when a new one is uploaded.
+  if (profileImage !== undefined && typeof oldProfileImage === 'string') {
+    const oldKey = extractS3Key(oldProfileImage);
+    if (oldKey) {
+      try {
+        const s3 = getS3Client();
+        const bucket = getS3Bucket();
+        await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: oldKey }));
+      } catch {
+        // Non-fatal: log and continue even if the old image can't be deleted.
+        console.error('Failed to delete old profile image from S3:', oldKey);
+      }
+    }
   }
 
   // Auth0 user IDs contain '|' which must be percent-encoded in URL paths
@@ -93,6 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: updated.blocked ? 'Inactive' : 'Active',
       lastLogin: updated.last_login ? formatRelativeDate(updated.last_login) : 'Never',
       created: updated.created_at ?? '',
+      profileImage: updated.picture ?? '',
     },
   });
 }

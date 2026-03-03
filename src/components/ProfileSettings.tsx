@@ -1,18 +1,44 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Mail, Phone, Briefcase, Building2, Camera, Save, Edit3, Key, X, Check, Shield, Monitor, Smartphone, MapPin, Clock, QrCode, AlertCircle } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { TimezonePicker } from './TimezonePicker';
 import { Toast } from './Toast';
 import { UserProfile } from '../App';
 import { SetupAuthenticatorModal } from './SetupAuthenticatorModal';
 import { SetupSMSModal } from './SetupSMSModal';
+import { useAuth } from '../context/AuthContext';
 
 interface ProfileSettingsProps {
   userProfile: UserProfile;
   onUpdate: (profile: UserProfile) => void;
 }
 
+interface AuthStatus {
+  created_at: string | null;
+  last_login: string | null;
+  email_verified: boolean | null;
+  blocked: boolean;
+}
+
+function formatRelativeDate(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 14) return 'Last week';
+  if (diffDays < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatCreatedDate(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
 export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps) {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [activeSection, setActiveSection] = useState<'profile' | 'twoFactor' | 'sessions' | 'password'>('profile');
@@ -25,6 +51,19 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAuthenticatorModalOpen, setIsAuthenticatorModalOpen] = useState(false);
   const [isSMSModalOpen, setIsSMSModalOpen] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Profile updated successfully!');
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.sub || user.sub.startsWith('local|')) return;
+    fetch(`/api/users/me?userId=${encodeURIComponent(user.sub)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setAuthStatus(data); })
+      .catch(() => {});
+  }, [user?.sub]);
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -43,25 +82,126 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     setFormData({ ...formData, phone: formatted });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, profileImage: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
+  const showError = (msg: string) => {
+    setToastMessage(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
-  const handleSave = () => {
-    onUpdate(formData);
+  // Selecting a file only creates a local preview — no upload happens yet.
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      showError('Only JPG and PNG images are supported.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showError('Image must be under 2 MB.');
+      return;
+    }
+
+    // Revoke any previous preview URL to free memory
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setPendingImageFile(file);
+    setFormData((prev) => ({ ...prev, profileImage: url }));
+  };
+
+  const handleSave = async () => {
+    let savedProfile = { ...formData };
+
+    if (pendingImageFile && user?.sub) {
+      setIsUploadingImage(true);
+      try {
+        // 1. Get presigned URL
+        const presignRes = await fetch('/api/files/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: pendingImageFile.name,
+            fileType: pendingImageFile.type,
+            entityType: 'profile',
+            entityId: user.sub,
+          }),
+        });
+        if (!presignRes.ok) {
+          const errBody = await presignRes.json().catch(() => ({}));
+          throw new Error(errBody?.error ?? `Presign failed (${presignRes.status}).`);
+        }
+        const { uploadUrl, key, fileUrl } = await presignRes.json();
+
+        // 2. Upload directly to S3
+        const s3Res = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': pendingImageFile.type },
+          body: pendingImageFile,
+        });
+        if (!s3Res.ok) throw new Error(`S3 upload failed (${s3Res.status}).`);
+
+        // 3. Record upload metadata in MongoDB (fire-and-forget)
+        fetch('/api/files/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            fileName: pendingImageFile.name,
+            fileType: pendingImageFile.type,
+            size: pendingImageFile.size,
+            entityType: 'profile',
+            entityId: user.sub,
+            uploadedBy: user.sub,
+          }),
+        }).catch(() => {});
+
+        // 4. Persist URL in Auth0 and delete old S3 image
+        if (!user.sub.startsWith('local|')) {
+          const updateRes = await fetch('/api/users/update', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.sub,
+              profileImage: fileUrl,
+              oldProfileImage: userProfile.profileImage,
+            }),
+          });
+          if (!updateRes.ok) {
+            const errBody = await updateRes.json().catch(() => ({}));
+            throw new Error(errBody?.error ?? `Profile save failed (${updateRes.status}).`);
+          }
+        }
+
+        // Swap preview URL for the real S3 URL
+        URL.revokeObjectURL(previewUrl!);
+        setPreviewUrl(null);
+        setPendingImageFile(null);
+        savedProfile = { ...savedProfile, profileImage: fileUrl };
+        setFormData(savedProfile);
+      } catch (err) {
+        setIsUploadingImage(false);
+        showError(err instanceof Error ? err.message : 'Image upload failed.');
+        return; // keep editing so user can retry
+      }
+      setIsUploadingImage(false);
+    }
+
+    onUpdate(savedProfile);
     setIsEditing(false);
+    setToastMessage('Profile updated successfully!');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
 
   const handleCancel = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setPendingImageFile(null);
     setFormData(userProfile);
     setIsEditing(false);
   };
@@ -585,20 +725,29 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                         <span className="text-3xl font-bold text-white">{getInitials()}</span>
                       </div>
                     )}
-                    {isEditing && (
+                    {(isEditing || isUploadingImage) && (
                       <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 p-2 bg-blue-500 rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+                        whileHover={{ scale: isUploadingImage ? 1 : 1.1 }}
+                        whileTap={{ scale: isUploadingImage ? 1 : 0.95 }}
+                        onClick={() => !isUploadingImage && fileInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        className="absolute bottom-0 right-0 p-2 bg-blue-500 rounded-full shadow-lg hover:bg-blue-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                        title={isUploadingImage ? 'Uploading…' : 'Change photo'}
                       >
-                        <Camera className="w-4 h-4 text-white" />
+                        {isUploadingImage ? (
+                          <svg className="w-4 h-4 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                        ) : (
+                          <Camera className="w-4 h-4 text-white" />
+                        )}
                       </motion.button>
                     )}
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png"
                       onChange={handleImageUpload}
                       className="hidden"
                     />
@@ -643,24 +792,34 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Account Status</h3>
-                  <p className="text-sm text-purple-100">Active & Verified</p>
+                  <p className="text-sm text-purple-100">
+                    {authStatus?.blocked
+                      ? 'Inactive'
+                      : (authStatus?.email_verified ?? user?.email_verified) === false
+                        ? 'Active & Unverified'
+                        : 'Active & Verified'}
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-100">Created Date</span>
-                  <span className="font-semibold">Jan, 2024</span>
+                  <span className="font-semibold">
+                    {authStatus?.created_at ? formatCreatedDate(authStatus.created_at) : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-100">Last Login</span>
-                  <span className="font-semibold">Today</span>
+                  <span className="font-semibold">
+                    {authStatus?.last_login ? formatRelativeDate(authStatus.last_login) : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-purple-100">Email Status</span>
                   <span className="flex items-center gap-1.5 font-semibold">
                     <Check className="w-4 h-4" />
-                    Verified
+                    {(authStatus?.email_verified ?? user?.email_verified) ? 'Verified' : 'Not Verified'}
                   </span>
                 </div>
               </div>
@@ -744,7 +903,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       {/* Toast Notification */}
       <AnimatePresence>
         {showToast && (
-          <Toast message="Profile updated successfully!" onClose={() => setShowToast(false)} />
+          <Toast message={toastMessage} onClose={() => setShowToast(false)} />
         )}
       </AnimatePresence>
 
