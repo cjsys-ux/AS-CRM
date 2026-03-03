@@ -6234,3 +6234,8 @@ html {
     transform: rotate(360deg);
   }
 }
+
+/* Sidebar scrollbar — thin, dark-themed */
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgb(71 85 105 / 0.6); border-radius: 9999px; }
