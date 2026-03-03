@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getS3Bucket, getS3Client, getPublicS3Url } from '../_s3';
+import { getS3Bucket, getS3Client } from '../_s3';
 
 function normalizePart(input: string): string {
   return input
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({
       key,
-      fileUrl: getPublicS3Url(key),
+      fileUrl: `/api/files/image?key=${encodeURIComponent(key)}`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed.';

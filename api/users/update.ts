@@ -3,9 +3,18 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getMgmtToken } from '../_mgmt-token';
 import { getS3Client, getS3Bucket } from '../_s3';
 
-/** Extract an S3 object key from one of our public bucket URLs.
+/** Extract an S3 object key from one of our URLs (proxy or direct S3).
  *  Returns null if the URL doesn't look like an object we own. */
 function extractS3Key(url: string): string | null {
+  // Proxy format: /api/files/image?key=Profile-images/...
+  try {
+    const u = new URL(url, 'http://x');
+    if (u.pathname.endsWith('/image')) {
+      const k = u.searchParams.get('key');
+      if (k) return k;
+    }
+  } catch { /* not parseable as URL */ }
+  // Legacy direct S3 URL formats
   let idx = url.indexOf('/Profile-images/');
   if (idx !== -1) return url.slice(idx + 1);
   idx = url.indexOf('/uploads/');
