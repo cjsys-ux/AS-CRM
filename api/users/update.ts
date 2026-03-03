@@ -3,12 +3,24 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getMgmtToken } from '../_mgmt-token';
 import { getS3Client, getS3Bucket } from '../_s3';
 
-/** Extract an S3 object key from one of our public bucket URLs.
+/** Extract an S3 object key from one of our URLs (proxy or direct S3).
  *  Returns null if the URL doesn't look like an object we own. */
 function extractS3Key(url: string): string | null {
-  const idx = url.indexOf('/uploads/');
-  if (idx === -1) return null;
-  return url.slice(idx + 1); // e.g. "uploads/profile/auth0|xxx/..."
+  // Proxy format: /api/files/image?key=Profile-images/...
+  try {
+    const u = new URL(url, 'http://x');
+    if (u.pathname.endsWith('/image')) {
+      const k = u.searchParams.get('key');
+      if (k) return k;
+    }
+  } catch { /* not parseable as URL */ }
+  // Legacy direct S3 URL formats
+  let idx = url.indexOf('/profile-images/');
+  if (idx === -1) idx = url.indexOf('/Profile-images/');
+  if (idx !== -1) return url.slice(idx + 1);
+  idx = url.indexOf('/uploads/');
+  if (idx !== -1) return url.slice(idx + 1);
+  return null;
 }
 
 function formatRelativeDate(isoString: string): string {
@@ -67,12 +79,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const metaPatch: Record<string, string> = {};
   if (phone !== undefined) metaPatch.phone = phone;
   if (role !== undefined) metaPatch.role = role;
+  if (profileImage !== undefined) {
+    // Auth0 validates `picture` as a URI and rejects relative paths like
+    // /api/files/image?key=…  Store the proxy URL in user_metadata instead.
+    metaPatch.profile_image_key = profileImage as string;
+  }
   if (Object.keys(metaPatch).length > 0) {
     patch.user_metadata = metaPatch;
-  }
-
-  if (profileImage !== undefined) {
-    patch.picture = profileImage;
   }
 
   if (Object.keys(patch).length === 0) {

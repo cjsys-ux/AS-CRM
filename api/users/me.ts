@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const url = new URL(`https://${domain}/api/v2/users/${encodeURIComponent(userId)}`);
-  url.searchParams.set('fields', 'created_at,last_login,email_verified,blocked');
+  url.searchParams.set('fields', 'created_at,last_login,email_verified,blocked,user_metadata');
 
   const auth0Res = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
@@ -42,5 +42,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     last_login: data.last_login ?? null,
     email_verified: data.email_verified ?? null,
     blocked: data.blocked ?? false,
+    profile_image_key: data.user_metadata?.profile_image_key ?? null,
   });
 }
