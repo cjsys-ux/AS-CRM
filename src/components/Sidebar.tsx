@@ -338,7 +338,7 @@ export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMen
         </div>
 
         {/* Menu */}
-        <div className="flex-1 overflow-hidden px-3 py-4 space-y-0.5">
+        <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll px-3 py-4 space-y-0.5">
           <div className="mb-2">
             <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Main</h2>
             {menuData.map((item, index) => renderMenuItem(item, index))}
