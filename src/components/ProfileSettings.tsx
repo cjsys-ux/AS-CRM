@@ -129,7 +129,10 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             entityId: user.sub,
           }),
         });
-        if (!presignRes.ok) throw new Error('Failed to get upload URL.');
+        if (!presignRes.ok) {
+          const errBody = await presignRes.json().catch(() => ({}));
+          throw new Error(errBody?.error ?? `Presign failed (${presignRes.status}).`);
+        }
         const { uploadUrl, key, fileUrl } = await presignRes.json();
 
         // 2. Upload directly to S3
@@ -138,7 +141,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
           headers: { 'Content-Type': pendingImageFile.type },
           body: pendingImageFile,
         });
-        if (!s3Res.ok) throw new Error('Failed to upload image to storage.');
+        if (!s3Res.ok) throw new Error(`S3 upload failed (${s3Res.status}).`);
 
         // 3. Record upload metadata in MongoDB (fire-and-forget)
         fetch('/api/files/complete', {
@@ -166,7 +169,10 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               oldProfileImage: userProfile.profileImage,
             }),
           });
-          if (!updateRes.ok) throw new Error('Failed to save profile image.');
+          if (!updateRes.ok) {
+            const errBody = await updateRes.json().catch(() => ({}));
+            throw new Error(errBody?.error ?? `Profile save failed (${updateRes.status}).`);
+          }
         }
 
         // Swap preview URL for the real S3 URL
