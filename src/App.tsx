@@ -63,6 +63,18 @@ export default function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.sub || user.sub.startsWith('local|')) return;
+    fetch(`/api/users/me?userId=${encodeURIComponent(user.sub)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.profile_image_key) {
+          setUserProfile((prev) => ({ ...prev, profileImage: data.profile_image_key }));
+        }
+      })
+      .catch(() => {});
+  }, [user?.sub]);
+
   const handleNavigate = (page: string) => {
     if (page === 'logout') {
       logout();
