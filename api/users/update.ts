@@ -92,10 +92,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'No fields provided for update.' });
   }
 
-  // Delete the previous profile image from S3 when a new one is uploaded.
+  // Delete the previous profile image from S3 when a new one is uploaded,
+  // but only if the old and new S3 keys differ. Profile images always share
+  // the same deterministic key path (profile-images/{id}/profile.{ext}), so
+  // a same-extension re-upload produces an identical key — deleting it would
+  // erase the file that was just written.
   if (profileImage !== undefined && typeof oldProfileImage === 'string') {
     const oldKey = extractS3Key(oldProfileImage);
-    if (oldKey) {
+    const newKey = extractS3Key(profileImage as string);
+    if (oldKey && oldKey !== newKey) {
       try {
         const s3 = getS3Client();
         const bucket = getS3Bucket();
