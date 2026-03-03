@@ -52,6 +52,8 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   const [isAuthenticatorModalOpen, setIsAuthenticatorModalOpen] = useState(false);
   const [isSMSModalOpen, setIsSMSModalOpen] = useState(false);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Profile updated successfully!');
 
   useEffect(() => {
     if (!user?.sub || user.sub.startsWith('local|')) return;
@@ -78,20 +80,97 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     setFormData({ ...formData, phone: formatted });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, profileImage: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Reset input so re-selecting the same file triggers onChange again
+    e.target.value = '';
+
+    const allowedTypes = ['image/jpeg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      setToastMessage('Only JPG and PNG images are supported.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setToastMessage('Image must be under 2 MB.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      // 1. Get a presigned URL from the server
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          entityType: 'profile',
+          entityId: user?.sub ?? 'unknown',
+        }),
+      });
+      if (!presignRes.ok) throw new Error('Failed to get upload URL.');
+      const { uploadUrl, key, fileUrl } = await presignRes.json();
+
+      // 2. Upload directly to S3
+      const s3Res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!s3Res.ok) throw new Error('Failed to upload image to storage.');
+
+      // 3. Record upload metadata in MongoDB (fire-and-forget)
+      fetch('/api/files/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key,
+          fileName: file.name,
+          fileType: file.type,
+          size: file.size,
+          entityType: 'profile',
+          entityId: user?.sub ?? 'unknown',
+          uploadedBy: user?.sub ?? 'unknown',
+        }),
+      }).catch(() => {});
+
+      // 4. Save the S3 URL to Auth0 (and delete the old image from S3)
+      if (user?.sub && !user.sub.startsWith('local|')) {
+        const updateRes = await fetch('/api/users/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.sub,
+            profileImage: fileUrl,
+            oldProfileImage: formData.profileImage,
+          }),
+        });
+        if (!updateRes.ok) throw new Error('Failed to save profile image.');
+      }
+
+      // 5. Update local state immediately so the avatar reflects the new image
+      setFormData((prev) => ({ ...prev, profileImage: fileUrl }));
+      onUpdate({ ...formData, profileImage: fileUrl });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Image upload failed.';
+      setToastMessage(msg);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
   const handleSave = () => {
     onUpdate(formData);
     setIsEditing(false);
+    setToastMessage('Profile updated successfully!');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
@@ -620,20 +699,29 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                         <span className="text-3xl font-bold text-white">{getInitials()}</span>
                       </div>
                     )}
-                    {isEditing && (
+                    {(isEditing || isUploadingImage) && (
                       <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute bottom-0 right-0 p-2 bg-blue-500 rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+                        whileHover={{ scale: isUploadingImage ? 1 : 1.1 }}
+                        whileTap={{ scale: isUploadingImage ? 1 : 0.95 }}
+                        onClick={() => !isUploadingImage && fileInputRef.current?.click()}
+                        disabled={isUploadingImage}
+                        className="absolute bottom-0 right-0 p-2 bg-blue-500 rounded-full shadow-lg hover:bg-blue-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                        title={isUploadingImage ? 'Uploading…' : 'Change photo'}
                       >
-                        <Camera className="w-4 h-4 text-white" />
+                        {isUploadingImage ? (
+                          <svg className="w-4 h-4 text-white animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                        ) : (
+                          <Camera className="w-4 h-4 text-white" />
+                        )}
                       </motion.button>
                     )}
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png"
                       onChange={handleImageUpload}
                       className="hidden"
                     />
@@ -789,7 +877,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       {/* Toast Notification */}
       <AnimatePresence>
         {showToast && (
-          <Toast message="Profile updated successfully!" onClose={() => setShowToast(false)} />
+          <Toast message={toastMessage} onClose={() => setShowToast(false)} />
         )}
       </AnimatePresence>
 
