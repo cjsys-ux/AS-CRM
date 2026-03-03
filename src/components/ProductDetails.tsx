@@ -578,6 +578,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
       <EditProductInfoDrawer
         isOpen={isEditProductInfoDrawerOpen}
         onClose={() => setIsEditProductInfoDrawerOpen(false)}
+        productId={productId}
         productInfo={productInfo}
         onSave={handleSaveProductInfo}
       />

@@ -34,7 +34,9 @@ interface AddProductDrawerProps {
 export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: AddProductDrawerProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
@@ -121,6 +123,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
         image: '',
       });
       setUploadedImage(null);
+      setUploadedImageKey(null);
     }
   }, [productData, isOpen]);
 
@@ -128,29 +131,44 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     if (!file) return;
 
     setIsProcessingImage(true);
-    
+
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        
-        if (removeBackground) {
-          // Use original image since background removal requires server
-          setUploadedImage(base64String);
-          setFormData({ ...formData, image: base64String });
-        } else {
-          // Use original image
-          setUploadedImage(base64String);
-          setFormData({ ...formData, image: base64String });
-        }
-        
-        setIsProcessingImage(false);
-      };
-      
-      reader.readAsDataURL(file);
+      // Show a local preview immediately
+      setUploadedImage(URL.createObjectURL(file));
+
+      // Get a presigned S3 URL
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          entityType: 'project',
+          entityId: productData?.id ?? 'new',
+        }),
+      });
+
+      if (!presignRes.ok) {
+        throw new Error('Failed to get upload URL.');
+      }
+
+      const { uploadUrl, key } = await presignRes.json();
+
+      // Upload the file directly to S3
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image to storage.');
+      }
+
+      setUploadedImageKey(key);
     } catch (error) {
       console.error('Error uploading image:', error);
+    } finally {
       setIsProcessingImage(false);
     }
   };
@@ -178,12 +196,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setSubmitError(null);
+
     const yearlyQty = parseInt(parseFormattedNumber(formData.yearlyQty)) || 0;
     const pricePerUnit = parseFloat(formData.targetPrice) || 0;
     const totalValue = yearlyQty * pricePerUnit;
 
-    const product = {
+    const payload = {
       name: formData.productName,
       client: formData.clientName,
       vendor: formData.vendor,
@@ -201,32 +220,52 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       projectManager: formData.projectManager,
       internalSKU: formData.internalSKU,
       targetMargin: formData.targetMargin,
-      image: formData.image,
+      ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
     };
 
-    onSuccess?.();
-    onClose();
-    // Reset form
-    setFormData({
-      productName: '',
-      clientName: '',
-      vendor: '',
-      description: '',
-      competitorName: '',
-      competitorLink: '',
-      competitorPrice: '',
-      yearlyQty: '',
-      targetPrice: '',
-      itemType: 'Deploy',
-      dueDate: '',
-      priority: 'Medium',
-      projectManager: '',
-      internalSKU: '',
-      targetMargin: '',
-      status: 'New Product',
-      image: '',
-    });
-    setUploadedImage(null);
+    try {
+      const isEdit = Boolean(productData?.id);
+      const url = isEdit ? '/api/projects/update' : '/api/projects/create';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const body = isEdit ? { id: productData!.id, ...payload } : payload;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save product.');
+      }
+
+      onSuccess?.();
+      onClose();
+      setFormData({
+        productName: '',
+        clientName: '',
+        vendor: '',
+        description: '',
+        competitorName: '',
+        competitorLink: '',
+        competitorPrice: '',
+        yearlyQty: '',
+        targetPrice: '',
+        itemType: 'Deploy',
+        dueDate: '',
+        priority: 'Medium',
+        projectManager: '',
+        internalSKU: '',
+        targetMargin: '',
+        status: 'New Product',
+        image: '',
+      });
+      setUploadedImage(null);
+      setUploadedImageKey(null);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to save product.');
+    }
   };
 
   return (
@@ -911,24 +950,30 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
             </div>
 
             {/* Footer Actions */}
-            <div className="border-t-2 border-slate-200 p-8 bg-white flex items-center justify-between shadow-2xl">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onClose}
-                className="px-10 py-4 bg-slate-100 text-slate-700 font-black rounded-2xl hover:bg-slate-200 transition-all text-lg border-2 border-slate-200"
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSubmit}
-                className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-black rounded-2xl hover:from-slate-800 hover:to-slate-700 transition-all shadow-2xl text-lg"
-              >
-                <Package className="w-6 h-6" />
-                {productData?.id ? 'Save Changes' : 'Add Product'}
-              </motion.button>
+            <div className="border-t-2 border-slate-200 p-8 bg-white shadow-2xl">
+              {submitError && (
+                <p className="text-red-600 text-sm font-medium mb-4">{submitError}</p>
+              )}
+              <div className="flex items-center justify-between">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onClose}
+                  className="px-10 py-4 bg-slate-100 text-slate-700 font-black rounded-2xl hover:bg-slate-200 transition-all text-lg border-2 border-slate-200"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSubmit}
+                  disabled={isProcessingImage}
+                  className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-black rounded-2xl hover:from-slate-800 hover:to-slate-700 transition-all shadow-2xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Package className="w-6 h-6" />
+                  {productData?.id ? 'Save Changes' : 'Add Product'}
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </>

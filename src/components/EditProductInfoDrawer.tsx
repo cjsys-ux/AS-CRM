@@ -6,6 +6,7 @@ import { vendors, clients, statuses, productTypes, projectManagers } from '../ut
 interface EditProductInfoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  productId?: string;
   productInfo: {
     name: string;
     client: string;
@@ -19,24 +20,90 @@ interface EditProductInfoDrawerProps {
   onSave: (updatedInfo: any) => void;
 }
 
-export function EditProductInfoDrawer({ isOpen, onClose, productInfo, onSave }: EditProductInfoDrawerProps) {
+export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
   const [imagePreview, setImagePreview] = useState(productInfo.image);
+  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setFormData({ ...formData, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    setImagePreview(URL.createObjectURL(file));
+
+    try {
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          entityType: 'project',
+          entityId: productId ?? 'unknown',
+        }),
+      });
+
+      if (!presignRes.ok) throw new Error('Failed to get upload URL.');
+
+      const { uploadUrl, key } = await presignRes.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) throw new Error('Failed to upload image.');
+
+      setUploadedImageKey(key);
+    } catch (err) {
+      console.error('Image upload error:', err);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
-  const handleSave = () => {
-    onSave(formData);
+  const handleSave = async () => {
+    setSaveError(null);
+
+    if (productId) {
+      try {
+        const payload: Record<string, unknown> = {
+          id: productId,
+          name: formData.name,
+          client: formData.client,
+          vendor: formData.vendor,
+          status: formData.status,
+          type: formData.type,
+          internalSKU: formData.internalSKU,
+          projectManager: formData.projectManager,
+        };
+
+        if (uploadedImageKey) {
+          payload.imageKey = uploadedImageKey;
+        }
+
+        const res = await fetch('/api/projects/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to save changes.');
+        }
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save changes.');
+        return;
+      }
+    }
+
+    // Optimistically update local state
+    onSave({ ...formData, ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}) });
     onClose();
   };
 
@@ -230,23 +297,29 @@ export function EditProductInfoDrawer({ isOpen, onClose, productInfo, onSave }: 
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex gap-3 flex-shrink-0">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onClose}
-                className="flex-1 px-6 py-3 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSave}
-                className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg"
-              >
-                Save Changes
-              </motion.button>
+            <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex-shrink-0">
+              {saveError && (
+                <p className="text-red-600 text-sm font-medium mb-3">{saveError}</p>
+              )}
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onClose}
+                  className="flex-1 px-6 py-3 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSave}
+                  disabled={isUploadingImage}
+                  className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingImage ? 'Uploading...' : 'Save Changes'}
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </>
