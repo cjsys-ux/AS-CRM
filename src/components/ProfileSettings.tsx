@@ -1041,6 +1041,8 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       <SetupAuthenticatorModal
         isOpen={isAuthenticatorModalOpen}
         onClose={() => setIsAuthenticatorModalOpen(false)}
+        userId={user?.sub ?? ''}
+        email={user?.email ?? ''}
       />
       <SetupSMSModal
         isOpen={isSMSModalOpen}
