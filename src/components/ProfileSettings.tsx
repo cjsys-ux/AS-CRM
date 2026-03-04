@@ -42,7 +42,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [activeSection, setActiveSection] = useState<'profile' | 'twoFactor' | 'sessions' | 'password'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'twoFactor' | 'sessions' | 'password' | 'passwordSuccess'>('profile');
   const [formData, setFormData] = useState<UserProfile>(userProfile);
   const [passwordData, setPasswordData] = useState({
     current: '',
@@ -136,10 +136,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       }
       setPasswordErrors({ current: '', new: '', confirm: '' });
       setPasswordData({ current: '', new: '', confirm: '' });
-      setToastMessage('Password updated successfully');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-      setActiveSection('profile');
+      setActiveSection('passwordSuccess');
     } catch {
       showError('Failed to update password. Please try again.');
     } finally {
@@ -674,6 +671,38 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 </motion.button>
               </div>
             </div>
+          </motion.div>
+        );
+
+      case 'passwordSuccess':
+        return (
+          <motion.div
+            key="passwordSuccess"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-white rounded-3xl shadow-lg p-8 text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+              className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
+            >
+              <Check className="w-10 h-10 text-white" />
+            </motion.div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">Password Updated!</h3>
+            <p className="text-slate-600 mb-8">
+              Your password has been changed successfully. Use your new password next time you sign in.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setActiveSection('profile')}
+              className="w-full py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg"
+            >
+              Back to Profile
+            </motion.button>
           </motion.div>
         );
 
