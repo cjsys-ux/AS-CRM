@@ -661,7 +661,7 @@ export function ProductPipeline() {
                         onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                     </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-56">
                       <div className="flex items-center gap-2 whitespace-nowrap">
                         Image
                       </div>
