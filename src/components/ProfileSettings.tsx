@@ -93,10 +93,58 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     setFormData({ ...formData, phone: formatted });
   };
 
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState({ current: '', new: '', confirm: '' });
+
   const showError = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.new !== passwordData.confirm) {
+      setPasswordErrors(e => ({ ...e, confirm: 'Passwords do not match.' }));
+      return;
+    }
+    const strengthRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+    if (!strengthRe.test(passwordData.new)) {
+      setPasswordErrors(e => ({ ...e, new: 'Must be ≥8 chars with uppercase, lowercase, number & special character.' }));
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.sub,
+          email: user?.email,
+          currentPassword: passwordData.current,
+          newPassword: passwordData.new,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          setPasswordErrors(e => ({ ...e, current: 'Current password is incorrect.' }));
+        } else {
+          showError(data.error || 'Failed to update password.');
+        }
+        return;
+      }
+      setPasswordErrors({ current: '', new: '', confirm: '' });
+      setPasswordData({ current: '', new: '', confirm: '' });
+      setToastMessage('Password updated successfully');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      setActiveSection('profile');
+    } catch {
+      showError('Failed to update password. Please try again.');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   // Selecting a file only creates a local preview — no upload happens yet.
@@ -531,12 +579,23 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="password"
                   value={passwordData.current}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, current: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setPasswordErrors(err => ({ ...err, current: '' }));
+                    setPasswordData({ ...passwordData, current: e.target.value });
+                  }}
                   placeholder="Enter current password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    passwordErrors.current
+                      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                 />
+                {passwordErrors.current && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordErrors.current}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -546,15 +605,27 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="password"
                   value={passwordData.new}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, new: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setPasswordErrors(err => ({ ...err, new: '' }));
+                    setPasswordData({ ...passwordData, new: e.target.value });
+                  }}
                   placeholder="Enter new password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    passwordErrors.new
+                      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                 />
-                <p className="mt-2 text-xs text-slate-500">
-                  Password must be at least 8 characters with uppercase, lowercase, number, and special character.
-                </p>
+                {passwordErrors.new ? (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordErrors.new}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Password must be at least 8 characters with uppercase, lowercase, number, and special character.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -564,12 +635,23 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="password"
                   value={passwordData.confirm}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, confirm: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setPasswordErrors(err => ({ ...err, confirm: '' }));
+                    setPasswordData({ ...passwordData, confirm: e.target.value });
+                  }}
                   placeholder="Confirm new password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    passwordErrors.confirm
+                      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                 />
+                {passwordErrors.confirm && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordErrors.confirm}
+                  </p>
+                )}
               </div>
 
               <div className="pt-4 flex gap-3">
@@ -582,11 +664,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg"
+                  whileHover={{ scale: isChangingPassword ? 1 : 1.02 }}
+                  whileTap={{ scale: isChangingPassword ? 1 : 0.98 }}
+                  onClick={handlePasswordChange}
+                  disabled={isChangingPassword}
+                  className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Update Password
+                  {isChangingPassword ? 'Updating…' : 'Update Password'}
                 </motion.button>
               </div>
             </div>
@@ -883,24 +967,6 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                       <Shield className="w-5 h-5 text-blue-600" />
                     </div>
                     <span className="font-medium text-slate-700">Two-Factor Auth</span>
-                  </div>
-                  <span className="text-slate-400">›</span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ x: 4 }}
-                  onClick={() => setActiveSection('sessions')}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors text-left group ${
-                    activeSection === 'sessions' ? 'bg-green-50 border-2 border-green-200' : 'hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                      activeSection === 'sessions' ? 'bg-green-200' : 'bg-green-100 group-hover:bg-green-200'
-                    }`}>
-                      <Monitor className="w-5 h-5 text-green-600" />
-                    </div>
-                    <span className="font-medium text-slate-700">Active Sessions</span>
                   </div>
                   <span className="text-slate-400">›</span>
                 </motion.button>
