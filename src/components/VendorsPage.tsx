@@ -87,9 +87,10 @@ export function VendorsPage() {
       ) : (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 px-8 py-8 shadow-lg">
+      {/* ui-qa-fixer: UI-2026-015 - responsive padding + flex-wrap for mobile header */}
+      <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 px-4 md:px-8 py-8 shadow-lg">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <motion.div
                 whileHover={{ scale: 1.05, rotate: 360 }}
@@ -120,7 +121,8 @@ export function VendorsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-8 -mt-6 mb-6 relative z-10">
+      {/* ui-qa-fixer: UI-2026-015 - responsive padding */}
+      <div className="px-4 md:px-8 -mt-6 mb-6 relative z-10">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {stats.map((stat, index) => {
@@ -163,7 +165,8 @@ export function VendorsPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      {/* ui-qa-fixer: UI-2026-015 - responsive padding */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
         <div className="max-w-[1800px] mx-auto space-y-6">
           {/* Search and Filters */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">

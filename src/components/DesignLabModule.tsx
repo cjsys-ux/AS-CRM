@@ -269,7 +269,8 @@ export function DesignLabModule() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-8 -mt-6 mb-6 relative z-10">
+      {/* ui-qa-fixer: UI-2026-017 - responsive padding prevents overflow on mobile */}
+      <div className="px-4 md:px-8 -mt-6 mb-6 relative z-10">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <motion.div
@@ -367,7 +368,8 @@ export function DesignLabModule() {
       </div>
 
       {/* Filters */}
-      <div className="px-8 mb-6">
+      {/* ui-qa-fixer: UI-2026-017 - responsive padding */}
+      <div className="px-4 md:px-8 mb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl p-6">
             <div className="flex flex-col lg:flex-row gap-4">
@@ -425,7 +427,8 @@ export function DesignLabModule() {
       </div>
 
       {/* Table Container with Horizontal Scroll */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
+      {/* ui-qa-fixer: UI-2026-017 - responsive padding */}
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col">
             <div className="overflow-x-auto flex-1">
