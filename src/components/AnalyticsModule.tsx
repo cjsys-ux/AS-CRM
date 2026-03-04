@@ -108,9 +108,11 @@ export function AnalyticsModule() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-violet-500 via-purple-600 to-indigo-600 px-8 py-8 shadow-lg">
+      {/* ui-qa-fixer: UI-2026-012 - responsive padding prevents horizontal overflow on mobile */}
+      <div className="bg-gradient-to-r from-violet-500 via-purple-600 to-indigo-600 px-4 md:px-8 py-8 shadow-lg">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center justify-between">
+          {/* ui-qa-fixer: UI-2026-012 - flex-wrap allows controls to stack on mobile */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
                 <BarChart3 className="w-7 h-7 text-white" />
@@ -150,7 +152,8 @@ export function AnalyticsModule() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-8 -mt-6 mb-6">
+      {/* ui-qa-fixer: UI-2026-012 - responsive padding */}
+      <div className="px-4 md:px-8 -mt-6 mb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <motion.div
@@ -236,7 +239,8 @@ export function AnalyticsModule() {
       </div>
 
       {/* Charts Section */}
-      <div className="flex-1 px-8 pb-8 overflow-auto">
+      {/* ui-qa-fixer: UI-2026-012 - responsive padding */}
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-auto">
         <div className="max-w-[1800px] mx-auto space-y-6">
           {/* Revenue & Orders Chart */}
           <motion.div

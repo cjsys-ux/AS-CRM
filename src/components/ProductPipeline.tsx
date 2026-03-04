@@ -381,9 +381,10 @@ export function ProductPipeline() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-8 -mt-6 mb-6 relative z-10">
+      {/* ui-qa-fixer: UI-2026-004 - tablet breakpoint fix: 6-col grid creates ~100px cards at 768px */}
+      <div className="px-4 md:px-8 -mt-6 mb-6 relative z-10">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -525,7 +526,8 @@ export function ProductPipeline() {
       </div>
 
       {/* Filters and Search */}
-      <div className="px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
+      {/* ui-qa-fixer: UI-2026-005 - responsive horizontal padding prevents content touching screen edge on mobile */}
+      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
@@ -624,7 +626,8 @@ export function ProductPipeline() {
       </div>
 
       {/* Table Container with Horizontal Scroll */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
+      {/* ui-qa-fixer: UI-2026-006 - responsive horizontal padding for table container on mobile */}
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col">
             <div className="overflow-x-auto flex-1">

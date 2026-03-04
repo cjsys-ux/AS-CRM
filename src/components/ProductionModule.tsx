@@ -66,16 +66,22 @@ export function ProductionModule() {
 
   const inProgressCount = productionOrders.filter(o => o.status === 'In Progress').length;
   const completedCount = productionOrders.filter(o => o.status === 'Completed').length;
-  const avgQuality = productionOrders.filter(o => o.quality > 0).reduce((sum, o) => sum + o.quality, 0) / productionOrders.filter(o => o.quality > 0).length;
+  /* ui-qa-fixer: UI-2026-002 - guard divide-by-zero producing NaN when productionOrders is empty */
+  const qualityOrders = productionOrders.filter(o => o.quality > 0);
+  const avgQuality = qualityOrders.length > 0
+    ? qualityOrders.reduce((sum, o) => sum + o.quality, 0) / qualityOrders.length
+    : 0;
 
   return (
     <div className="flex-1 flex flex-col">
       {!isDetailOpen ? (
         <>
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-orange-500 to-red-600 px-8 py-8 shadow-lg">
+          {/* ui-qa-fixer: UI-2026-011 - responsive padding prevents horizontal overflow on mobile */}
+          <div className="bg-gradient-to-r from-orange-500 to-red-600 px-4 md:px-8 py-8 shadow-lg">
             <div className="max-w-[1800px] mx-auto">
-              <div className="flex items-center justify-between">
+              {/* ui-qa-fixer: UI-2026-011 - flex-wrap allows header button to wrap on small screens */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <motion.div
                     whileHover={{ scale: 1.05, rotate: 360 }}
@@ -102,7 +108,8 @@ export function ProductionModule() {
           </div>
 
           {/* Stats Cards */}
-          <div className="px-8 -mt-6 mb-6">
+          {/* ui-qa-fixer: UI-2026-011 - responsive padding */}
+          <div className="px-4 md:px-8 -mt-6 mb-6">
             <div className="max-w-[1800px] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <motion.div
@@ -160,7 +167,8 @@ export function ProductionModule() {
           </div>
 
           {/* Filters and Search */}
-          <div className="px-8 mb-6">
+          {/* ui-qa-fixer: UI-2026-011 - responsive padding */}
+          <div className="px-4 md:px-8 mb-6">
             <div className="max-w-[1800px] mx-auto">
               <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
                 <div className="flex items-center gap-4">
@@ -196,7 +204,8 @@ export function ProductionModule() {
           </div>
 
           {/* Production Table */}
-          <div className="flex-1 px-8 pb-8 overflow-auto">
+          {/* ui-qa-fixer: UI-2026-011 - responsive padding */}
+          <div className="flex-1 px-4 md:px-8 pb-8 overflow-auto">
             <div className="max-w-[1800px] mx-auto">
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
                 <div className="overflow-x-auto">
