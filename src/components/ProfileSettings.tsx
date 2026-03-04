@@ -201,6 +201,29 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       setIsUploadingImage(false);
     }
 
+    // Persist text field changes (phone, name, etc.) to Auth0 / database
+    if (user?.sub && !user.sub.startsWith('local|')) {
+      try {
+        const fieldsRes = await fetch('/api/users/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.sub,
+            firstName: savedProfile.firstName,
+            lastName: savedProfile.lastName,
+            phone: savedProfile.phone,
+          }),
+        });
+        if (!fieldsRes.ok) {
+          const errBody = await fieldsRes.json().catch(() => ({}));
+          throw new Error(errBody?.error ?? `Profile save failed (${fieldsRes.status}).`);
+        }
+      } catch (err) {
+        showError(err instanceof Error ? err.message : 'Failed to save profile.');
+        return;
+      }
+    }
+
     onUpdate(savedProfile);
     setIsEditing(false);
     setToastMessage('Profile updated successfully!');
