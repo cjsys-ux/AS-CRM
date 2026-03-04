@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { authenticator } from 'otplib';
 import { getMgmtToken } from '../_mgmt-token';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -20,6 +21,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Auth0 environment variables are not configured.' });
   }
 
+  // Generate a Base32 secret — Auth0 requires us to supply it, it does not generate one
+  const secret = authenticator.generateSecret();
+
   let mgmtToken: string;
   try {
     mgmtToken = await getMgmtToken();
@@ -33,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     {
       method: 'POST',
       headers: { Authorization: `Bearer ${mgmtToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'totp' }),
+      body: JSON.stringify({ type: 'totp', totp_secret: secret }),
     }
   );
 
@@ -43,7 +47,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const data = await enrollRes.json();
-  const secret: string = data.totp_secret;
   const issuer = 'ActivateSwag';
   const barcodeUri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
 
