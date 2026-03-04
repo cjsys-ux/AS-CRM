@@ -127,7 +127,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 401 && data.error === 'Current password is incorrect.') {
+        if (res.status === 401) {
           setCurrentPasswordError(true);
         } else {
           showError(data.error || 'Failed to update password.');
