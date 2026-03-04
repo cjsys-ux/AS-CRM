@@ -94,7 +94,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   };
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [currentPasswordError, setCurrentPasswordError] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState({ current: '', new: '', confirm: '' });
 
   const showError = (msg: string) => {
     setToastMessage(msg);
@@ -104,12 +104,12 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
 
   const handlePasswordChange = async () => {
     if (passwordData.new !== passwordData.confirm) {
-      showError('New passwords do not match.');
+      setPasswordErrors(e => ({ ...e, confirm: 'Passwords do not match.' }));
       return;
     }
     const strengthRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
     if (!strengthRe.test(passwordData.new)) {
-      showError('Password must be at least 8 characters with uppercase, lowercase, number, and special character.');
+      setPasswordErrors(e => ({ ...e, new: 'Must be ≥8 chars with uppercase, lowercase, number & special character.' }));
       return;
     }
 
@@ -128,13 +128,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 401) {
-          setCurrentPasswordError(true);
+          setPasswordErrors(e => ({ ...e, current: 'Current password is incorrect.' }));
         } else {
           showError(data.error || 'Failed to update password.');
         }
         return;
       }
-      setCurrentPasswordError(false);
+      setPasswordErrors({ current: '', new: '', confirm: '' });
       setPasswordData({ current: '', new: '', confirm: '' });
       setToastMessage('Password updated successfully');
       setShowToast(true);
@@ -580,20 +580,20 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   type="password"
                   value={passwordData.current}
                   onChange={(e) => {
-                    setCurrentPasswordError(false);
+                    setPasswordErrors(err => ({ ...err, current: '' }));
                     setPasswordData({ ...passwordData, current: e.target.value });
                   }}
                   placeholder="Enter current password"
                   className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
-                    currentPasswordError
+                    passwordErrors.current
                       ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
                       : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
                   }`}
                 />
-                {currentPasswordError && (
+                {passwordErrors.current && (
                   <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    Current password is incorrect.
+                    {passwordErrors.current}
                   </p>
                 )}
               </div>
@@ -605,15 +605,27 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="password"
                   value={passwordData.new}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, new: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setPasswordErrors(err => ({ ...err, new: '' }));
+                    setPasswordData({ ...passwordData, new: e.target.value });
+                  }}
                   placeholder="Enter new password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    passwordErrors.new
+                      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                 />
-                <p className="mt-2 text-xs text-slate-500">
-                  Password must be at least 8 characters with uppercase, lowercase, number, and special character.
-                </p>
+                {passwordErrors.new ? (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordErrors.new}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Password must be at least 8 characters with uppercase, lowercase, number, and special character.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -623,12 +635,23 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="password"
                   value={passwordData.confirm}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, confirm: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setPasswordErrors(err => ({ ...err, confirm: '' }));
+                    setPasswordData({ ...passwordData, confirm: e.target.value });
+                  }}
                   placeholder="Confirm new password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    passwordErrors.confirm
+                      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                 />
+                {passwordErrors.confirm && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {passwordErrors.confirm}
+                  </p>
+                )}
               </div>
 
               <div className="pt-4 flex gap-3">
