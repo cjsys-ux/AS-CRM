@@ -10,13 +10,15 @@ export function SettingsPage() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-6">
+      {/* ui-qa-fixer: UI-2026-013 - responsive padding prevents overflow on mobile */}
+      <div className="bg-white border-b border-slate-200 px-4 md:px-8 py-6">
         <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
         <p className="text-slate-600 text-sm">Manage users and permissions</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-slate-200 px-8">
+      {/* ui-qa-fixer: UI-2026-013 - responsive padding */}
+      <div className="bg-white border-b border-slate-200 px-4 md:px-8 overflow-x-auto">
         <div className="flex items-center gap-6">
           <button
             onClick={() => setActiveTab('users')}

@@ -63,9 +63,10 @@ export function InventoryModule() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-8 shadow-lg">
+      {/* ui-qa-fixer: UI-2026-007 - responsive padding + flex-wrap for mobile header layout */}
+      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-4 md:px-8 py-8 shadow-lg">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <motion.div
                 whileHover={{ scale: 1.05, rotate: 360 }}
@@ -93,7 +94,8 @@ export function InventoryModule() {
       </div>
 
       {/* Stats Cards */}
-      <div className="px-8 -mt-6 mb-6">
+      {/* ui-qa-fixer: UI-2026-007 - responsive padding prevents overflow on mobile */}
+      <div className="px-4 md:px-8 -mt-6 mb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <motion.div
@@ -151,7 +153,8 @@ export function InventoryModule() {
       </div>
 
       {/* Filters and Search */}
-      <div className="px-8 mb-6">
+      {/* ui-qa-fixer: UI-2026-007 - responsive padding */}
+      <div className="px-4 md:px-8 mb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
             <div className="flex items-center gap-4">
@@ -231,7 +234,8 @@ export function InventoryModule() {
       </div>
 
       {/* Inventory Table */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
+      {/* ui-qa-fixer: UI-2026-007 - responsive padding */}
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-lg h-full flex flex-col">
             <div className="overflow-x-auto flex-1">

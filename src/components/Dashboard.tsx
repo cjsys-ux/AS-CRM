@@ -93,10 +93,10 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="flex-1 p-8">
+    <div className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h2>
             <p className="text-slate-600">

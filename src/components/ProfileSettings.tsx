@@ -711,7 +711,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   };
 
   return (
-    <div className="flex-1 bg-slate-50 p-8 overflow-auto">
+    <div className="flex-1 bg-slate-50 p-4 md:p-8 overflow-auto">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Sidebar */}

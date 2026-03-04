@@ -173,9 +173,10 @@ export function ShipmentsModule() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
       {/* Simple Flat Header */}
-      <div className="bg-emerald-600 px-8 py-6">
+      {/* ui-qa-fixer: UI-2026-008 - responsive padding + flex-wrap for mobile */}
+      <div className="bg-emerald-600 px-4 md:px-8 py-6">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <Truck className="w-6 h-6 text-white" />
@@ -197,9 +198,10 @@ export function ShipmentsModule() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-8 -mt-4 mb-6">
+      {/* ui-qa-fixer: UI-2026-008 - responsive padding + grid fix for tablet (6-col too narrow at 768px) */}
+      <div className="px-4 md:px-8 -mt-4 mb-6">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -264,7 +266,8 @@ export function ShipmentsModule() {
       </div>
 
       {/* Search Bar - Matches Image */}
-      <div className="px-8 pb-6">
+      {/* ui-qa-fixer: UI-2026-008 - responsive padding */}
+      <div className="px-4 md:px-8 pb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
             <div className="flex-1 relative">
@@ -300,7 +303,7 @@ export function ShipmentsModule() {
 
       {/* Bulk Actions Bar */}
       {selectedShipments.length > 0 && (
-        <div className="px-8 pb-4">
+        <div className="px-4 md:px-8 pb-4">
           <div className="max-w-[1800px] mx-auto">
             <div className="bg-emerald-600 text-white rounded-xl px-6 py-3 flex items-center justify-between shadow-lg">
               <div className="flex items-center gap-3">
@@ -327,7 +330,8 @@ export function ShipmentsModule() {
       )}
 
       {/* Content Area - Clean Table */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
+      {/* ui-qa-fixer: UI-2026-008 - responsive padding */}
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden h-full flex flex-col">
             <div className="overflow-x-auto flex-1">

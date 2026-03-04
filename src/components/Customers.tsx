@@ -107,14 +107,17 @@ export function Customers() {
   const totalCustomers = customers.length;
   const activeCustomers = customers.filter(c => c.status === 'Active').length;
   const totalSpend = customers.reduce((sum, c) => sum + c.spend, 0);
-  const avgSpend = totalSpend / customers.length;
+  /* ui-qa-fixer: UI-2026-001 - guard divide-by-zero producing NaN when customers array is empty */
+  const avgSpend = customers.length > 0 ? totalSpend / customers.length : 0;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 px-8 py-8 shadow-lg">
+      {/* ui-qa-fixer: UI-2026-009 - responsive padding prevents content overflow on mobile */}
+      <div className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 px-4 md:px-8 py-8 shadow-lg">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center justify-between">
+          {/* ui-qa-fixer: UI-2026-009 - flex-wrap prevents button overflow at 375px */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <motion.div
                 whileHover={{ scale: 1.05, rotate: 360 }}
@@ -142,7 +145,8 @@ export function Customers() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-8 -mt-6 mb-6 relative z-10">
+      {/* ui-qa-fixer: UI-2026-009 - responsive padding */}
+      <div className="px-4 md:px-8 -mt-6 mb-6 relative z-10">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <motion.div
@@ -272,7 +276,8 @@ export function Customers() {
       </div>
 
       {/* Filters and Search */}
-      <div className="px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
+      {/* ui-qa-fixer: UI-2026-009 - responsive padding */}
+      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
@@ -329,7 +334,8 @@ export function Customers() {
       </div>
 
       {/* Table Container with Horizontal Scroll */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
+      {/* ui-qa-fixer: UI-2026-009 - responsive padding */}
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col">
             <div className="overflow-x-auto flex-1">
