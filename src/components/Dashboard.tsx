@@ -93,7 +93,6 @@ export function Dashboard() {
   ];
 
   return (
-    {/* ui-qa-fixer: UI-2026-003 - responsive padding prevents horizontal overflow on mobile */}
     <div className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
