@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
-import { getPublicS3Url } from '../_s3';
+import { getS3Client, getS3Bucket } from '../_s3';
 
 type MongoProject = {
   _id?: ObjectId;
@@ -50,13 +51,8 @@ type MongoUpload = {
 const defaultImage =
   'https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=800&h=500&fit=crop';
 
-
-function safeGetPublicS3Url(key: string): string | null {
-  try {
-    return getPublicS3Url(key);
-  } catch {
-    return null;
-  }
+function getProxyImageUrl(key: string): string {
+  return `/api/files/image?key=${encodeURIComponent(key)}`;
 }
 
 function toNumber(value: unknown, fallback = 0): number {
@@ -82,46 +78,86 @@ function getUploadImageUrl(upload: MongoUpload | undefined): string | null {
   if (upload.fileUrl?.startsWith('http://') || upload.fileUrl?.startsWith('https://')) {
     return upload.fileUrl;
   }
-  if (upload.key) return safeGetPublicS3Url(upload.key);
+  if (upload.key) return getProxyImageUrl(upload.key);
   return null;
 }
 
-function resolveProjectImage(project: MongoProject, uploadByEntityId: Map<string, MongoUpload>): { imageUrl: string; fromMongoImageField: boolean } {
+async function fetchS3ImagesByProjectId(projectIds: Set<string>): Promise<Map<string, string>> {
+  const s3ImageByProjectId = new Map<string, string>();
+  try {
+    const s3 = getS3Client();
+    const bucket = getS3Bucket();
+    const response = await s3.send(
+      new ListObjectsV2Command({ Bucket: bucket, Prefix: 'uploads/project/', MaxKeys: 1000 })
+    );
+    for (const obj of response.Contents ?? []) {
+      if (!obj.Key) continue;
+      // Key format: uploads/project/{entityId}/{timestamp}-{filename}
+      const parts = obj.Key.split('/');
+      if (parts.length < 4) continue;
+      const entityId = parts[2];
+      if (!entityId || entityId === 'new') continue;
+      if (!projectIds.has(entityId)) continue;
+      // Overwrite to keep lexicographically last key (newest timestamp)
+      s3ImageByProjectId.set(entityId, getProxyImageUrl(obj.Key));
+    }
+  } catch {
+    // Non-fatal: return empty map so existing resolution paths continue to work
+  }
+  return s3ImageByProjectId;
+}
+
+function resolveProjectImage(
+  project: MongoProject,
+  uploadByEntityId: Map<string, MongoUpload>,
+  s3ImageByProjectId: Map<string, string>
+): { imageUrl: string; fromMongoImageField: boolean } {
+  // 1. Direct HTTP/HTTPS URL stored in image fields
   const directImage = project.image ?? project.imageUrl ?? project.thumbnail ?? project.productImage;
   if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
     return { imageUrl: directImage, fromMongoImageField: true };
   }
 
+  // 2. S3 key stored in project document → serve via proxy
   const s3ObjectKey = project.imageKey ?? project.s3Key ?? project.fileKey ?? project.key;
   if (s3ObjectKey) {
-    const s3Url = safeGetPublicS3Url(s3ObjectKey);
-    if (s3Url) {
-      return { imageUrl: s3Url, fromMongoImageField: true };
-    }
+    return { imageUrl: getProxyImageUrl(s3ObjectKey), fromMongoImageField: true };
   }
 
+  // 3. Non-http image field treated as bare S3 key → serve via proxy
   if (directImage) {
-    const s3Url = safeGetPublicS3Url(directImage);
-    if (s3Url) {
-      return { imageUrl: s3Url, fromMongoImageField: true };
-    }
+    return { imageUrl: getProxyImageUrl(directImage), fromMongoImageField: true };
   }
 
   const projectId = project.id ?? project._id?.toString();
+
+  // 4. Uploads collection lookup by project ID
   const uploadImage = projectId ? getUploadImageUrl(uploadByEntityId.get(projectId)) : null;
   if (uploadImage) {
     return { imageUrl: uploadImage, fromMongoImageField: false };
   }
 
+  // 5. S3 listing fallback (covers images in S3 not linked in MongoDB)
+  if (projectId) {
+    const s3ListedImage = s3ImageByProjectId.get(projectId);
+    if (s3ListedImage) {
+      return { imageUrl: s3ListedImage, fromMongoImageField: false };
+    }
+  }
+
   return { imageUrl: defaultImage, fromMongoImageField: false };
 }
 
-function mapProject(project: MongoProject, uploadByEntityId: Map<string, MongoUpload>) {
+function mapProject(
+  project: MongoProject,
+  uploadByEntityId: Map<string, MongoUpload>,
+  s3ImageByProjectId: Map<string, string>
+) {
   const yearlyQty = toNumber(project.yearlyQty ?? project.yearlyQuantity, 0);
   const pricePerUnit = toNumber(project.pricePerUnit ?? project.unitPrice, 0);
   const computedTotal = yearlyQty * pricePerUnit;
   const totalValue = toNumber(project.totalValue, computedTotal);
-  const resolvedImage = resolveProjectImage(project, uploadByEntityId);
+  const resolvedImage = resolveProjectImage(project, uploadByEntityId, s3ImageByProjectId);
 
   return {
     id: project.id ?? project._id?.toString() ?? `project-${Math.random().toString(36).slice(2, 10)}`,
@@ -160,14 +196,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .map((project) => project.id ?? project._id?.toString())
       .filter((value): value is string => Boolean(value));
 
-    const uploads = (await db
-      .collection<MongoUpload>('uploads')
-      .find({
-        entityId: { $in: projectIds },
-        fileType: { $regex: '^image/', $options: 'i' },
-      })
-      .sort({ createdAt: -1 })
-      .toArray()) as MongoUpload[];
+    const [uploads, s3ImageByProjectId] = await Promise.all([
+      db
+        .collection<MongoUpload>('uploads')
+        .find({
+          entityId: { $in: projectIds },
+          fileType: { $regex: '^image/', $options: 'i' },
+        })
+        .sort({ createdAt: -1 })
+        .toArray() as Promise<MongoUpload[]>,
+      fetchS3ImagesByProjectId(new Set(projectIds)),
+    ]);
 
     const uploadByEntityId = new Map<string, MongoUpload>();
     for (const upload of uploads) {
@@ -176,7 +215,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    return res.status(200).json({ projects: projects.map((project) => mapProject(project, uploadByEntityId)) });
+    return res.status(200).json({
+      projects: projects.map((project) => mapProject(project, uploadByEntityId, s3ImageByProjectId)),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch projects from MongoDB.';
     return res.status(500).json({ error: message });
