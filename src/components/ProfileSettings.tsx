@@ -94,6 +94,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   };
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPasswordError, setCurrentPasswordError] = useState(false);
 
   const showError = (msg: string) => {
     setToastMessage(msg);
@@ -126,9 +127,14 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       });
       const data = await res.json();
       if (!res.ok) {
-        showError(data.error || 'Failed to update password.');
+        if (res.status === 401 && data.error === 'Current password is incorrect.') {
+          setCurrentPasswordError(true);
+        } else {
+          showError(data.error || 'Failed to update password.');
+        }
         return;
       }
+      setCurrentPasswordError(false);
       setPasswordData({ current: '', new: '', confirm: '' });
       setToastMessage('Password updated successfully');
       setShowToast(true);
@@ -573,12 +579,23 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="password"
                   value={passwordData.current}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, current: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setCurrentPasswordError(false);
+                    setPasswordData({ ...passwordData, current: e.target.value });
+                  }}
                   placeholder="Enter current password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    currentPasswordError
+                      ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
                 />
+                {currentPasswordError && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-sm text-red-600">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    Current password is incorrect.
+                  </p>
+                )}
               </div>
 
               <div>
