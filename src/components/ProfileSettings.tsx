@@ -93,10 +93,52 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
     setFormData({ ...formData, phone: formatted });
   };
 
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const showError = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.new !== passwordData.confirm) {
+      showError('New passwords do not match.');
+      return;
+    }
+    const strengthRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+    if (!strengthRe.test(passwordData.new)) {
+      showError('Password must be at least 8 characters with uppercase, lowercase, number, and special character.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.sub,
+          email: user?.email,
+          currentPassword: passwordData.current,
+          newPassword: passwordData.new,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showError(data.error || 'Failed to update password.');
+        return;
+      }
+      setPasswordData({ current: '', new: '', confirm: '' });
+      setToastMessage('Password updated successfully');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+      setActiveSection('profile');
+    } catch {
+      showError('Failed to update password. Please try again.');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   // Selecting a file only creates a local preview — no upload happens yet.
@@ -582,11 +624,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg"
+                  whileHover={{ scale: isChangingPassword ? 1 : 1.02 }}
+                  whileTap={{ scale: isChangingPassword ? 1 : 0.98 }}
+                  onClick={handlePasswordChange}
+                  disabled={isChangingPassword}
+                  className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Update Password
+                  {isChangingPassword ? 'Updating…' : 'Update Password'}
                 </motion.button>
               </div>
             </div>
@@ -883,24 +927,6 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                       <Shield className="w-5 h-5 text-blue-600" />
                     </div>
                     <span className="font-medium text-slate-700">Two-Factor Auth</span>
-                  </div>
-                  <span className="text-slate-400">›</span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ x: 4 }}
-                  onClick={() => setActiveSection('sessions')}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors text-left group ${
-                    activeSection === 'sessions' ? 'bg-green-50 border-2 border-green-200' : 'hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                      activeSection === 'sessions' ? 'bg-green-200' : 'bg-green-100 group-hover:bg-green-200'
-                    }`}>
-                      <Monitor className="w-5 h-5 text-green-600" />
-                    </div>
-                    <span className="font-medium text-slate-700">Active Sessions</span>
                   </div>
                   <span className="text-slate-400">›</span>
                 </motion.button>
