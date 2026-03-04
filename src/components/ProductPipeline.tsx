@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { AddProductDrawer } from './AddProductDrawer';
 import { DeleteProductModal } from './DeleteProductModal';
 import { ImagePopupModal } from './ImagePopupModal';
-import { BulkActionBar } from './BulkActionBar';
 import { BulkEditModal } from './BulkEditModal';
 import { AdvancedFilterPanel } from './AdvancedFilterPanel';
 import { StatusDropdown } from './StatusDropdown';
@@ -180,13 +179,32 @@ export function ProductPipeline() {
     );
   }
 
+  /* ui-qa-fixer: UI-PP-009 - advanced filters were collected but never applied to filteredProducts */
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || product.status === selectedStatus;
-    return matchesSearch && matchesStatus;
+
+    const af = advancedFilters;
+    const matchesAdvancedStatus =
+      !Array.isArray(af.status) || af.status.length === 0 || af.status.includes(product.status);
+    const matchesAdvancedClient =
+      !Array.isArray(af.client) || af.client.length === 0 || af.client.includes(product.client);
+    const matchesAdvancedType =
+      !Array.isArray(af.type) || af.type.length === 0 || af.type.includes(product.type);
+    const matchesPrice =
+      product.pricePerUnit >= af.priceRange[0] && product.pricePerUnit <= af.priceRange[1];
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesAdvancedStatus &&
+      matchesAdvancedClient &&
+      matchesAdvancedType &&
+      matchesPrice
+    );
   });
 
   // Apply sorting
@@ -529,8 +547,9 @@ export function ProductPipeline() {
       {/* ui-qa-fixer: UI-2026-005 - responsive horizontal padding prevents content touching screen edge on mobile */}
       <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
+          {/* ui-qa-fixer: UI-PP-002 - flex-wrap + gap-y-3 prevent overflow on mobile; UI-PP-005 - corrected status options to match actual data values */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[200px] relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <input
                 type="text"
@@ -546,9 +565,9 @@ export function ProductPipeline() {
               options={[
                 { value: 'all', label: 'All Statuses' },
                 { value: 'New Product', label: 'New Product' },
-                { value: 'In Production', label: 'In Production' },
-                { value: 'Design Review', label: 'Design Review' },
-                { value: 'Completed', label: 'Completed' }
+                { value: 'In Progress', label: 'In Progress' },
+                { value: 'Ready For Live', label: 'Ready For Live' },
+                { value: 'Live', label: 'Live' }
               ]}
             />
             <motion.button
@@ -767,6 +786,7 @@ export function ProductPipeline() {
                             >
                               <Package className="w-12 h-12 text-slate-400" />
                             </motion.div>
+                            {/* ui-qa-fixer: UI-PP-003 - CTA hidden during loading and error states */}
                             <h3 className="text-2xl font-bold text-slate-900 mb-2">
                               {loading ? 'Loading Projects...' : error ? 'Unable to Load Projects' : 'No Products Yet'}
                             </h3>
@@ -777,15 +797,17 @@ export function ProductPipeline() {
                                   ? error
                                   : 'Get started by adding your first product to the pipeline. Track development stages, manage inventory, and monitor progress all in one place.'}
                             </p>
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => setIsDrawerOpen(true)}
-                              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-                            >
-                              <Plus className="w-5 h-5" />
-                              Add Your First Product
-                            </motion.button>
+                            {!loading && !error && (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setIsDrawerOpen(true)}
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                              >
+                                <Plus className="w-5 h-5" />
+                                Add Your First Product
+                              </motion.button>
+                            )}
                           </motion.div>
                         </td>
                       </tr>
@@ -858,11 +880,12 @@ export function ProductPipeline() {
                           <td className="px-6 py-5 whitespace-nowrap">
                             <span className={getPriorityColor(product.priority)}>{product.priority}</span>
                           </td>
+                          {/* ui-qa-fixer: UI-PP-007 - guard numeric methods against undefined values from MongoDB */}
                           <td className="px-6 py-5 whitespace-nowrap">
-                            <span className="text-sm text-slate-900">{product.yearlyQty.toLocaleString()}</span>
+                            <span className="text-sm text-slate-900">{(product.yearlyQty ?? 0).toLocaleString()}</span>
                           </td>
                           <td className="px-6 py-5 whitespace-nowrap">
-                            <span className="text-sm text-slate-900">${product.pricePerUnit.toFixed(2)}</span>
+                            <span className="text-sm text-slate-900">${(product.pricePerUnit ?? 0).toFixed(2)}</span>
                           </td>
                           <td className="px-6 py-5 whitespace-nowrap">
                             <span className="text-sm text-green-600">${product.totalValue.toLocaleString()}</span>
@@ -920,8 +943,9 @@ export function ProductPipeline() {
         </div>
       </div>
 
+      {/* ui-qa-fixer: UI-PP-001 - px-8 had no mobile fallback; replaced with px-4 md:px-8 */}
       {/* Pagination */}
-      <div className="px-8 pb-8">
+      <div className="px-4 md:px-8 pb-8">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-xl">
             <div className="flex items-center justify-between">
@@ -937,8 +961,13 @@ export function ProductPipeline() {
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                 </select>
+                {/* ui-qa-fixer: UI-PP-004 - guard against "Showing 1 to 0 of 0" when list is empty */}
                 <span className="text-sm text-slate-600 font-medium">
-                  Showing <span className="font-bold text-slate-900">{startIndex + 1}</span> to <span className="font-bold text-slate-900">{Math.min(endIndex, filteredProducts.length)}</span> of <span className="font-bold text-slate-900">{filteredProducts.length}</span> products
+                  {filteredProducts.length === 0 ? (
+                    <>Showing <span className="font-bold text-slate-900">0</span> products</>
+                  ) : (
+                    <>Showing <span className="font-bold text-slate-900">{startIndex + 1}</span> to <span className="font-bold text-slate-900">{Math.min(endIndex, filteredProducts.length)}</span> of <span className="font-bold text-slate-900">{filteredProducts.length}</span> products</>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-3">

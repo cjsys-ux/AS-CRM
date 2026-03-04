@@ -65,6 +65,7 @@ export function BulkEditModal({ isOpen, onClose, onConfirm, selectedCount = 0 }:
               <div className="p-6 space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                  {/* ui-qa-fixer: UI-PP-006 - status options corrected to match actual pipeline statuses */}
                   <select
                     value={updates.status}
                     onChange={(e) => setUpdates({ ...updates, status: e.target.value })}
@@ -72,9 +73,9 @@ export function BulkEditModal({ isOpen, onClose, onConfirm, selectedCount = 0 }:
                   >
                     <option value="">Keep Current</option>
                     <option value="New Product">New Product</option>
-                    <option value="In Production">In Production</option>
-                    <option value="Design Review">Design Review</option>
-                    <option value="Completed">Completed</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Ready For Live">Ready For Live</option>
+                    <option value="Live">Live</option>
                   </select>
                 </div>
 
