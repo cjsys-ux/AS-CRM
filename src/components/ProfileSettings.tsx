@@ -201,6 +201,29 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       setIsUploadingImage(false);
     }
 
+    // Persist text field changes (phone, name, etc.) to Auth0 / database
+    if (user?.sub && !user.sub.startsWith('local|')) {
+      try {
+        const fieldsRes = await fetch('/api/users/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.sub,
+            firstName: savedProfile.firstName,
+            lastName: savedProfile.lastName,
+            phone: savedProfile.phone,
+          }),
+        });
+        if (!fieldsRes.ok) {
+          const errBody = await fieldsRes.json().catch(() => ({}));
+          throw new Error(errBody?.error ?? `Profile save failed (${fieldsRes.status}).`);
+        }
+      } catch (err) {
+        showError(err instanceof Error ? err.message : 'Failed to save profile.');
+        return;
+      }
+    }
+
     onUpdate(savedProfile);
     setIsEditing(false);
     setToastMessage('Profile updated successfully!');
@@ -642,9 +665,8 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  disabled
+                  className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-400 cursor-not-allowed opacity-60"
                 />
               </div>
 
