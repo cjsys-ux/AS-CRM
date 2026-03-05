@@ -73,6 +73,7 @@ export default function App() {
             ...prev,
             ...(data.profile_image_key ? { profileImage: data.profile_image_key } : {}),
             ...(data.phone ? { phone: data.phone } : {}),
+            ...(data.timezone ? { timezone: data.timezone } : {}),
           }));
         }
       })
