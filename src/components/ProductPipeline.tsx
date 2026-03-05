@@ -604,7 +604,7 @@ export function ProductPipeline() {
 
       {/* Filters and Search */}
       {/* ui-qa-fixer: UI-2026-005 - responsive horizontal padding prevents content touching screen edge on mobile */}
-      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
+      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm relative z-30">
         <div className="max-w-[1800px] mx-auto">
           {/* ui-qa-fixer: UI-PP-002 - flex-wrap + gap-y-3 prevent overflow on mobile; UI-PP-005 - corrected status options to match actual data values */}
           <div className="flex flex-wrap items-center gap-3">
@@ -717,13 +717,6 @@ export function ProductPipeline() {
                           className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
                         >
                           All
-                        </button>
-                        <span className="text-slate-300">·</span>
-                        <button
-                          onClick={() => setPendingColumns(new Set())}
-                          className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-                        >
-                          None
                         </button>
                       </div>
                       <div className="flex items-center gap-2">
