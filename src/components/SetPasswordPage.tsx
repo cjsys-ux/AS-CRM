@@ -85,7 +85,7 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
 
   if (isValidating) {
     return (
-      <div className="size-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
       </div>
     );
@@ -93,7 +93,7 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
 
   if (!tokenValid) {
     return (
-      <div className="size-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -120,7 +120,7 @@ export function SetPasswordPage({ token }: SetPasswordPageProps) {
   }
 
   return (
-    <div className="size-full flex bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
