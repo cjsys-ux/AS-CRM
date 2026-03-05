@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Search, Filter, Download, Edit, Trash2, ChevronLeft, ChevronRight, User, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye } from 'lucide-react';
+import { Package, Plus, Search, Filter, Download, Edit, Trash2, ChevronLeft, ChevronRight, User, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, Columns2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AddProductDrawer } from './AddProductDrawer';
 import { DeleteProductModal } from './DeleteProductModal';
 import { ImagePopupModal } from './ImagePopupModal';
 import { BulkEditModal } from './BulkEditModal';
 import { AdvancedFilterPanel } from './AdvancedFilterPanel';
+import { ColumnPickerDrawer, COLUMNS, ColumnId } from './ColumnPickerDrawer';
 import { StatusDropdown } from './StatusDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { ProductDetails } from './ProductDetails';
@@ -66,6 +67,7 @@ type ProjectsApiResponse = {
   error?: string;
 };
 
+
 export function ProductPipeline() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +97,15 @@ export function ProductPipeline() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(() => {
+    try {
+      const saved = localStorage.getItem('pipeline-visible-columns');
+      if (saved) return new Set(JSON.parse(saved) as ColumnId[]);
+    } catch {}
+    return new Set(COLUMNS.map(c => c.id));
+  });
+  const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false);
+  const [pendingColumns, setPendingColumns] = useState<Set<ColumnId>>(new Set());
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -121,6 +132,27 @@ export function ProductPipeline() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+const handleOpenColumnPicker = () => {
+    setPendingColumns(new Set(visibleColumns));
+    setIsColumnPickerOpen(true);
+  };
+
+  const togglePendingColumn = (id: ColumnId) => {
+    setPendingColumns(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const applyColumnChanges = (columns: Set<ColumnId>) => {
+    setVisibleColumns(new Set(columns));
+    localStorage.setItem('pipeline-visible-columns', JSON.stringify([...columns]));
+    setIsColumnPickerOpen(false);
+  };
+
+  const discardColumnChanges = () => setIsColumnPickerOpen(false);
 
   // Find the selected product
   const selectedProduct = selectedProductId 
@@ -587,6 +619,15 @@ export function ProductPipeline() {
               <Download className="w-4 h-4" />
               Export
             </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleOpenColumnPicker}
+              className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <Columns2 className="w-4 h-4" />
+              Columns
+            </motion.button>
           </div>
 
           {/* Embedded Bulk Action Bar */}
@@ -649,7 +690,7 @@ export function ProductPipeline() {
       <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col">
-            <div className="overflow-x-auto flex-1">
+            <div className="overflow-x-scroll flex-1">
               <table className="w-full min-w-[1100px]">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50 border-b-2 border-slate-200">
@@ -661,113 +702,89 @@ export function ProductPipeline() {
                         onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                     </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-20">
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        Image
-                      </div>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('name')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Product Name
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('client')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Client
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                      Vendor
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('status')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Status
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                      Type
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                      Internal SKU
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                      Project Manager
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('priority')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Priority
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('yearlyQty')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Yearly Qty
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('pricePerUnit')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Price/Unit
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('totalValue')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Total Value
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('deployment')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
-                      >
-                        Deployment
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                      Actions
-                    </th>
+                    {visibleColumns.has('image') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-20">
+                        <div className="flex items-center gap-2 whitespace-nowrap">Image</div>
+                      </th>
+                    )}
+                    {visibleColumns.has('name') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('name')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Product Name <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('client') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('client')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Client <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('vendor') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Vendor</th>
+                    )}
+                    {visibleColumns.has('status') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('status')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Status <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('type') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Type</th>
+                    )}
+                    {visibleColumns.has('internalSKU') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Internal SKU</th>
+                    )}
+                    {visibleColumns.has('projectManager') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Project Manager</th>
+                    )}
+                    {visibleColumns.has('priority') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('priority')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Priority <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('yearlyQty') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('yearlyQty')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Yearly Qty <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('pricePerUnit') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('pricePerUnit')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Price/Unit <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('totalValue') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('totalValue')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Total Value <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('deployment') && (
+                      <th className="px-3 py-2.5 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <motion.button whileHover={{ scale: 1.02 }} onClick={() => handleSort('deployment')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
+                          Deployment <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </motion.button>
+                      </th>
+                    )}
+                    {visibleColumns.has('actions') && (
+                      <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white">
                   <AnimatePresence mode="popLayout">
                     {paginatedProducts.length === 0 ? (
                       <tr>
-                        <td colSpan={15} className="px-8 py-20">
+                        <td colSpan={1 + visibleColumns.size} className="px-8 py-20">
                           <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -829,112 +846,140 @@ export function ProductPipeline() {
                               onChange={(e) => handleSelectProduct(product.id, e.target.checked)}
                             />
                           </td>
-                          <td className="px-3 py-1.5 w-20">
-                            <div
-                              className="relative w-14 h-14 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shadow-sm cursor-pointer group/img"
-                              onClick={() => setImagePopup({ isOpen: true, imageUrl: product.image, productName: product.name })}
-                            >
-                              <motion.img
-                                whileHover={{ scale: 1.08 }}
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-contain p-0.5"
-                                onError={(event) => {
-                                  event.currentTarget.src = 'https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=200&h=200&fit=crop';
-                                }}
+                          {visibleColumns.has('image') && (
+                            <td className="px-3 py-1.5 w-20">
+                              <div
+                                className="relative w-14 h-14 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden shadow-sm cursor-pointer group/img"
+                                onClick={() => setImagePopup({ isOpen: true, imageUrl: product.image, productName: product.name })}
+                              >
+                                <motion.img
+                                  whileHover={{ scale: 1.08 }}
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="w-full h-full object-contain p-0.5"
+                                  onError={(event) => {
+                                    event.currentTarget.src = 'https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=200&h=200&fit=crop';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors rounded-lg" />
+                              </div>
+                            </td>
+                          )}
+                          {visibleColumns.has('name') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <p className="text-sm text-slate-900 group-hover:text-green-600 transition-colors">{product.name}</p>
+                            </td>
+                          )}
+                          {visibleColumns.has('client') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                  <User className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <span className="text-sm text-slate-700">{product.client}</span>
+                              </div>
+                            </td>
+                          )}
+                          {visibleColumns.has('vendor') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-sm text-slate-700">{product.vendor}</span>
+                            </td>
+                          )}
+                          {visibleColumns.has('status') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <StatusDropdown
+                                currentStatus={product.status}
+                                onStatusChange={(newStatus) => handleStatusUpdate(product.id, newStatus)}
                               />
-                              <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors rounded-lg" />
-                            </div>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <p className="text-sm text-slate-900 group-hover:text-green-600 transition-colors">{product.name}</p>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <User className="w-4 h-4 text-blue-600" />
+                            </td>
+                          )}
+                          {visibleColumns.has('type') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                  <Package className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <span className="text-sm text-slate-700">{product.type}</span>
                               </div>
-                              <span className="text-sm text-slate-700">{product.client}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-slate-700">{product.vendor}</span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <StatusDropdown
-                              currentStatus={product.status}
-                              onStatusChange={(newStatus) => handleStatusUpdate(product.id, newStatus)}
-                            />
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <Package className="w-4 h-4 text-purple-600" />
-                              </div>
-                              <span className="text-sm text-slate-700">{product.type}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-slate-700">{product.internalSKU}</span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-slate-700">{product.projectManager}</span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className={getPriorityColor(product.priority)}>{product.priority}</span>
-                          </td>
+                            </td>
+                          )}
+                          {visibleColumns.has('internalSKU') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-sm text-slate-700">{product.internalSKU}</span>
+                            </td>
+                          )}
+                          {visibleColumns.has('projectManager') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-sm text-slate-700">{product.projectManager}</span>
+                            </td>
+                          )}
+                          {visibleColumns.has('priority') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className={getPriorityColor(product.priority)}>{product.priority}</span>
+                            </td>
+                          )}
                           {/* ui-qa-fixer: UI-PP-007 - guard numeric methods against undefined values from MongoDB */}
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-slate-900">{(product.yearlyQty ?? 0).toLocaleString()}</span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-slate-900">${(product.pricePerUnit ?? 0).toFixed(2)}</span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <span className="text-sm text-green-600">${product.totalValue.toLocaleString()}</span>
-                          </td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <Calendar className="w-4 h-4 text-orange-600" />
+                          {visibleColumns.has('yearlyQty') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-sm text-slate-900">{(product.yearlyQty ?? 0).toLocaleString()}</span>
+                            </td>
+                          )}
+                          {visibleColumns.has('pricePerUnit') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-sm text-slate-900">${(product.pricePerUnit ?? 0).toFixed(2)}</span>
+                            </td>
+                          )}
+                          {visibleColumns.has('totalValue') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-sm text-green-600">${product.totalValue.toLocaleString()}</span>
+                            </td>
+                          )}
+                          {visibleColumns.has('deployment') && (
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                                  <Calendar className="w-4 h-4 text-orange-600" />
+                                </div>
+                                <span className="text-sm text-slate-700">{product.deployment}</span>
                               </div>
-                              <span className="text-sm text-slate-700">{product.deployment}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-1.5">
-                            <div className="flex items-center justify-center gap-2">
-                              <motion.button
-                                whileHover={{ scale: 1.15, backgroundColor: 'rgb(219 234 254)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleViewProduct(product.id)}
-                                className="p-1.5 hover:bg-blue-50 rounded-md transition-colors group/btn border-2 border-transparent hover:border-blue-200"
-                              >
-                                <Eye className="w-4 h-4 text-slate-400 group-hover/btn:text-blue-600" />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.15, backgroundColor: 'rgb(254 249 195)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                  setEditingProduct(product);
-                                  setIsDrawerOpen(true);
-                                }}
-                                className="p-1.5 hover:bg-yellow-50 rounded-md transition-colors group/btn border-2 border-transparent hover:border-yellow-200"
-                              >
-                                <Edit className="w-4 h-4 text-slate-400 group-hover/btn:text-yellow-600" />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.15, backgroundColor: 'rgb(254 226 226)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => {
-                                  setProductToDelete(product);
-                                  setDeleteModalOpen(true);
-                                }}
-                                className="p-1.5 hover:bg-red-50 rounded-md transition-colors group/btn border-2 border-transparent hover:border-red-200"
-                              >
-                                <Trash2 className="w-4 h-4 text-slate-400 group-hover/btn:text-red-600" />
-                              </motion.button>
-                            </div>
-                          </td>
+                            </td>
+                          )}
+                          {visibleColumns.has('actions') && (
+                            <td className="px-3 py-1.5">
+                              <div className="flex items-center justify-center gap-2">
+                                <motion.button
+                                  whileHover={{ scale: 1.15, backgroundColor: 'rgb(219 234 254)' }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleViewProduct(product.id)}
+                                  className="p-1.5 hover:bg-blue-50 rounded-md transition-colors group/btn border-2 border-transparent hover:border-blue-200"
+                                >
+                                  <Eye className="w-4 h-4 text-slate-400 group-hover/btn:text-blue-600" />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.15, backgroundColor: 'rgb(254 249 195)' }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => {
+                                    setEditingProduct(product);
+                                    setIsDrawerOpen(true);
+                                  }}
+                                  className="p-1.5 hover:bg-yellow-50 rounded-md transition-colors group/btn border-2 border-transparent hover:border-yellow-200"
+                                >
+                                  <Edit className="w-4 h-4 text-slate-400 group-hover/btn:text-yellow-600" />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.15, backgroundColor: 'rgb(254 226 226)' }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => {
+                                    setProductToDelete(product);
+                                    setDeleteModalOpen(true);
+                                  }}
+                                  className="p-1.5 hover:bg-red-50 rounded-md transition-colors group/btn border-2 border-transparent hover:border-red-200"
+                                >
+                                  <Trash2 className="w-4 h-4 text-slate-400 group-hover/btn:text-red-600" />
+                                </motion.button>
+                              </div>
+                            </td>
+                          )}
                         </motion.tr>
                       ))
                     )}
@@ -1043,6 +1088,16 @@ export function ProductPipeline() {
         availableClients={Array.from(new Set(products.map(p => p.client)))}
         availableStatuses={['New Product', 'In Progress', 'Ready For Live', 'Live']}
         availableTypes={Array.from(new Set(products.map(p => p.type)))}
+      />
+
+      {/* Column Picker Drawer */}
+      <ColumnPickerDrawer
+        isOpen={isColumnPickerOpen}
+        onClose={discardColumnChanges}
+        onApply={applyColumnChanges}
+        pendingColumns={pendingColumns}
+        onToggleColumn={togglePendingColumn}
+        onSelectAll={() => setPendingColumns(new Set(COLUMNS.map(c => c.id)))}
       />
     </div>
   );
