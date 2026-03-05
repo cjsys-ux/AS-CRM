@@ -257,6 +257,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             firstName: savedProfile.firstName,
             lastName: savedProfile.lastName,
             phone: savedProfile.phone,
+            timezone: savedProfile.timezone,
           }),
         });
         if (!fieldsRes.ok) {

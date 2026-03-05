@@ -28,7 +28,9 @@ interface TimezonePickerProps {
 export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [openUpward, setOpenUpward] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const selectedTimezone = timezones.find((tz) => tz.value === value) || timezones[0];
 
@@ -37,6 +39,16 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
       tz.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tz.offset.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleToggle = () => {
+    if (!disabled) {
+      if (!isOpen && triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setOpenUpward(window.innerHeight - rect.bottom < 320);
+      }
+      setIsOpen(!isOpen);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -54,11 +66,14 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
     };
   }, [isOpen]);
 
+  const positionClass = openUpward ? 'bottom-full mb-2' : 'top-full mt-2';
+
   return (
     <div className="relative" ref={dropdownRef}>
       <motion.button
+        ref={triggerRef}
         type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggle}
         disabled={disabled}
         whileHover={!disabled ? { scale: 1.01 } : {}}
         whileTap={!disabled ? { scale: 0.99 } : {}}
@@ -81,11 +96,11 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
       <AnimatePresence>
         {isOpen && !disabled && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={{ opacity: 0, y: openUpward ? 10 : -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            exit={{ opacity: 0, y: openUpward ? 10 : -10, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[100]"
+            className={`absolute ${positionClass} left-0 min-w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999]`}
           >
             {/* Search */}
             <div className="p-3 border-b border-slate-200">

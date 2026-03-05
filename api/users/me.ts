@@ -44,5 +44,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     blocked: data.blocked ?? false,
     profile_image_key: data.user_metadata?.profile_image_key ?? null,
     phone: data.user_metadata?.phone ?? null,
+    timezone: data.user_metadata?.timezone ?? null,
   });
 }
