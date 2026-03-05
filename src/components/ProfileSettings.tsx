@@ -984,24 +984,6 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               <div className="space-y-2">
                 <motion.button
                   whileHover={{ x: 4 }}
-                  onClick={() => setActiveSection('twoFactor')}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors text-left group ${
-                    activeSection === 'twoFactor' ? 'bg-blue-50 border-2 border-blue-200' : 'hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                      activeSection === 'twoFactor' ? 'bg-blue-200' : 'bg-blue-100 group-hover:bg-blue-200'
-                    }`}>
-                      <Shield className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <span className="font-medium text-slate-700">Two-Factor Auth</span>
-                  </div>
-                  <span className="text-slate-400">›</span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ x: 4 }}
                   onClick={() => setActiveSection('password')}
                   className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors text-left group ${
                     activeSection === 'password' ? 'bg-orange-50 border-2 border-orange-200' : 'hover:bg-slate-50'
