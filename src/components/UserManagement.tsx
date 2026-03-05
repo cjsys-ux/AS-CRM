@@ -14,6 +14,7 @@ interface User {
   status: 'Active' | 'Inactive';
   lastLogin: string;
   created?: string;
+  profileImage?: string;
 }
 
 export function UserManagement() {
@@ -263,9 +264,17 @@ export function UserManagement() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                          {user.name.split(' ').map(n => n[0]).join('')}
-                        </div>
+                        {user.profileImage ? (
+                          <img
+                            src={user.profileImage}
+                            alt={user.name}
+                            className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {user.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                        )}
                         <div>
                           <div className="font-semibold text-slate-900">{user.name}</div>
                           <div className="text-sm text-slate-500">ID: {user.id.split('|')[1] ?? user.id}</div>
@@ -290,13 +299,19 @@ export function UserManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
-                        user.status === 'Active'
-                          ? 'bg-green-100 text-green-700 border-green-200'
-                          : 'bg-red-100 text-red-700 border-red-200'
-                      }`}>
-                        {user.status}
-                      </span>
+                      {user.status === 'Active' && user.lastLogin === 'Never' ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border bg-amber-100 text-amber-700 border-amber-200">
+                          Invite Sent
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
+                          user.status === 'Active'
+                            ? 'bg-green-100 text-green-700 border-green-200'
+                            : 'bg-red-100 text-red-700 border-red-200'
+                        }`}>
+                          {user.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-slate-600">{user.lastLogin}</span>

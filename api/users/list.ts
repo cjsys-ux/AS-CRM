@@ -7,7 +7,7 @@ interface Auth0UserRecord {
   given_name?: string;
   family_name?: string;
   email?: string;
-  user_metadata?: { phone?: string; role?: string };
+  user_metadata?: { phone?: string; role?: string; profile_image_key?: string };
   last_login?: string;
   created_at?: string;
   blocked?: boolean;
@@ -34,6 +34,7 @@ function mapUser(u: Auth0UserRecord) {
     status: u.blocked ? 'Inactive' : 'Active',
     lastLogin: u.last_login ? formatRelativeDate(u.last_login) : 'Never',
     created: u.created_at ?? '',
+    profileImage: u.user_metadata?.profile_image_key ?? '',
   };
 }
 
