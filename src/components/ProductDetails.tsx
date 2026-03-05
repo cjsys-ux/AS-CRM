@@ -106,8 +106,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
 
   const handleSaveProductInfo = (updatedInfo: any) => {
     setProductInfo(updatedInfo);
-    // Here you would also update the backend and the main table
-    console.log('Updated product info:', updatedInfo);
     if (onProductUpdate) {
       onProductUpdate(updatedInfo);
     }
@@ -143,7 +141,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
               <span className="font-medium">Back</span>
             </motion.button>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Scan Sling Padded Harness</h1>
+              <h1 className="text-3xl font-bold text-slate-900">{productInfo.name}</h1>
               <p className="text-sm text-slate-500 mt-1">Complete product sourcing information and supplier details</p>
             </div>
           </div>
@@ -168,11 +166,14 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
           <div className="grid grid-cols-12 gap-6">
             {/* Product Image */}
             <div className="col-span-3">
-              <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-6 border border-slate-200">
+              <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-4 border border-slate-200 flex items-center justify-center">
                 <img
                   src={productInfo.image}
                   alt="Product"
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-52 object-contain rounded-lg"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=400&h=400&fit=crop';
+                  }}
                 />
               </div>
             </div>

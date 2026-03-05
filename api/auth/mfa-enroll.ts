@@ -43,8 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!enrollRes.ok) {
     const err = await enrollRes.json().catch(() => ({}));
-    const detail = err.message || err.error_description || err.error || JSON.stringify(err);
-    return res.status(enrollRes.status).json({ error: `Auth0 enrollment failed (${enrollRes.status}): ${detail}` });
+    return res.status(enrollRes.status).json({ error: err.message || 'Failed to start MFA enrollment.' });
   }
 
   const data = await enrollRes.json();
