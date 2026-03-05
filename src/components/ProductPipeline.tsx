@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Search, Filter, Download, Edit, Trash2, ChevronLeft, ChevronRight, User, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, Columns2, ChevronDown, Check } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Package, Plus, Search, Filter, Download, Edit, Trash2, ChevronLeft, ChevronRight, User, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, Columns2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { AddProductDrawer } from './AddProductDrawer';
 import { DeleteProductModal } from './DeleteProductModal';
 import { ImagePopupModal } from './ImagePopupModal';
 import { BulkEditModal } from './BulkEditModal';
 import { AdvancedFilterPanel } from './AdvancedFilterPanel';
+import { ColumnPickerDrawer, COLUMNS, ColumnId } from './ColumnPickerDrawer';
 import { StatusDropdown } from './StatusDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { ProductDetails } from './ProductDetails';
@@ -66,23 +67,6 @@ type ProjectsApiResponse = {
   error?: string;
 };
 
-const COLUMNS = [
-  { id: 'image',          label: 'Image' },
-  { id: 'name',           label: 'Product Name' },
-  { id: 'client',         label: 'Client' },
-  { id: 'vendor',         label: 'Vendor' },
-  { id: 'status',         label: 'Status' },
-  { id: 'type',           label: 'Type' },
-  { id: 'internalSKU',    label: 'Internal SKU' },
-  { id: 'projectManager', label: 'Project Manager' },
-  { id: 'priority',       label: 'Priority' },
-  { id: 'yearlyQty',      label: 'Yearly Qty' },
-  { id: 'pricePerUnit',   label: 'Price/Unit' },
-  { id: 'totalValue',     label: 'Total Value' },
-  { id: 'deployment',     label: 'Deployment' },
-  { id: 'actions',        label: 'Actions' },
-] as const;
-type ColumnId = typeof COLUMNS[number]['id'];
 
 export function ProductPipeline() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -122,7 +106,6 @@ export function ProductPipeline() {
   });
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false);
   const [pendingColumns, setPendingColumns] = useState<Set<ColumnId>>(new Set());
-  const columnPickerRef = useRef<HTMLDivElement>(null);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -150,17 +133,7 @@ export function ProductPipeline() {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
-        discardColumnChanges();
-      }
-    };
-    if (isColumnPickerOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isColumnPickerOpen]);
-
-  const handleOpenColumnPicker = () => {
+const handleOpenColumnPicker = () => {
     setPendingColumns(new Set(visibleColumns));
     setIsColumnPickerOpen(true);
   };
@@ -173,9 +146,9 @@ export function ProductPipeline() {
     });
   };
 
-  const applyColumnChanges = () => {
-    setVisibleColumns(new Set(pendingColumns));
-    localStorage.setItem('pipeline-visible-columns', JSON.stringify([...pendingColumns]));
+  const applyColumnChanges = (columns: Set<ColumnId>) => {
+    setVisibleColumns(new Set(columns));
+    localStorage.setItem('pipeline-visible-columns', JSON.stringify([...columns]));
     setIsColumnPickerOpen(false);
   };
 
@@ -604,7 +577,7 @@ export function ProductPipeline() {
 
       {/* Filters and Search */}
       {/* ui-qa-fixer: UI-2026-005 - responsive horizontal padding prevents content touching screen edge on mobile */}
-      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm relative z-30">
+      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
         <div className="max-w-[1800px] mx-auto">
           {/* ui-qa-fixer: UI-PP-002 - flex-wrap + gap-y-3 prevent overflow on mobile; UI-PP-005 - corrected status options to match actual data values */}
           <div className="flex flex-wrap items-center gap-3">
@@ -646,98 +619,15 @@ export function ProductPipeline() {
               <Download className="w-4 h-4" />
               Export
             </motion.button>
-            <div className="relative" ref={columnPickerRef}>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={isColumnPickerOpen ? discardColumnChanges : handleOpenColumnPicker}
-                className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium hover:bg-slate-50 transition-all shadow-sm"
-              >
-                <Columns2 className="w-4 h-4" />
-                Columns
-                <motion.div animate={{ rotate: isColumnPickerOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </motion.div>
-              </motion.button>
-              <AnimatePresence>
-                {isColumnPickerOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 z-[100] bg-white border-2 border-slate-200 rounded-2xl shadow-2xl min-w-[380px]"
-                  >
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-2.5 rounded-t-xl flex items-center justify-between">
-                      <p className="text-sm font-bold text-white">Table Columns</p>
-                      <span className="text-xs text-slate-300 bg-white/10 px-2 py-0.5 rounded-lg">
-                        {pendingColumns.size} of {COLUMNS.length}
-                      </span>
-                    </div>
-                    {/* 2-column chip grid */}
-                    <div className="grid grid-cols-2 gap-2 p-3">
-                      {COLUMNS.map((col) => {
-                        const active = pendingColumns.has(col.id);
-                        return (
-                          <button
-                            key={col.id}
-                            onClick={() => togglePendingColumn(col.id)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border-2 w-full transition-all ${
-                              active
-                                ? 'border-blue-400 bg-blue-50 text-blue-700'
-                                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            <AnimatePresence mode="wait">
-                              {active ? (
-                                <motion.span
-                                  key="check"
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  exit={{ scale: 0 }}
-                                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                >
-                                  <Check className="w-3 h-3 shrink-0" />
-                                </motion.span>
-                              ) : (
-                                <motion.span key="empty" className="w-3 h-3 shrink-0 rounded-sm border border-slate-300" />
-                              )}
-                            </AnimatePresence>
-                            <span className="truncate">{col.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {/* Footer */}
-                    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setPendingColumns(new Set(COLUMNS.map(c => c.id)))}
-                          className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-                        >
-                          All
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={discardColumnChanges}
-                          className="px-3 py-1.5 text-xs font-semibold text-slate-600 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-all"
-                        >
-                          Discard
-                        </button>
-                        <button
-                          onClick={applyColumnChanges}
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:shadow-md transition-all"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleOpenColumnPicker}
+              className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <Columns2 className="w-4 h-4" />
+              Columns
+            </motion.button>
           </div>
 
           {/* Embedded Bulk Action Bar */}
@@ -1198,6 +1088,16 @@ export function ProductPipeline() {
         availableClients={Array.from(new Set(products.map(p => p.client)))}
         availableStatuses={['New Product', 'In Progress', 'Ready For Live', 'Live']}
         availableTypes={Array.from(new Set(products.map(p => p.type)))}
+      />
+
+      {/* Column Picker Drawer */}
+      <ColumnPickerDrawer
+        isOpen={isColumnPickerOpen}
+        onClose={discardColumnChanges}
+        onApply={applyColumnChanges}
+        pendingColumns={pendingColumns}
+        onToggleColumn={togglePendingColumn}
+        onSelectAll={() => setPendingColumns(new Set(COLUMNS.map(c => c.id)))}
       />
     </div>
   );
