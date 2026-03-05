@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Search, Filter, Download, Edit, Trash2, ChevronLeft, ChevronRight, User, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, Columns2 } from 'lucide-react';
+import { Package, Plus, Search, Filter, Download, Edit, Trash2, ChevronLeft, ChevronRight, User, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, Columns2, ChevronDown, Check } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { AddProductDrawer } from './AddProductDrawer';
 import { DeleteProductModal } from './DeleteProductModal';
@@ -642,30 +642,78 @@ export function ProductPipeline() {
               >
                 <Columns2 className="w-4 h-4" />
                 Columns
+                <motion.div animate={{ rotate: isColumnPickerOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </motion.div>
               </motion.button>
               <AnimatePresence>
                 {isColumnPickerOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                    className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border-2 border-slate-200 p-3 min-w-[180px]"
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 z-[100] bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden min-w-[220px]"
                   >
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider px-2 mb-2">Toggle Columns</p>
-                    {COLUMNS.map(col => (
-                      <label
-                        key={col.id}
-                        className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-3.5">
+                      <p className="text-sm font-bold text-white">Table Columns</p>
+                      <p className="text-xs text-slate-300 mt-0.5">{visibleColumns.size} of {COLUMNS.length} visible</p>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {COLUMNS.map((col, index) => {
+                        const isVisible = visibleColumns.has(col.id);
+                        return (
+                          <motion.div
+                            key={col.id}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            onClick={() => toggleColumn(col.id)}
+                            className={`flex items-center justify-between px-4 py-3 border-b border-slate-100 last:border-b-0 cursor-pointer transition-colors ${
+                              isVisible ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <span className={`text-sm ${isVisible ? 'text-slate-900 font-medium' : 'text-slate-700'}`}>
+                              {col.label}
+                            </span>
+                            <AnimatePresence>
+                              {isVisible && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0 }}
+                                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                >
+                                  <Check className="w-4 h-4 text-blue-600" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            {!isVisible && <div className="w-4 h-4" />}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3 border-t-2 border-slate-100 bg-slate-50">
+                      <button
+                        onClick={() => {
+                          const all = new Set(COLUMNS.map(c => c.id));
+                          setVisibleColumns(all);
+                          localStorage.setItem('pipeline-visible-columns', JSON.stringify([...all]));
+                        }}
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                       >
-                        <input
-                          type="checkbox"
-                          checked={visibleColumns.has(col.id)}
-                          onChange={() => toggleColumn(col.id)}
-                          className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500/20"
-                        />
-                        <span className="text-sm text-slate-700">{col.label}</span>
-                      </label>
-                    ))}
+                        Show All
+                      </button>
+                      <button
+                        onClick={() => {
+                          setVisibleColumns(new Set());
+                          localStorage.setItem('pipeline-visible-columns', JSON.stringify([]));
+                        }}
+                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+                      >
+                        Hide All
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
