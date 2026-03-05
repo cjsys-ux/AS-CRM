@@ -44,11 +44,24 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
     if (!file) return;
 
     setIsUploadingImage(true);
+    setSaveError(null);
     // Show local blob preview immediately while upload is in progress
     setImagePreview(URL.createObjectURL(file));
 
     try {
-      const presignRes = await fetch('/api/files/presign', {
+      // Convert file to base64 and upload via server-side API to avoid S3 CORS issues
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Strip the data URL prefix (e.g. "data:image/jpeg;base64,")
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const uploadRes = await fetch('/api/files/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,26 +69,19 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
           fileType: file.type,
           entityType: 'project',
           entityId: productId ?? 'unknown',
+          fileData: base64,
         }),
       });
 
-      if (!presignRes.ok) throw new Error('Failed to get upload URL.');
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to upload image.');
+      }
 
-      const { uploadUrl, key } = await presignRes.json();
-
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
-      if (!uploadRes.ok) throw new Error('Failed to upload image.');
-
+      const { key, fileUrl } = await uploadRes.json();
       setUploadedImageKey(key);
-      // Switch preview from blob URL to the stable proxy URL so it persists after page reload
-      const proxyUrl = `/api/files/image?key=${encodeURIComponent(key)}`;
-      setResolvedImageUrl(proxyUrl);
-      setImagePreview(proxyUrl);
+      setResolvedImageUrl(fileUrl);
+      setImagePreview(fileUrl);
     } catch (err) {
       console.error('Image upload error:', err);
       setSaveError('Image upload failed. Other changes can still be saved.');
