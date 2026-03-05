@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       err.error_description.toLowerCase().includes('blocked')
     ) {
       return res.status(403).json({
-        error: 'Your account has been deactivated. Please contact your administrator.',
+        error: 'Your account is temporarily inactive and cannot be used to log in at this time. Please contact support@activateswag.com for assistance.',
       });
     }
     if (

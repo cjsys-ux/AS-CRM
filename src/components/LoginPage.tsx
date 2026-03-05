@@ -182,7 +182,21 @@ export function LoginPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="px-4 py-3 rounded-xl bg-red-500/20 border border-red-400/30 text-red-200 text-sm"
                       >
-                        {error}
+                        {error.includes('temporarily inactive') ? (
+                          <>
+                            Your account is temporarily inactive and cannot be used to log in at this
+                            time. Please contact{' '}
+                            <a
+                              href="mailto:support@activateswag.com"
+                              className="underline hover:text-white transition-colors"
+                            >
+                              support@activateswag.com
+                            </a>{' '}
+                            for assistance.
+                          </>
+                        ) : (
+                          error
+                        )}
                       </motion.div>
                     )}
 
