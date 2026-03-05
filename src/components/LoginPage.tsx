@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, Mail, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,7 @@ export function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -18,7 +19,7 @@ export function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {
@@ -138,15 +139,40 @@ export function LoginPage() {
                           required
                         />
                       </div>
-                      <motion.button
+                      <div className="flex justify-end mt-1">
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setShowForgotPassword(true)}
+                          className="text-sm font-semibold text-blue-300 hover:text-blue-200 transition-colors"
+                        >
+                          Forgot Password?
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    {/* Remember Me */}
+                    <div className="flex items-center gap-3">
+                      <button
                         type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowForgotPassword(true)}
-                        className="mt-2 text-sm font-semibold text-blue-300 hover:text-blue-200 transition-colors"
+                        role="checkbox"
+                        aria-checked={rememberMe}
+                        onClick={() => setRememberMe(v => !v)}
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                          rememberMe
+                            ? 'bg-blue-500 border-blue-500'
+                            : 'bg-white/10 border-white/30 hover:border-blue-400'
+                        }`}
                       >
-                        Forgot Password?
-                      </motion.button>
+                        {rememberMe && <Check className="w-3 h-3 text-white" />}
+                      </button>
+                      <span
+                        className="text-sm text-blue-200 cursor-pointer select-none"
+                        onClick={() => setRememberMe(v => !v)}
+                      >
+                        Remember me
+                      </span>
                     </div>
 
                     {/* Error message */}
