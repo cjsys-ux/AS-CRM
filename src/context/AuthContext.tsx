@@ -5,7 +5,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: Auth0User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
@@ -13,6 +13,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const TOKEN_KEY = 'as_crm_access_token';
 const USER_KEY = 'as_crm_user';
+const REMEMBER_KEY = 'as_crm_remember';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,21 +21,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Auth0User | null>(null);
 
   useEffect(() => {
-    const storedToken = sessionStorage.getItem(TOKEN_KEY);
-    const storedUser = sessionStorage.getItem(USER_KEY);
+    const remembered = localStorage.getItem(REMEMBER_KEY) === '1';
+    const storage = remembered ? localStorage : sessionStorage;
+    const storedToken = storage.getItem(TOKEN_KEY);
+    const storedUser = storage.getItem(USER_KEY);
     if (storedToken && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
         setIsAuthenticated(true);
       } catch {
-        sessionStorage.removeItem(TOKEN_KEY);
-        sessionStorage.removeItem(USER_KEY);
+        storage.removeItem(TOKEN_KEY);
+        storage.removeItem(USER_KEY);
+        localStorage.removeItem(REMEMBER_KEY);
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = false) => {
+    const storage = rememberMe ? localStorage : sessionStorage;
+
     // Local test account — bypasses Auth0 so the UI can be accessed while
     // the Auth0 integration is being configured.
     if (email === 'admin@activateswag.com' && password === 'admin123') {
@@ -44,16 +50,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: 'admin@activateswag.com',
         email_verified: true,
       };
-      sessionStorage.setItem(TOKEN_KEY, 'local-dev-token');
-      sessionStorage.setItem(USER_KEY, JSON.stringify(localUser));
+      storage.setItem(TOKEN_KEY, 'local-dev-token');
+      storage.setItem(USER_KEY, JSON.stringify(localUser));
+      if (rememberMe) localStorage.setItem(REMEMBER_KEY, '1');
       setUser(localUser);
       setIsAuthenticated(true);
       return;
     }
 
     const { tokens, user: authUser } = await loginWithCredentials(email, password);
-    sessionStorage.setItem(TOKEN_KEY, tokens.access_token);
-    sessionStorage.setItem(USER_KEY, JSON.stringify(authUser));
+    storage.setItem(TOKEN_KEY, tokens.access_token);
+    storage.setItem(USER_KEY, JSON.stringify(authUser));
+    if (rememberMe) localStorage.setItem(REMEMBER_KEY, '1');
     setUser(authUser);
     setIsAuthenticated(true);
   };
@@ -61,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(REMEMBER_KEY);
     setUser(null);
     setIsAuthenticated(false);
   };
