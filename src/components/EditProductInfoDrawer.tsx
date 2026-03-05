@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, Image as ImageIcon, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { vendors, clients, statuses, productTypes, projectManagers } from '../utils/mockData';
 
 interface EditProductInfoDrawerProps {
@@ -24,14 +24,27 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
   const [formData, setFormData] = useState(productInfo);
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
+  const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Sync form state every time the drawer opens so stale data doesn't persist
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(productInfo);
+      setImagePreview(productInfo.image);
+      setUploadedImageKey(null);
+      setResolvedImageUrl(null);
+      setSaveError(null);
+    }
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploadingImage(true);
+    // Show local blob preview immediately while upload is in progress
     setImagePreview(URL.createObjectURL(file));
 
     try {
@@ -59,8 +72,13 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
       if (!uploadRes.ok) throw new Error('Failed to upload image.');
 
       setUploadedImageKey(key);
+      // Switch preview from blob URL to the stable proxy URL so it persists after page reload
+      const proxyUrl = `/api/files/image?key=${encodeURIComponent(key)}`;
+      setResolvedImageUrl(proxyUrl);
+      setImagePreview(proxyUrl);
     } catch (err) {
       console.error('Image upload error:', err);
+      setSaveError('Image upload failed. Other changes can still be saved.');
     } finally {
       setIsUploadingImage(false);
     }
@@ -102,8 +120,13 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
       }
     }
 
-    // Optimistically update local state
-    onSave({ ...formData, ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}) });
+    // Pass the resolved S3 proxy URL (or the existing image) back to the parent so the UI updates immediately
+    const imageUrl = resolvedImageUrl ?? formData.image;
+    onSave({
+      ...formData,
+      image: imageUrl,
+      ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
+    });
     onClose();
   };
 
