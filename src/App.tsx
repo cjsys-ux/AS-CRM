@@ -68,8 +68,12 @@ export default function App() {
     fetch(`/api/users/me?userId=${encodeURIComponent(user.sub)}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data?.profile_image_key) {
-          setUserProfile((prev) => ({ ...prev, profileImage: data.profile_image_key }));
+        if (data) {
+          setUserProfile((prev) => ({
+            ...prev,
+            ...(data.profile_image_key ? { profileImage: data.profile_image_key } : {}),
+            ...(data.phone ? { phone: data.phone } : {}),
+          }));
         }
       })
       .catch(() => {});

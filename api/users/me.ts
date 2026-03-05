@@ -43,5 +43,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     email_verified: data.email_verified ?? null,
     blocked: data.blocked ?? false,
     profile_image_key: data.user_metadata?.profile_image_key ?? null,
+    phone: data.user_metadata?.phone ?? null,
   });
 }
