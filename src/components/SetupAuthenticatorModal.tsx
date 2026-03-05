@@ -1,37 +1,95 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, QrCode, Copy, Check, Shield, Download } from 'lucide-react';
+import { X, Copy, Check, Shield, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface SetupAuthenticatorModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userId: string;
+  email: string;
 }
 
-export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorModalProps) {
+interface EnrollData {
+  methodId: string;
+  secret: string;
+  barcodeUri: string;
+}
+
+export function SetupAuthenticatorModal({ isOpen, onClose, userId, email }: SetupAuthenticatorModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [verificationCode, setVerificationCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [enrollData, setEnrollData] = useState<EnrollData | null>(null);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
 
-  // Mock data - will be replaced with real data
-  const secretKey = 'JBSWY3DPEHPK3PXP';
-  const qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=otpauth://totp/ActivateSwag:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=ActivateSwag';
+  const qrCodeUrl = enrollData
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(enrollData.barcodeUri)}`
+    : '';
 
   const handleCopySecret = () => {
-    navigator.clipboard.writeText(secretKey);
+    if (!enrollData) return;
+    navigator.clipboard.writeText(enrollData.secret);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleVerify = () => {
-    // Verification logic will be implemented here
-    console.log('Verifying code:', verificationCode);
-    // For now, just move to success step
-    setCurrentStep(3);
+  const handleStartEnroll = async () => {
+    setIsEnrolling(true);
+    setEnrollError('');
+    try {
+      const res = await fetch('/api/auth/mfa-enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEnrollError(data.error || 'Failed to start enrollment. Please try again.');
+        return;
+      }
+      setEnrollData(data);
+      setCurrentStep(2);
+    } catch {
+      setEnrollError('Failed to start enrollment. Please try again.');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!enrollData) return;
+    setIsVerifying(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/auth/mfa-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: verificationCode, secret: enrollData.secret }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data.error || 'Verification failed. Please try again.');
+        return;
+      }
+      setCurrentStep(3);
+    } catch {
+      setVerifyError('Verification failed. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleClose = () => {
     setCurrentStep(1);
     setVerificationCode('');
+    setEnrollData(null);
+    setEnrollError('');
+    setVerifyError('');
+    setIsEnrolling(false);
+    setIsVerifying(false);
     onClose();
   };
 
@@ -77,7 +135,7 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                     <X className="w-5 h-5 text-white" />
                   </motion.button>
                 </div>
-                
+
                 {/* Progress bar */}
                 <div className="mt-4 h-1.5 bg-white/20 rounded-full overflow-hidden">
                   <motion.div
@@ -102,7 +160,7 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                     <p className="text-sm text-slate-600 mb-4">
                       If you don't have an authenticator app already, download one of these popular options:
                     </p>
-                    
+
                     <div className="space-y-3 mb-6">
                       {[
                         { name: 'Google Authenticator', platforms: 'iOS & Android' },
@@ -120,13 +178,28 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                       ))}
                     </div>
 
+                    {enrollError && (
+                      <p className="mb-4 flex items-center gap-1.5 text-sm text-red-600">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        {enrollError}
+                      </p>
+                    )}
+
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setCurrentStep(2)}
-                      className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg"
+                      whileHover={{ scale: isEnrolling ? 1 : 1.02 }}
+                      whileTap={{ scale: isEnrolling ? 1 : 0.98 }}
+                      onClick={handleStartEnroll}
+                      disabled={isEnrolling}
+                      className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      I Have an Authenticator App
+                      {isEnrolling ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Setting up…
+                        </>
+                      ) : (
+                        'I Have an Authenticator App'
+                      )}
                     </motion.button>
                   </motion.div>
                 )}
@@ -142,7 +215,7 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                     <p className="text-sm text-slate-600 mb-4">
                       Open your authenticator app and scan this QR code to add your account.
                     </p>
-                    
+
                     {/* QR Code */}
                     <div className="flex justify-center mb-6">
                       <div className="p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-lg">
@@ -155,14 +228,14 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                       <p className="text-xs font-semibold text-slate-700 mb-2">Can't scan the QR code?</p>
                       <p className="text-xs text-slate-600 mb-3">Enter this secret key manually:</p>
                       <div className="flex items-center gap-2">
-                        <code className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-900">
-                          {secretKey}
+                        <code className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-900 break-all">
+                          {enrollData?.secret}
                         </code>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={handleCopySecret}
-                          className="p-2 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors"
+                          className="p-2 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors flex-shrink-0"
                         >
                           {copied ? (
                             <Check className="w-4 h-4 text-green-600" />
@@ -181,14 +254,28 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                       <input
                         type="text"
                         value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        onChange={(e) => {
+                          setVerifyError('');
+                          setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                        }}
                         placeholder="000000"
                         maxLength={6}
-                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-center text-2xl font-mono tracking-widest text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        className={`w-full px-4 py-3 bg-slate-50 border-2 rounded-xl text-center text-2xl font-mono tracking-widest text-slate-900 focus:outline-none focus:ring-2 transition-all ${
+                          verifyError
+                            ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500'
+                            : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                        }`}
                       />
-                      <p className="text-xs text-slate-500 mt-2 text-center">
-                        Enter the 6-digit code from your authenticator app
-                      </p>
+                      {verifyError ? (
+                        <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-red-600">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                          {verifyError}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500 mt-2 text-center">
+                          Enter the 6-digit code from your authenticator app
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex gap-3">
@@ -201,13 +288,20 @@ export function SetupAuthenticatorModal({ isOpen, onClose }: SetupAuthenticatorM
                         Back
                       </motion.button>
                       <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        whileHover={{ scale: isVerifying || verificationCode.length !== 6 ? 1 : 1.02 }}
+                        whileTap={{ scale: isVerifying || verificationCode.length !== 6 ? 1 : 0.98 }}
                         onClick={handleVerify}
-                        disabled={verificationCode.length !== 6}
-                        className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={verificationCode.length !== 6 || isVerifying}
+                        className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        Verify & Enable
+                        {isVerifying ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Verifying…
+                          </>
+                        ) : (
+                          'Verify & Enable'
+                        )}
                       </motion.button>
                     </div>
                   </motion.div>
