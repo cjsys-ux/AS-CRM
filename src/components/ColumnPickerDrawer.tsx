@@ -59,7 +59,7 @@ export function ColumnPickerDrawer({
         className="fixed right-0 top-0 bottom-0 w-[420px] bg-white shadow-2xl z-50 flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-green-600 to-emerald-600">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-green-600">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <Columns2 className="w-5 h-5 text-white" />
@@ -136,7 +136,7 @@ export function ColumnPickerDrawer({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onApply(pendingColumns)}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl text-white font-semibold hover:from-green-700 hover:to-emerald-700 transition-colors shadow-lg"
+            className="flex-1 px-6 py-3 bg-green-600 rounded-xl text-white font-semibold hover:bg-green-700 transition-colors shadow-lg"
           >
             Apply
           </motion.button>
