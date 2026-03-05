@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Clock, ChevronDown, Search } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
@@ -28,7 +29,7 @@ interface TimezonePickerProps {
 export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openUpward, setOpenUpward] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: number } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -44,7 +45,7 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
     if (!disabled) {
       if (!isOpen && triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect();
-        setOpenUpward(window.innerHeight - rect.bottom < 320);
+        setDropdownStyle({ top: rect.bottom + 8, left: rect.left, width: rect.width });
       }
       setIsOpen(!isOpen);
     }
@@ -65,8 +66,6 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
-
-  const positionClass = openUpward ? 'bottom-full mb-2' : 'top-full mt-2';
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -94,13 +93,14 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
       </motion.button>
 
       <AnimatePresence>
-        {isOpen && !disabled && (
+        {isOpen && !disabled && dropdownStyle && createPortal(
           <motion.div
-            initial={{ opacity: 0, y: openUpward ? 10 : -10, scale: 0.95 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: openUpward ? 10 : -10, scale: 0.95 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className={`absolute ${positionClass} left-0 min-w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-[9999]`}
+            style={{ position: 'fixed', top: dropdownStyle.top, left: dropdownStyle.left, width: dropdownStyle.width, zIndex: 9999 }}
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
           >
             {/* Search */}
             <div className="p-3 border-b border-slate-200">
@@ -150,7 +150,8 @@ export function TimezonePicker({ value, onChange, disabled }: TimezonePickerProp
                 <div className="px-4 py-8 text-center text-slate-500">No timezones found</div>
               )}
             </div>
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
     </div>
