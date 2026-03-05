@@ -121,6 +121,7 @@ export function ProductPipeline() {
     return new Set(COLUMNS.map(c => c.id));
   });
   const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false);
+  const [pendingColumns, setPendingColumns] = useState<Set<ColumnId>>(new Set());
   const columnPickerRef = useRef<HTMLDivElement>(null);
 
   const fetchProducts = async () => {
@@ -152,21 +153,33 @@ export function ProductPipeline() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
-        setIsColumnPickerOpen(false);
+        discardColumnChanges();
       }
     };
     if (isColumnPickerOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isColumnPickerOpen]);
 
-  const toggleColumn = (id: ColumnId) => {
-    setVisibleColumns(prev => {
+  const handleOpenColumnPicker = () => {
+    setPendingColumns(new Set(visibleColumns));
+    setIsColumnPickerOpen(true);
+  };
+
+  const togglePendingColumn = (id: ColumnId) => {
+    setPendingColumns(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
-      localStorage.setItem('pipeline-visible-columns', JSON.stringify([...next]));
       return next;
     });
   };
+
+  const applyColumnChanges = () => {
+    setVisibleColumns(new Set(pendingColumns));
+    localStorage.setItem('pipeline-visible-columns', JSON.stringify([...pendingColumns]));
+    setIsColumnPickerOpen(false);
+  };
+
+  const discardColumnChanges = () => setIsColumnPickerOpen(false);
 
   // Find the selected product
   const selectedProduct = selectedProductId 
@@ -637,7 +650,7 @@ export function ProductPipeline() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setIsColumnPickerOpen(v => !v)}
+                onClick={isColumnPickerOpen ? discardColumnChanges : handleOpenColumnPicker}
                 className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium hover:bg-slate-50 transition-all shadow-sm"
               >
                 <Columns2 className="w-4 h-4" />
@@ -653,66 +666,80 @@ export function ProductPipeline() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 z-[100] bg-white border-2 border-slate-200 rounded-2xl shadow-2xl overflow-hidden min-w-[220px]"
+                    className="absolute right-0 top-full mt-2 z-[100] bg-white border-2 border-slate-200 rounded-2xl shadow-2xl min-w-[380px]"
                   >
-                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-5 py-3.5">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-2.5 rounded-t-xl flex items-center justify-between">
                       <p className="text-sm font-bold text-white">Table Columns</p>
-                      <p className="text-xs text-slate-300 mt-0.5">{visibleColumns.size} of {COLUMNS.length} visible</p>
+                      <span className="text-xs text-slate-300 bg-white/10 px-2 py-0.5 rounded-lg">
+                        {pendingColumns.size} of {COLUMNS.length}
+                      </span>
                     </div>
-                    <div className="max-h-72 overflow-y-auto">
-                      {COLUMNS.map((col, index) => {
-                        const isVisible = visibleColumns.has(col.id);
+                    {/* 2-column chip grid */}
+                    <div className="grid grid-cols-2 gap-2 p-3">
+                      {COLUMNS.map((col) => {
+                        const active = pendingColumns.has(col.id);
                         return (
-                          <motion.div
+                          <button
                             key={col.id}
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            onClick={() => toggleColumn(col.id)}
-                            className={`flex items-center justify-between px-4 py-3 border-b border-slate-100 last:border-b-0 cursor-pointer transition-colors ${
-                              isVisible ? 'bg-gradient-to-r from-blue-50 to-indigo-50' : 'hover:bg-slate-50'
+                            onClick={() => togglePendingColumn(col.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border-2 w-full transition-all ${
+                              active
+                                ? 'border-blue-400 bg-blue-50 text-blue-700'
+                                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50'
                             }`}
                           >
-                            <span className={`text-sm ${isVisible ? 'text-slate-900 font-medium' : 'text-slate-700'}`}>
-                              {col.label}
-                            </span>
-                            <AnimatePresence>
-                              {isVisible && (
-                                <motion.div
+                            <AnimatePresence mode="wait">
+                              {active ? (
+                                <motion.span
+                                  key="check"
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
                                   exit={{ scale: 0 }}
                                   transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                 >
-                                  <Check className="w-4 h-4 text-blue-600" />
-                                </motion.div>
+                                  <Check className="w-3 h-3 shrink-0" />
+                                </motion.span>
+                              ) : (
+                                <motion.span key="empty" className="w-3 h-3 shrink-0 rounded-sm border border-slate-300" />
                               )}
                             </AnimatePresence>
-                            {!isVisible && <div className="w-4 h-4" />}
-                          </motion.div>
+                            <span className="truncate">{col.label}</span>
+                          </button>
                         );
                       })}
                     </div>
-                    <div className="flex items-center justify-between px-4 py-3 border-t-2 border-slate-100 bg-slate-50">
-                      <button
-                        onClick={() => {
-                          const all = new Set(COLUMNS.map(c => c.id));
-                          setVisibleColumns(all);
-                          localStorage.setItem('pipeline-visible-columns', JSON.stringify([...all]));
-                        }}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                      >
-                        Show All
-                      </button>
-                      <button
-                        onClick={() => {
-                          setVisibleColumns(new Set());
-                          localStorage.setItem('pipeline-visible-columns', JSON.stringify([]));
-                        }}
-                        className="text-xs font-semibold text-slate-500 hover:text-slate-700 transition-colors"
-                      >
-                        Hide All
-                      </button>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between px-4 py-2.5 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setPendingColumns(new Set(COLUMNS.map(c => c.id)))}
+                          className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                        >
+                          All
+                        </button>
+                        <span className="text-slate-300">·</span>
+                        <button
+                          onClick={() => setPendingColumns(new Set())}
+                          className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                        >
+                          None
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={discardColumnChanges}
+                          className="px-3 py-1.5 text-xs font-semibold text-slate-600 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-all"
+                        >
+                          Discard
+                        </button>
+                        <button
+                          onClick={applyColumnChanges}
+                          className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:shadow-md transition-all"
+                        >
+                          Apply
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 )}
