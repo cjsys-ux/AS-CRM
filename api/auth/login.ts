@@ -59,7 +59,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
     if (
-      err.error === 'access_denied' &&
       typeof err.error_description === 'string' &&
       err.error_description.toLowerCase().includes('blocked')
     ) {
