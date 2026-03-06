@@ -65,7 +65,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   const resetToken = `${payload}.${sig}`;
-  const appBaseUrl = process.env.APP_BASE_URL ?? 'https://crm.activateswag.com';
+  const host = (req.headers.host as string | undefined) ?? 'crm.activateswag.com';
+  const protocol = host.startsWith('localhost') ? 'http' : 'https';
+  const appBaseUrl = process.env.APP_BASE_URL ?? `${protocol}://${host}`;
   const resetLink = `${appBaseUrl}/reset-password?token=${resetToken}`;
 
   const html = renderResetPasswordEmail({
