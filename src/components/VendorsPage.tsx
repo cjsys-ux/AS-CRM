@@ -297,7 +297,7 @@ export function VendorsPage() {
                           ) : (
                             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                               <span className="text-white text-sm font-bold">
-                                {getVendorInitials(vendor.vendorName)}
+                                {getVendorInitials(vendor.vendorName ?? '')}
                               </span>
                             </div>
                           )}
