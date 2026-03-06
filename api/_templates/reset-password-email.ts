@@ -1,0 +1,81 @@
+export const RESET_PASSWORD_EMAIL_TEMPLATE = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f3f4f6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(to right, #dc2626, #ef4444); background-color: #dc2626; padding: 40px; text-align: center;">
+              <!--[if gte mso 9]>
+              <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                <v:fill type="gradient" color="#dc2626" color2="#ef4444" angle="90"/>
+                <v:textbox inset="0,0,0,0">
+              <![endif]-->
+              <h1 style="color: #ffffff; margin: 0; font-size: 32px;">Reset Your Password</h1>
+              <!--[if gte mso 9]>
+                </v:textbox>
+              </v:rect>
+              <![endif]-->
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="color: #1e293b; margin-top: 0;">Hi {{firstName}},</h2>
+              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                We received a request to reset your password for your ActivateSwag account.
+              </p>
+              <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                Click the button below to create a new password:
+              </p>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{{resetLink}}" style="display: inline-block; background: linear-gradient(to right, #dc2626, #ef4444); background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Reset Password</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                This link will expire in 24 hours for security reasons.
+              </p>
+              <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                If you didn't request this, please ignore this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="color: #64748b; font-size: 14px; margin: 0;">
+                © {{currentYear}} ActivateSwag. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+export function renderResetPasswordEmail(vars: {
+  firstName: string;
+  resetLink: string;
+  currentYear: string;
+}): string {
+  return RESET_PASSWORD_EMAIL_TEMPLATE
+    .replace(/\{\{firstName\}\}/g, vars.firstName)
+    .replace(/\{\{resetLink\}\}/g, vars.resetLink)
+    .replace(/\{\{currentYear\}\}/g, vars.currentYear);
+}
