@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart, Package, Plus, Link as LinkIcon, MapPin, ChevronDown, Check, Trash2, Calendar } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 
 type OrderSampleDrawerProps = {
@@ -9,17 +10,20 @@ type OrderSampleDrawerProps = {
   productName?: string;
   clientName?: string;
   competitorLink?: string;
+  productId?: string;
   onSuccess?: () => void;
 };
 
-export function OrderSampleDrawer({ 
-  isOpen, 
-  onClose, 
+export function OrderSampleDrawer({
+  isOpen,
+  onClose,
   productName = 'Scan Sling Padded Harness',
   clientName = 'Amazon',
   competitorLink = '',
-  onSuccess 
+  productId,
+  onSuccess
 }: OrderSampleDrawerProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [sampleType, setSampleType] = useState<'competitor' | 'pre-production'>('competitor');
   const [variants, setVariants] = useState([
     { id: '1', sku: '', size: '', color: '', qty: 1, costPerUnit: 0 }
@@ -116,29 +120,35 @@ export function OrderSampleDrawer({
   const totalQuantity = variants.reduce((sum, v) => sum + v.qty, 0);
   const totalCost = variants.reduce((sum, v) => sum + (v.qty * v.costPerUnit), 0);
 
-  const handleSubmit = () => {
-    const purchaseOrder = {
-      poNumber: '',
-      poDate: new Date().toISOString().split('T')[0],
-      project: productName,
-      vendor: vendor,
-      customer: clientName,
-      status: 'Pending',
-      shipDate: null,
-      inHandsDate: inHandsDate || new Date().toISOString().split('T')[0],
-      total: totalCost,
-      priority: '2nd Choice',
-      contact: '',
-      sampleType: sampleType,
-      variants: variants,
-      destinations: destinations,
-      additionalNotes: additionalNotes,
-      competitorLink: competitorLink
-    };
-
-    console.log('Creating purchase order from sample order:', purchaseOrder);
-    onSuccess?.();
-    onClose();
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/pipeline/sample-orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: productId ?? 'unknown',
+          productName,
+          clientName,
+          sampleType,
+          variants,
+          vendor,
+          destinations,
+          additionalNotes,
+          inHandsDate: inHandsDate || null,
+          competitorLink,
+          totalCost,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to submit sample order');
+      toast.success('Sample order submitted successfully');
+      onSuccess?.();
+      onClose();
+    } catch {
+      toast.error('Failed to submit sample order');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -796,9 +806,10 @@ export function OrderSampleDrawer({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSubmit}
-                  className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors"
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Submit Sample Order
+                  {isSubmitting ? 'Submitting...' : 'Submit Sample Order'}
                 </motion.button>
               </div>
             </div>

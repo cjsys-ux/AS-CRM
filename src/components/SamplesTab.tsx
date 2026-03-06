@@ -1,14 +1,51 @@
 import { motion } from 'motion/react';
-import { Plus, Upload, Package, FileText, Image as ImageIcon, ShoppingCart, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Upload, Package, FileText, Image as ImageIcon, ShoppingCart, MessageSquare, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { ChecklistWidget } from './ChecklistWidget';
 import { AddSampleDrawer } from './AddSampleDrawer';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
 
-export function SamplesTab() {
-  const [samples] = useState<any[]>([]);
+interface SamplesTabProps {
+  productId?: string;
+}
+
+export function SamplesTab({ productId = '' }: SamplesTabProps) {
+  const [samples, setSamples] = useState<any[]>([]);
   const [isAddSampleDrawerOpen, setIsAddSampleDrawerOpen] = useState(false);
   const [isOrderSampleDrawerOpen, setIsOrderSampleDrawerOpen] = useState(false);
+  const [sampleDocuments, setSampleDocuments] = useState<File[]>([]);
+  const [sampleImages, setSampleImages] = useState<File[]>([]);
+
+  useEffect(() => {
+    if (productId) fetchSamples();
+  }, [productId]);
+
+  const fetchSamples = async () => {
+    try {
+      const res = await fetch(`/api/pipeline/samples/list?productId=${encodeURIComponent(productId)}`);
+      if (!res.ok) throw new Error('Failed to fetch samples');
+      const data = await res.json();
+      setSamples(data.samples ?? []);
+    } catch {
+      setSamples([]);
+    }
+  };
+
+  const handleDeleteSample = async (id: string) => {
+    try {
+      const res = await fetch('/api/pipeline/samples/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete sample');
+      toast.success('Sample deleted');
+      setSamples((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      toast.error('Failed to delete sample');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -30,18 +67,54 @@ export function SamplesTab() {
           </motion.button>
         </div>
 
-        {/* Empty State */}
-        <div className="px-6 py-16">
-          <div className="max-w-md mx-auto text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
-              <Package className="w-8 h-8 text-slate-400" />
+        {samples.length === 0 ? (
+          <div className="px-6 py-16">
+            <div className="max-w-md mx-auto text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+                <Package className="w-8 h-8 text-slate-400" />
+              </div>
+              <h4 className="font-bold text-slate-900 mb-2">No Samples Yet</h4>
+              <p className="text-sm text-slate-600">
+                Start tracking samples from competitors and factories to monitor quality improvements
+              </p>
             </div>
-            <h4 className="font-bold text-slate-900 mb-2">No Samples Yet</h4>
-            <p className="text-sm text-slate-600">
-              Start tracking samples from competitors and factories to monitor quality improvements
-            </p>
           </div>
-        </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {samples.map((sample) => (
+              <div key={sample.id} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                    <Package className="w-5 h-5 text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{sample.sampleName}</p>
+                    <p className="text-xs text-slate-500">
+                      {sample.sampleType}
+                      {sample.version ? ` · ${sample.version}` : ''}
+                      {sample.vendorName ? ` · ${sample.vendorName}` : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {sample.receivedDate ? (
+                    <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-lg">Received</span>
+                  ) : (
+                    <span className="px-2.5 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-lg">Pending</span>
+                  )}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleDeleteSample(sample.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Sample Feedback - RENAMED FROM Sample Tracking */}
@@ -154,18 +227,16 @@ export function SamplesTab() {
       <AddSampleDrawer
         isOpen={isAddSampleDrawerOpen}
         onClose={() => setIsAddSampleDrawerOpen(false)}
-        onSuccess={() => {
-          // Refresh samples list here if needed
-        }}
+        productId={productId}
+        onSuccess={fetchSamples}
       />
 
       {/* Order Sample Drawer */}
       <OrderSampleDrawer
         isOpen={isOrderSampleDrawerOpen}
         onClose={() => setIsOrderSampleDrawerOpen(false)}
-        onSuccess={() => {
-          // Refresh samples list here if needed
-        }}
+        productId={productId}
+        onSuccess={fetchSamples}
       />
     </div>
   );

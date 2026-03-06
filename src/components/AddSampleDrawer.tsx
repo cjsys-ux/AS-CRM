@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Package, Plus, Upload } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { DatePicker } from './DatePicker';
 import { FilterDropdown } from './FilterDropdown';
 
@@ -9,6 +9,7 @@ interface AddSampleDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  productId?: string;
 }
 
 interface IssueToFix {
@@ -16,7 +17,8 @@ interface IssueToFix {
   text: string;
 }
 
-export function AddSampleDrawer({ isOpen, onClose, onSuccess }: AddSampleDrawerProps) {
+export function AddSampleDrawer({ isOpen, onClose, onSuccess, productId }: AddSampleDrawerProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [sampleName, setSampleName] = useState('');
   const [sampleType, setSampleType] = useState('Factory Sample');
   const [version, setVersion] = useState('');
@@ -88,35 +90,73 @@ export function AddSampleDrawer({ isOpen, onClose, onSuccess }: AddSampleDrawerP
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!sampleName.trim()) {
       toast.error('Sample name is required');
       return;
     }
+    if (!productId) {
+      toast.error('Product ID is missing');
+      return;
+    }
 
-    // Here you would typically send this data to your backend
-    console.log('Sample data:', {
-      sampleName,
-      sampleType,
-      version,
-      vendorName,
-      requestDate,
-      receivedDate,
-      trackingNumber,
-      carrier,
-      comparisonToPrevious,
-      imagesToUpload,
-      issuesToFix,
-      notes,
-    });
+    setIsSubmitting(true);
+    try {
+      // Upload images to S3 first
+      const imageKeys: string[] = [];
+      for (const file of imagesToUpload) {
+        const presignRes = await fetch('/api/files/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            entityType: 'pipeline-sample',
+            entityId: productId,
+          }),
+        });
+        if (presignRes.ok) {
+          const { uploadUrl, key } = await presignRes.json();
+          await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+          imageKeys.push(key);
+        }
+      }
 
-    toast.success('Sample added successfully', {
-      description: 'Your sample has been added to the tracking system.',
-      duration: 3000,
-    });
+      const res = await fetch('/api/pipeline/samples/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          sampleName,
+          sampleType,
+          version,
+          vendorName,
+          requestDate,
+          receivedDate,
+          trackingNumber,
+          carrier,
+          comparisonToPrevious,
+          imageAngle,
+          imageKeys,
+          issuesToFix: issuesToFix.map((i) => i.text),
+          notes,
+        }),
+      });
 
-    if (onSuccess) onSuccess();
-    onClose();
+      if (!res.ok) throw new Error('Failed to add sample');
+
+      toast.success('Sample added successfully', {
+        description: 'Your sample has been added to the tracking system.',
+        duration: 3000,
+      });
+
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch {
+      toast.error('Failed to add sample');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -386,9 +426,10 @@ export function AddSampleDrawer({ isOpen, onClose, onSuccess }: AddSampleDrawerP
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSubmit}
-                  className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Add Sample
+                  {isSubmitting ? 'Saving...' : 'Add Sample'}
                 </motion.button>
               </div>
             </motion.div>

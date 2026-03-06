@@ -1,16 +1,20 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown } from 'lucide-react';
+import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface MaterialComposition {
   id: string;
   material: string;
   percentage: number;
   customMaterial?: string;
+}
+
+interface SpecsTabProps {
+  productId?: string;
 }
 
 const MATERIAL_OPTIONS = [
@@ -34,28 +38,150 @@ const MATERIAL_OPTIONS = [
   'Other'
 ];
 
-export function SpecificationsTab() {
+export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
   const [files, setFiles] = useState<File[]>([]);
+  const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number } | null>(null);
   const [materialCompositions, setMaterialCompositions] = useState<MaterialComposition[]>([
     { id: '1', material: '', percentage: 0 }
   ]);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = event.target.files;
-    if (uploadedFiles && uploadedFiles.length > 0) {
-      console.log('Compliance files uploaded:', uploadedFiles);
-      const fileArray = Array.from(uploadedFiles);
-      setFiles([...files, ...fileArray]);
-      
-      // Show success toast
-      toast.success(`${uploadedFiles.length} document${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully`, {
-        description: 'Your compliance documents have been added.',
-        duration: 3000,
-      });
+  // Dimensions
+  const [length, setLength] = useState('');
+  const [lengthUnit, setLengthUnit] = useState('in');
+  const [width, setWidth] = useState('');
+  const [widthUnit, setWidthUnit] = useState('in');
+  const [height, setHeight] = useState('');
+  const [heightUnit, setHeightUnit] = useState('in');
+
+  // Weights
+  const [productWeight, setProductWeight] = useState('');
+  const [productWeightUnit, setProductWeightUnit] = useState('lbs');
+  const [shippingWeight, setShippingWeight] = useState('');
+  const [shippingWeightUnit, setShippingWeightUnit] = useState('lbs');
+
+  // Care
+  const [careInstructions, setCareInstructions] = useState('');
+
+  useEffect(() => {
+    if (productId) {
+      fetchSpecs();
+      fetchComplianceFiles();
     }
+  }, [productId]);
+
+  const fetchSpecs = async () => {
+    try {
+      const res = await fetch(`/api/pipeline/specs/get?productId=${encodeURIComponent(productId)}`);
+      if (!res.ok) return;
+      const { spec } = await res.json();
+      if (!spec) return;
+      setLength(spec.length ?? '');
+      setLengthUnit(spec.lengthUnit ?? 'in');
+      setWidth(spec.width ?? '');
+      setWidthUnit(spec.widthUnit ?? 'in');
+      setHeight(spec.height ?? '');
+      setHeightUnit(spec.heightUnit ?? 'in');
+      setProductWeight(spec.productWeight ?? '');
+      setProductWeightUnit(spec.productWeightUnit ?? 'lbs');
+      setShippingWeight(spec.shippingWeight ?? '');
+      setShippingWeightUnit(spec.shippingWeightUnit ?? 'lbs');
+      setCareInstructions(spec.careInstructions ?? '');
+      if (spec.materialCompositions?.length > 0) {
+        setMaterialCompositions(spec.materialCompositions);
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  const fetchComplianceFiles = async () => {
+    try {
+      const res = await fetch(`/api/files/list?entityType=pipeline-compliance&entityId=${encodeURIComponent(productId)}`);
+      if (!res.ok) return;
+      const { uploads } = await res.json();
+      setSavedFiles(uploads ?? []);
+    } catch {
+      // silent
+    }
+  };
+
+  const handleSaveSpecs = async () => {
+    if (!productId) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/pipeline/specs/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          length: length ? parseFloat(length) : null,
+          lengthUnit,
+          width: width ? parseFloat(width) : null,
+          widthUnit,
+          height: height ? parseFloat(height) : null,
+          heightUnit,
+          productWeight: productWeight ? parseFloat(productWeight) : null,
+          productWeightUnit,
+          shippingWeight: shippingWeight ? parseFloat(shippingWeight) : null,
+          shippingWeightUnit,
+          materialCompositions,
+          careInstructions,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast.success('Specifications saved successfully');
+    } catch {
+      toast.error('Failed to save specifications');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = event.target.files;
+    if (!uploadedFiles || uploadedFiles.length === 0) return;
+
+    const fileArray = Array.from(uploadedFiles);
+
+    if (productId) {
+      // Upload to S3 and record in MongoDB
+      for (const file of fileArray) {
+        try {
+          const presignRes = await fetch('/api/files/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileType: file.type,
+              entityType: 'pipeline-compliance',
+              entityId: productId,
+            }),
+          });
+          if (!presignRes.ok) throw new Error('presign failed');
+          const { uploadUrl, key } = await presignRes.json();
+          await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+          await fetch('/api/files/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: 'pipeline-compliance', entityId: productId, uploadedBy: 'User' }),
+          });
+        } catch {
+          // silent per-file error; still add to local list
+        }
+      }
+      await fetchComplianceFiles();
+    } else {
+      setFiles([...files, ...fileArray]);
+    }
+
+    toast.success(`${uploadedFiles.length} document${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully`, {
+      description: 'Your compliance documents have been added.',
+      duration: 3000,
+    });
   };
 
   const handleDownloadFile = (file: File) => {
@@ -67,6 +193,21 @@ export function SpecificationsTab() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteSavedFile = async (fileId: string) => {
+    try {
+      const res = await fetch('/api/files/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: fileId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Document deleted');
+      await fetchComplianceFiles();
+    } catch {
+      toast.error('Failed to delete document');
+    }
   };
 
   const addMaterialComposition = () => {
@@ -92,6 +233,20 @@ export function SpecificationsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSaveSpecs}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Save className="w-4 h-4" />
+          {isSaving ? 'Saving...' : 'Save Specifications'}
+        </motion.button>
+      </div>
+
       {/* Product Dimensions */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
@@ -106,11 +261,14 @@ export function SpecificationsTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
                 <UnitDropdown
                   options={['in', 'cm', 'mm']}
-                  defaultOption="in"
+                  defaultOption={lengthUnit}
+                  onChange={setLengthUnit}
                 />
               </div>
             </div>
@@ -120,11 +278,14 @@ export function SpecificationsTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={width}
+                  onChange={(e) => setWidth(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
                 <UnitDropdown
                   options={['in', 'cm', 'mm']}
-                  defaultOption="in"
+                  defaultOption={widthUnit}
+                  onChange={setWidthUnit}
                 />
               </div>
             </div>
@@ -134,11 +295,14 @@ export function SpecificationsTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
                 <UnitDropdown
                   options={['in', 'cm', 'mm']}
-                  defaultOption="in"
+                  defaultOption={heightUnit}
+                  onChange={setHeightUnit}
                 />
               </div>
             </div>
@@ -160,11 +324,14 @@ export function SpecificationsTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={productWeight}
+                  onChange={(e) => setProductWeight(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
                 <UnitDropdown
                   options={['lbs', 'kg', 'oz', 'g']}
-                  defaultOption="lbs"
+                  defaultOption={productWeightUnit}
+                  onChange={setProductWeightUnit}
                 />
               </div>
             </div>
@@ -174,11 +341,14 @@ export function SpecificationsTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={shippingWeight}
+                  onChange={(e) => setShippingWeight(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
                 <UnitDropdown
                   options={['lbs', 'kg', 'oz', 'g']}
-                  defaultOption="lbs"
+                  defaultOption={shippingWeightUnit}
+                  onChange={setShippingWeightUnit}
                 />
               </div>
             </div>
@@ -341,6 +511,8 @@ export function SpecificationsTab() {
             <textarea
               rows={3}
               placeholder="Enter care instructions..."
+              value={careInstructions}
+              onChange={(e) => setCareInstructions(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
             />
           </div>
@@ -374,12 +546,49 @@ export function SpecificationsTab() {
           />
         </div>
         <div className="p-6">
-          {files.length > 0 ? (
+          {savedFiles.length > 0 || files.length > 0 ? (
             <div className="space-y-2">
               <AnimatePresence>
+                {savedFiles.map((sf) => (
+                  <motion.div
+                    key={sf.id ?? sf._id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{sf.fileName}</p>
+                        <p className="text-xs text-slate-500">{sf.size ? `${(sf.size / 1024).toFixed(2)} KB` : ''}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => sf.fileUrl && window.open(sf.fileUrl, '_blank')}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleDeleteSavedFile(sf.id ?? sf._id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
                 {files.map((file, index) => (
                   <motion.div
-                    key={index}
+                    key={`local-${index}`}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
