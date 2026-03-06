@@ -6,9 +6,10 @@ interface UnitDropdownProps {
   options: string[];
   defaultOption: string;
   className?: string;
+  onChange?: (value: string) => void;
 }
 
-export function UnitDropdown({ options, defaultOption, className = '' }: UnitDropdownProps) {
+export function UnitDropdown({ options, defaultOption, className = '', onChange }: UnitDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState(defaultOption);
 
@@ -49,6 +50,7 @@ export function UnitDropdown({ options, defaultOption, className = '' }: UnitDro
                 transition={{ delay: index * 0.03 }}
                 onMouseDown={() => {
                   setSelected(option);
+                  onChange?.(option);
                   setIsOpen(false);
                 }}
                 className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0 flex items-center justify-between ${

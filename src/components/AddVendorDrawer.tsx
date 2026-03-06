@@ -1,12 +1,14 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Mail, Phone, Globe, DollarSign, MapPin, Package, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 
 interface AddVendorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  productId?: string;
   vendorData?: {
     id?: string;
     name?: string;
@@ -34,7 +36,7 @@ const VENDOR_TYPES = ['Distributor', 'Product Manufacturer', 'Service Provider',
 const ACCOUNT_TYPES = ['Standalone', 'Parent Company', 'Subsidiary'];
 const PAYMENT_TERMS = ['Net 30', 'Net 60', 'Net 90', 'Prepaid', 'COD', '2/10 Net 30'];
 
-export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddVendorDrawerProps) {
+export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, productId }: AddVendorDrawerProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -157,10 +159,42 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSuccess?.();
-    onClose();
+    if (!productId) {
+      toast.error('Product ID is missing');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (vendorData?.id) {
+        // Update existing vendor
+        const res = await fetch('/api/pipeline/vendors/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: vendorData.id, ...formData, vendorName: formData.vendorName }),
+        });
+        if (!res.ok) throw new Error('Failed to update vendor');
+        toast.success('Vendor updated successfully');
+      } else {
+        // Create new vendor
+        const res = await fetch('/api/pipeline/vendors/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId, ...formData }),
+        });
+        if (!res.ok) throw new Error('Failed to create vendor');
+        toast.success('Vendor added successfully');
+      }
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save vendor');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -722,11 +756,12 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
                   </motion.button>
                   <motion.button
                     type="submit"
+                    disabled={isSubmitting}
                     whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 px-8 py-5 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-2xl font-black text-white text-lg shadow-2xl transition-all"
+                    className="flex-1 px-8 py-5 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-2xl font-black text-white text-lg shadow-2xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {vendorData?.id ? 'Update Vendor' : 'Create Vendor'}
+                    {isSubmitting ? 'Saving...' : vendorData?.id ? 'Update Vendor' : 'Create Vendor'}
                   </motion.button>
                 </motion.div>
               </form>

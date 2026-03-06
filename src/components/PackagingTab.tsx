@@ -1,69 +1,194 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Upload, FileText, Image as ImageIcon, Download, Box, Trash2 } from 'lucide-react';
+import { Package, Upload, FileText, Image as ImageIcon, Download, Box, Trash2, Save } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
 import { UnitDropdown } from './UnitDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export function PackagingTab() {
+interface PackagingTabProps {
+  productId?: string;
+}
+
+export function PackagingTab({ productId = '' }: PackagingTabProps) {
   const [mockups, setMockups] = useState<File[]>([]);
   const [dielineFiles, setDielineFiles] = useState<File[]>([]);
   const [specSheets, setSpecSheets] = useState<File[]>([]);
   const [primaryPackaging, setPrimaryPackaging] = useState('');
   const [packagingMaterial, setPackagingMaterial] = useState('');
+  const [specialRequirements, setSpecialRequirements] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number; type: 'mockup' | 'dieline' | 'spec' } | null>(null);
 
-  const handleMockupUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Dimensions
+  const [length, setLength] = useState('');
+  const [lengthUnit, setLengthUnit] = useState('in');
+  const [width, setWidth] = useState('');
+  const [widthUnit, setWidthUnit] = useState('in');
+  const [height, setHeight] = useState('');
+  const [heightUnit, setHeightUnit] = useState('in');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Saved S3 files per category
+  const [savedMockups, setSavedMockups] = useState<any[]>([]);
+  const [savedDielines, setSavedDielines] = useState<any[]>([]);
+  const [savedSpecSheets, setSavedSpecSheets] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (productId) {
+      fetchPackaging();
+      fetchSavedFiles();
+    }
+  }, [productId]);
+
+  const fetchPackaging = async () => {
+    try {
+      const res = await fetch(`/api/pipeline/packaging/get?productId=${encodeURIComponent(productId)}`);
+      if (!res.ok) return;
+      const { packaging } = await res.json();
+      if (!packaging) return;
+      setLength(packaging.length ?? '');
+      setLengthUnit(packaging.lengthUnit ?? 'in');
+      setWidth(packaging.width ?? '');
+      setWidthUnit(packaging.widthUnit ?? 'in');
+      setHeight(packaging.height ?? '');
+      setHeightUnit(packaging.heightUnit ?? 'in');
+      setPrimaryPackaging(packaging.primaryPackaging ?? '');
+      setPackagingMaterial(packaging.packagingMaterial ?? '');
+      setSpecialRequirements(packaging.specialRequirements ?? '');
+    } catch {
+      // silent
+    }
+  };
+
+  const fetchSavedFiles = async () => {
+    const fetchCategory = async (category: string) => {
+      const res = await fetch(`/api/files/list?entityType=pipeline-packaging-${category}&entityId=${encodeURIComponent(productId)}`);
+      if (!res.ok) return [];
+      const { uploads } = await res.json();
+      return uploads ?? [];
+    };
+    const [m, d, s] = await Promise.all([
+      fetchCategory('mockup'),
+      fetchCategory('dieline'),
+      fetchCategory('spec'),
+    ]);
+    setSavedMockups(m);
+    setSavedDielines(d);
+    setSavedSpecSheets(s);
+  };
+
+  const handleSavePackaging = async () => {
+    if (!productId) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/pipeline/packaging/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId,
+          length: length ? parseFloat(length) : null,
+          lengthUnit,
+          width: width ? parseFloat(width) : null,
+          widthUnit,
+          height: height ? parseFloat(height) : null,
+          heightUnit,
+          primaryPackaging,
+          packagingMaterial,
+          specialRequirements,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      toast.success('Packaging saved successfully');
+    } catch {
+      toast.error('Failed to save packaging');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const uploadFileToS3 = async (file: File, category: string): Promise<void> => {
+    const presignRes = await fetch('/api/files/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        entityType: `pipeline-packaging-${category}`,
+        entityId: productId,
+      }),
+    });
+    if (!presignRes.ok) throw new Error('presign failed');
+    const { uploadUrl, key } = await presignRes.json();
+    await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+    await fetch('/api/files/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: `pipeline-packaging-${category}`, entityId: productId, uploadedBy: 'User' }),
+    });
+  };
+
+  const handleDeleteSavedFile = async (fileId: string) => {
+    try {
+      const res = await fetch('/api/files/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: fileId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('File deleted');
+      await fetchSavedFiles();
+    } catch {
+      toast.error('Failed to delete file');
+    }
+  };
+
+  const handleMockupUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
-      const fileArray = Array.from(files);
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    if (productId) {
+      for (const f of fileArray) { try { await uploadFileToS3(f, 'mockup'); } catch {} }
+      await fetchSavedFiles();
+    } else {
       setMockups([...mockups, ...fileArray]);
-      toast.success(`${files.length} mockup${files.length > 1 ? 's' : ''} uploaded successfully`, {
-        description: 'Your packaging mockup files have been added.',
-        duration: 3000,
-      });
     }
+    toast.success(`${files.length} mockup${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
   };
 
-  const handleDielineUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDielineUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
-      const fileArray = Array.from(files);
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    if (productId) {
+      for (const f of fileArray) { try { await uploadFileToS3(f, 'dieline'); } catch {} }
+      await fetchSavedFiles();
+    } else {
       setDielineFiles([...dielineFiles, ...fileArray]);
-      toast.success(`${files.length} dieline file${files.length > 1 ? 's' : ''} uploaded successfully`, {
-        description: 'Your dieline/CAD files have been added.',
-        duration: 3000,
-      });
     }
+    toast.success(`${files.length} dieline file${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
   };
 
-  const handleSpecUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSpecUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files && files.length > 0) {
-      const fileArray = Array.from(files);
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    if (productId) {
+      for (const f of fileArray) { try { await uploadFileToS3(f, 'spec'); } catch {} }
+      await fetchSavedFiles();
+    } else {
       setSpecSheets([...specSheets, ...fileArray]);
-      toast.success(`${files.length} spec sheet${files.length > 1 ? 's' : ''} uploaded successfully`, {
-        description: 'Your packaging spec sheets have been added.',
-        duration: 3000,
-      });
     }
+    toast.success(`${files.length} spec sheet${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
   };
 
   const handleDeleteFile = () => {
     if (fileToDelete) {
       switch (fileToDelete.type) {
-        case 'mockup':
-          setMockups(mockups.filter((_, i) => i !== fileToDelete.index));
-          break;
-        case 'dieline':
-          setDielineFiles(dielineFiles.filter((_, i) => i !== fileToDelete.index));
-          break;
-        case 'spec':
-          setSpecSheets(specSheets.filter((_, i) => i !== fileToDelete.index));
-          break;
+        case 'mockup': setMockups(mockups.filter((_, i) => i !== fileToDelete.index)); break;
+        case 'dieline': setDielineFiles(dielineFiles.filter((_, i) => i !== fileToDelete.index)); break;
+        case 'spec': setSpecSheets(specSheets.filter((_, i) => i !== fileToDelete.index)); break;
       }
       setDeleteModalOpen(false);
       setFileToDelete(null);
@@ -72,6 +197,20 @@ export function PackagingTab() {
 
   return (
     <div className="space-y-6">
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSavePackaging}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Save className="w-4 h-4" />
+          {isSaving ? 'Saving...' : 'Save Packaging'}
+        </motion.button>
+      </div>
+
       {/* Packaging Dimensions */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
@@ -86,12 +225,11 @@ export function PackagingTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown
-                  options={['in', 'cm', 'mm']}
-                  defaultOption="in"
-                />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={lengthUnit} onChange={setLengthUnit} />
               </div>
             </div>
             <div>
@@ -100,12 +238,11 @@ export function PackagingTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={width}
+                  onChange={(e) => setWidth(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown
-                  options={['in', 'cm', 'mm']}
-                  defaultOption="in"
-                />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={widthUnit} onChange={setWidthUnit} />
               </div>
             </div>
             <div>
@@ -114,12 +251,11 @@ export function PackagingTab() {
                 <input
                   type="number"
                   placeholder="0.00"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown
-                  options={['in', 'cm', 'mm']}
-                  defaultOption="in"
-                />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={heightUnit} onChange={setHeightUnit} />
               </div>
             </div>
           </div>
@@ -171,6 +307,8 @@ export function PackagingTab() {
             <textarea
               rows={3}
               placeholder="Enter any special packaging requirements..."
+              value={specialRequirements}
+              onChange={(e) => setSpecialRequirements(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
             />
           </div>
@@ -204,12 +342,39 @@ export function PackagingTab() {
           />
         </div>
         <div className="p-6">
-          {mockups.length > 0 ? (
+          {savedMockups.length > 0 || mockups.length > 0 ? (
             <div className="space-y-2">
               <AnimatePresence>
+                {savedMockups.map((f) => (
+                  <motion.div
+                    key={f.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-pink-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
+                        <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {f.fileUrl && (
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(f.fileUrl, '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                          <Download className="w-4 h-4" />
+                        </motion.button>
+                      )}
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSavedFile(f.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
                 {mockups.map((file, index) => (
                   <motion.div
-                    key={index}
+                    key={`local-${index}`}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
@@ -223,32 +388,10 @@ export function PackagingTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          const url = URL.createObjectURL(file);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = file.name;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Download"
-                      >
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                         <Download className="w-4 h-4" />
                       </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          setFileToDelete({ file, index, type: 'mockup' });
-                          setDeleteModalOpen(true);
-                        }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index, type: 'mockup' }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
                     </div>
@@ -297,12 +440,39 @@ export function PackagingTab() {
           />
         </div>
         <div className="p-6">
-          {dielineFiles.length > 0 ? (
+          {savedDielines.length > 0 || dielineFiles.length > 0 ? (
             <div className="space-y-2">
               <AnimatePresence>
+                {savedDielines.map((f) => (
+                  <motion.div
+                    key={f.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
+                        <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {f.fileUrl && (
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(f.fileUrl, '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                          <Download className="w-4 h-4" />
+                        </motion.button>
+                      )}
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSavedFile(f.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
                 {dielineFiles.map((file, index) => (
                   <motion.div
-                    key={index}
+                    key={`local-${index}`}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
@@ -316,32 +486,10 @@ export function PackagingTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          const url = URL.createObjectURL(file);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = file.name;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Download"
-                      >
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                         <Download className="w-4 h-4" />
                       </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          setFileToDelete({ file, index, type: 'dieline' });
-                          setDeleteModalOpen(true);
-                        }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index, type: 'dieline' }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
                     </div>
@@ -390,12 +538,39 @@ export function PackagingTab() {
           />
         </div>
         <div className="p-6">
-          {specSheets.length > 0 ? (
+          {savedSpecSheets.length > 0 || specSheets.length > 0 ? (
             <div className="space-y-2">
               <AnimatePresence>
+                {savedSpecSheets.map((f) => (
+                  <motion.div
+                    key={f.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
+                        <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {f.fileUrl && (
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(f.fileUrl, '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                          <Download className="w-4 h-4" />
+                        </motion.button>
+                      )}
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSavedFile(f.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
                 {specSheets.map((file, index) => (
                   <motion.div
-                    key={index}
+                    key={`local-${index}`}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
@@ -409,32 +584,10 @@ export function PackagingTab() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          const url = URL.createObjectURL(file);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = file.name;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Download"
-                      >
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                         <Download className="w-4 h-4" />
                       </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          setFileToDelete({ file, index, type: 'spec' });
-                          setDeleteModalOpen(true);
-                        }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index, type: 'spec' }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
                     </div>
