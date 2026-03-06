@@ -13,6 +13,8 @@ export function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,15 +29,34 @@ export function LoginPage() {
     }
   };
 
-  const handlePasswordReset = (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setResetEmailSent(true);
+    setResetError('');
+    setResetLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setResetError(data.error || 'Something went wrong. Please try again.');
+      } else {
+        setResetEmailSent(true);
+      }
+    } catch {
+      setResetError('Unable to reach the server. Check your internet connection.');
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
     setShowForgotPassword(false);
     setResetEmailSent(false);
     setResetEmail('');
+    setResetError('');
   };
 
   return (
@@ -250,6 +271,31 @@ export function LoginPage() {
                       </div>
                     </div>
 
+                    {/* Reset Error */}
+                    {resetError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="px-4 py-3 rounded-xl bg-red-500/20 border border-red-400/30 text-red-200 text-sm"
+                      >
+                        {resetError.includes('temporarily inactive') ? (
+                          <>
+                            Your account is temporarily inactive and cannot be used to log in at this
+                            time. Please contact{' '}
+                            <a
+                              href="mailto:support@activateswag.com"
+                              className="underline hover:text-white transition-colors"
+                            >
+                              support@activateswag.com
+                            </a>{' '}
+                            for assistance.
+                          </>
+                        ) : (
+                          resetError
+                        )}
+                      </motion.div>
+                    )}
+
                     {/* Success Message */}
                     {resetEmailSent && (
                       <motion.div
@@ -282,11 +328,19 @@ export function LoginPage() {
                     {!resetEmailSent && (
                       <motion.button
                         type="submit"
-                        whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl"
+                        disabled={resetLoading}
+                        whileHover={!resetLoading ? { scale: 1.02, boxShadow: '0 20px 40px rgba(59, 130, 246, 0.4)' } : {}}
+                        whileTap={!resetLoading ? { scale: 0.98 } : {}}
+                        className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white font-bold hover:from-blue-600 hover:to-purple-700 transition-all shadow-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                        Reset Password
+                        {resetLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Sending…
+                          </>
+                        ) : (
+                          'Reset Password'
+                        )}
                       </motion.button>
                     )}
                   </form>
