@@ -18,10 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'AUTH0_DOMAIN is not configured.' });
   }
 
-  const from = process.env.SMTP_FROM;
-  if (!from) {
-    return res.status(500).json({ error: 'SMTP_FROM is not configured.' });
-  }
+  const from = process.env.OUTLOOK_FROM_EMAIL ?? 'noreply@activateswag.com';
 
   let token: string;
   try {
