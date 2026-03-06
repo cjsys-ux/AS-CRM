@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { AddCustomerDrawer } from './AddCustomerDrawer';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CustomerDetailView } from './CustomerDetailView';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 
 interface Customer {
@@ -51,21 +51,41 @@ export function Customers() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Fetch customers from database
-  const fetchCustomers = () => {
-    setIsLoading(false);
-    setCustomers([]);
+  const fetchCustomers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/customers/list');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setCustomers(data.customers ?? []);
+    } catch {
+      setCustomers([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  const handleDeleteCustomer = () => {
+  const handleDeleteCustomer = async () => {
     if (!customerToDelete) return;
-
-    toast.success('Customer deleted successfully');
-    fetchCustomers();
+    try {
+      const res = await fetch('/api/customers/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: customerToDelete.id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Customer deleted successfully');
+      fetchCustomers();
+    } catch {
+      toast.error('Failed to delete customer');
+    } finally {
+      setDeleteModalOpen(false);
+      setCustomerToDelete(null);
+    }
   };
 
   const filteredCustomers = customers.filter((customer) => {

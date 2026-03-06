@@ -9,6 +9,7 @@ interface AddVendorDrawerProps {
   onClose: () => void;
   onSuccess?: () => void;
   productId?: string;
+  mode?: 'standalone' | 'pipeline';
   vendorData?: {
     id?: string;
     name?: string;
@@ -36,7 +37,7 @@ const VENDOR_TYPES = ['Distributor', 'Product Manufacturer', 'Service Provider',
 const ACCOUNT_TYPES = ['Standalone', 'Parent Company', 'Subsidiary'];
 const PAYMENT_TERMS = ['Net 30', 'Net 60', 'Net 90', 'Prepaid', 'COD', '2/10 Net 30'];
 
-export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, productId }: AddVendorDrawerProps) {
+export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, productId, mode = 'standalone' }: AddVendorDrawerProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -163,31 +164,69 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productId) {
+    if (mode === 'pipeline' && !productId) {
       toast.error('Product ID is missing');
       return;
     }
     setIsSubmitting(true);
     try {
+      const createUrl = mode === 'standalone' ? '/api/vendors/create' : '/api/pipeline/vendors/create';
+      const updateUrl = mode === 'standalone' ? '/api/vendors/update' : '/api/pipeline/vendors/update';
+      const payload = mode === 'standalone'
+        ? { ...formData }
+        : { productId, ...formData };
+
+      let savedId = vendorData?.id;
       if (vendorData?.id) {
-        // Update existing vendor
-        const res = await fetch('/api/pipeline/vendors/update', {
+        const res = await fetch(updateUrl, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: vendorData.id, ...formData, vendorName: formData.vendorName }),
+          body: JSON.stringify({ id: vendorData.id, ...formData }),
         });
         if (!res.ok) throw new Error('Failed to update vendor');
         toast.success('Vendor updated successfully');
       } else {
-        // Create new vendor
-        const res = await fetch('/api/pipeline/vendors/create', {
+        const res = await fetch(createUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId, ...formData }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error('Failed to create vendor');
+        const data = await res.json();
+        savedId = data.vendor?.id;
         toast.success('Vendor added successfully');
       }
+
+      // Upload logo to S3 if a file was selected (standalone mode)
+      if (mode === 'standalone' && savedId && uploadedLogo && uploadedLogo.startsWith('data:')) {
+        // Convert base64 to File for upload - fetch the data URI
+        try {
+          const blob = await fetch(uploadedLogo).then(r => r.blob());
+          const file = new File([blob], 'logo.png', { type: blob.type });
+          const presignRes = await fetch('/api/files/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileName: 'logo.png', fileType: file.type, entityType: 'vendor-logo', entityId: savedId }),
+          });
+          if (presignRes.ok) {
+            const { uploadUrl, key } = await presignRes.json();
+            await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+            await fetch('/api/files/complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ key, fileName: 'logo.png', fileType: file.type, size: file.size, entityType: 'vendor-logo', entityId: savedId, uploadedBy: 'User' }),
+            });
+            await fetch(updateUrl, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: savedId, logoKey: key }),
+            });
+          }
+        } catch {
+          // Logo upload failure is non-fatal
+        }
+      }
+
       onSuccess?.();
       onClose();
     } catch (err) {
