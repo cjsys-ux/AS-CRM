@@ -687,7 +687,7 @@ const handleOpenColumnPicker = () => {
 
       {/* Table Container with Horizontal Scroll */}
       {/* ui-qa-fixer: UI-2026-006 - responsive horizontal padding for table container on mobile */}
-      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
+      <div className="flex-1 px-4 md:px-8 pb-8 overflow-y-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col">
             <div className="overflow-x-scroll flex-1">
@@ -776,7 +776,7 @@ const handleOpenColumnPicker = () => {
                       </th>
                     )}
                     {visibleColumns.has('actions') && (
-                      <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                      <th className="px-3 py-2.5 text-center text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap sticky right-0 bg-slate-50 z-20 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -945,7 +945,7 @@ const handleOpenColumnPicker = () => {
                             </td>
                           )}
                           {visibleColumns.has('actions') && (
-                            <td className="px-3 py-1.5">
+                            <td className="px-3 py-1.5 sticky right-0 bg-white z-10 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">
                               <div className="flex items-center justify-center gap-2">
                                 <motion.button
                                   whileHover={{ scale: 1.15, backgroundColor: 'rgb(219 234 254)' }}
