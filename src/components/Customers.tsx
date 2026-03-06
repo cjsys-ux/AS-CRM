@@ -126,7 +126,7 @@ export function Customers() {
   // Calculate KPIs
   const totalCustomers = customers.length;
   const activeCustomers = customers.filter(c => c.status === 'Active').length;
-  const totalSpend = customers.reduce((sum, c) => sum + c.spend, 0);
+  const totalSpend = customers.reduce((sum, c) => sum + (c.spend ?? 0), 0);
   /* ui-qa-fixer: UI-2026-001 - guard divide-by-zero producing NaN when customers array is empty */
   const avgSpend = customers.length > 0 ? totalSpend / customers.length : 0;
 
@@ -482,7 +482,7 @@ export function Customers() {
                           )}
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap">
-                          <span className="text-sm text-slate-900 font-medium">${customer.spend.toLocaleString()}</span>
+                          <span className="text-sm text-slate-900 font-medium">${(customer.spend ?? 0).toLocaleString()}</span>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-2">

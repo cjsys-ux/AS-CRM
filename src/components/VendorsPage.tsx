@@ -73,7 +73,7 @@ export function VendorsPage() {
   };
 
   const filteredVendors = vendors.filter((v) => {
-    const matchesSearch = v.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (v.vendorName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'All Types' || v.vendorType === typeFilter;
     const matchesTerms = termsFilter === 'All Terms' || v.paymentTerms === termsFilter;
     return matchesSearch && matchesType && matchesTerms;
@@ -95,8 +95,19 @@ export function VendorsPage() {
     <>
       {/* Vendor Detail View - Full Screen */}
       {isVendorDetailViewOpen && selectedVendor ? (
-        <VendorDetailView 
-          vendor={selectedVendor}
+        <VendorDetailView
+          vendor={{
+            id: selectedVendor.id,
+            name: selectedVendor.vendorName,
+            contact: selectedVendor.contactName ?? '',
+            logo: selectedVendor.logo ?? '',
+            status: selectedVendor.status,
+            type: selectedVendor.vendorType,
+            location: selectedVendor.fobCity ? { city: selectedVendor.fobCity, region: selectedVendor.country ?? '' } : null,
+            products: selectedVendor.productsSupplied?.join(', ') || 'No products',
+            netTerms: selectedVendor.paymentTerms ?? 'N/A',
+            totalSpend: 'N/A',
+          }}
           onBack={() => setIsVendorDetailViewOpen(false)}
           onEdit={() => {
             setIsVendorDetailViewOpen(false);
@@ -399,7 +410,7 @@ export function VendorsPage() {
       <AddVendorDrawer
         isOpen={isAddVendorDrawerOpen}
         onClose={() => { setIsAddVendorDrawerOpen(false); setSelectedVendor(null); }}
-        vendorData={selectedVendor ? { id: selectedVendor.id, name: selectedVendor.vendorName, logo: selectedVendor.logo ?? '', status: selectedVendor.status, vendorType: selectedVendor.vendorType, contactName: selectedVendor.contactName ?? '', country: selectedVendor.country ?? '', fobCity: selectedVendor.fobCity ?? '', fobState: selectedVendor.fobState ?? '', productsSupplied: selectedVendor.productsSupplied, paymentTerms: selectedVendor.paymentTerms ?? '' } : null}
+        vendorData={selectedVendor ? { id: selectedVendor.id, name: selectedVendor.vendorName, logo: selectedVendor.logo ?? '', status: selectedVendor.status, type: selectedVendor.vendorType, contactName: selectedVendor.contactName ?? '', country: selectedVendor.country ?? '', fobCity: selectedVendor.fobCity ?? '', fobState: selectedVendor.fobState ?? '', productsSupplied: selectedVendor.productsSupplied, paymentTerms: selectedVendor.paymentTerms ?? '' } : null}
         mode="standalone"
         onSuccess={fetchVendors}
       />
