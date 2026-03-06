@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Search, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Vendor {
   id: string;
@@ -18,16 +18,24 @@ interface VendorSelectorProps {
 
 export function VendorSelector({ isOpen, onClose, selectedVendor, onSelectVendor }: VendorSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
 
-  // Sample vendors (would come from API/database)
-  const vendors: Vendor[] = [
-    { id: '1', name: 'Ergodyne', type: 'Manufacturer', priority: '1st Choice' },
-    { id: '2', name: 'TEST', type: 'Distributor', priority: '2nd Choice' },
-    { id: '3', name: 'Global Sourcing Inc', type: 'Wholesaler', priority: '1st Choice' },
-    { id: '4', name: 'Premium Supplies Co', type: 'Manufacturer', priority: '2nd Choice' },
-    { id: '5', name: 'Quick Ship Vendors', type: 'Distributor', priority: '3rd Choice' },
-    { id: '6', name: 'Bulk Products LLC', type: 'Wholesaler', priority: '1st Choice' },
-  ];
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/vendors/list')
+      .then((r) => r.json())
+      .then((data) => {
+        setVendors(
+          (data.vendors ?? []).map((v: any) => ({
+            id: v.id,
+            name: v.vendorName,
+            type: v.vendorType ?? 'Vendor',
+            priority: '1st Choice',
+          }))
+        );
+      })
+      .catch(() => setVendors([]));
+  }, [isOpen]);
 
   const filteredVendors = vendors.filter(vendor =>
     vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

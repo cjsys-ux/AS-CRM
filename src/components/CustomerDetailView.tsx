@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Edit, Phone, Globe, FileText, DollarSign, ShoppingCart, FileCheck, MapPin, Plus, Upload, X, Calendar, User, Mail, Building2, Trash2, Star, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { AddContactDrawer } from './AddContactDrawer';
 import { AddAddressDrawer } from './AddAddressDrawer';
 import { AddFileDrawer } from './AddFileDrawer';
@@ -95,52 +95,120 @@ export function CustomerDetailView({ customerId, onBack, onEdit }: CustomerDetai
     fetchCustomerDetails();
   }, [customerId]);
 
-  const fetchCustomerDetails = () => {
-    setIsLoading(false);
-    setCustomer(null);
-    setContacts([]);
-    setAddresses([]);
-    setDocuments([]);
+  const fetchCustomerDetails = async () => {
+    setIsLoading(true);
+    try {
+      const [customerRes, contactsRes, addressesRes, notesRes] = await Promise.all([
+        fetch(`/api/customers/get?id=${encodeURIComponent(customerId)}`),
+        fetch(`/api/customers/contacts/list?customerId=${encodeURIComponent(customerId)}`),
+        fetch(`/api/customers/addresses/list?customerId=${encodeURIComponent(customerId)}`),
+        fetch(`/api/customers/notes/list?customerId=${encodeURIComponent(customerId)}`),
+      ]);
+      if (customerRes.ok) {
+        const { customer: c } = await customerRes.json();
+        setCustomer(c ?? null);
+      }
+      if (contactsRes.ok) {
+        const { contacts: c } = await contactsRes.json();
+        setContacts(c ?? []);
+      }
+      if (addressesRes.ok) {
+        const { addresses: a } = await addressesRes.json();
+        setAddresses(a ?? []);
+      }
+      if (notesRes.ok) {
+        const { notes: n } = await notesRes.json();
+        setNotes(n ?? []);
+      }
+    } catch {
+      setCustomer(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!newNote.trim()) return;
-
-    const note: Note = {
-      id: Date.now().toString(),
-      text: newNote,
-      author: 'Current User',
-      timestamp: new Date().toISOString(),
-    };
-
-    setNotes([note, ...notes]);
-    setNewNote('');
-    toast.success('Note added successfully');
+    try {
+      const res = await fetch('/api/customers/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, text: newNote, author: 'User' }),
+      });
+      if (!res.ok) throw new Error('Failed to add note');
+      const { note } = await res.json();
+      setNotes([{ ...note, timestamp: note.createdAt }, ...notes]);
+      setNewNote('');
+      toast.success('Note added successfully');
+    } catch {
+      toast.error('Failed to add note');
+    }
   };
 
   const handleAddContact = async (contact: Contact) => {
-    setContacts([...contacts, contact]);
-    toast.success('Contact added successfully');
+    try {
+      const res = await fetch('/api/customers/contacts/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, ...contact }),
+      });
+      if (!res.ok) throw new Error('Failed to add contact');
+      const { contact: saved } = await res.json();
+      setContacts([...contacts, saved]);
+      toast.success('Contact added successfully');
+    } catch {
+      toast.error('Failed to add contact');
+    }
   };
 
   const handleDeleteContact = async (id: string) => {
-    setContacts(contacts.filter(c => c.id !== id));
-    toast.success('Contact deleted successfully');
+    try {
+      const res = await fetch('/api/customers/contacts/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete contact');
+      setContacts(contacts.filter(c => c.id !== id));
+      toast.success('Contact deleted successfully');
+    } catch {
+      toast.error('Failed to delete contact');
+    }
   };
 
   const handleAddAddress = async (address: Address) => {
-    // If new address is primary, set all others to non-primary first
-    if (address.isPrimary) {
-      setAddresses(addresses.map(a => ({ ...a, isPrimary: false })));
+    try {
+      const res = await fetch('/api/customers/addresses/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, ...address }),
+      });
+      if (!res.ok) throw new Error('Failed to add address');
+      const { address: saved } = await res.json();
+      if (address.isPrimary) {
+        setAddresses([...addresses.map(a => ({ ...a, isPrimary: false })), saved]);
+      } else {
+        setAddresses([...addresses, saved]);
+      }
+      toast.success('Address added successfully');
+    } catch {
+      toast.error('Failed to add address');
     }
-
-    setAddresses([...addresses.filter(a => !address.isPrimary || !a.isPrimary), address]);
-    toast.success('Address added successfully');
   };
 
   const handleDeleteAddress = async (id: string) => {
-    setAddresses(addresses.filter(a => a.id !== id));
-    toast.success('Address deleted successfully');
+    try {
+      const res = await fetch('/api/customers/addresses/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete address');
+      setAddresses(addresses.filter(a => a.id !== id));
+      toast.success('Address deleted successfully');
+    } catch {
+      toast.error('Failed to delete address');
+    }
   };
 
   const handleSetPrimaryAddress = async (id: string) => {
@@ -150,23 +218,42 @@ export function CustomerDetailView({ customerId, onBack, onEdit }: CustomerDetai
 
   const handleFileUpload = async (file: File, fileName: string, fileType: string) => {
     setIsUploadingFile(true);
-
-    const newFile = {
-      id: Date.now().toString(),
-      name: fileName,
-      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-      uploadedDate: new Date().toISOString().split('T')[0],
-      uploadedBy: 'Current User'
-    };
-
-    setDocuments([...documents, newFile]);
-    toast.success('File uploaded successfully');
-    setIsUploadingFile(false);
+    try {
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName, fileType, entityType: 'customer-file', entityId: customerId }),
+      });
+      if (!presignRes.ok) throw new Error('Failed to get upload URL');
+      const { uploadUrl, key } = await presignRes.json();
+      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': fileType } });
+      await fetch('/api/files/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, fileName, fileType, size: file.size, entityType: 'customer-file', entityId: customerId, uploadedBy: 'User' }),
+      });
+      setDocuments([...documents, { id: key, name: fileName, size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`, uploadedDate: new Date().toISOString().split('T')[0], uploadedBy: 'User' }]);
+      toast.success('File uploaded successfully');
+    } catch {
+      toast.error('Failed to upload file');
+    } finally {
+      setIsUploadingFile(false);
+    }
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    setDocuments(documents.filter(d => d.id !== fileId));
-    toast.success('File deleted successfully');
+    try {
+      const res = await fetch('/api/files/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: fileId }),
+      });
+      if (!res.ok) throw new Error('Failed to delete file');
+      setDocuments(documents.filter(d => d.id !== fileId));
+      toast.success('File deleted successfully');
+    } catch {
+      toast.error('Failed to delete file');
+    }
   };
 
   if (isLoading) {

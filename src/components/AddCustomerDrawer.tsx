@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Globe, Phone, FileCheck, File, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 
 interface AddCustomerDrawerProps {
@@ -62,6 +62,8 @@ const PAYMENT_TERMS = [
 
 export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: AddCustomerDrawerProps) {
   const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [certFile, setCertFile] = useState<File | null>(null);
   const [uploadedCertFile, setUploadedCertFile] = useState<{name: string; size: string} | null>(null);
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
@@ -119,6 +121,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
@@ -132,8 +135,30 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
   const handleCertUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCertFile(file);
       setUploadedCertFile({name: file.name, size: file.size.toString()});
       setFormData({ ...formData, resaleCert: file.name });
+    }
+  };
+
+  const uploadFileToS3 = async (file: File, entityType: string, entityId: string): Promise<string | null> => {
+    try {
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, entityType, entityId }),
+      });
+      if (!presignRes.ok) return null;
+      const { uploadUrl, key } = await presignRes.json();
+      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+      await fetch('/api/files/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType, entityId, uploadedBy: 'User' }),
+      });
+      return key;
+    } catch {
+      return null;
     }
   };
 
@@ -156,21 +181,85 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
     setFormData({ ...formData, phone: formatted });
   };
 
-  const handleSubmit = () => {
-    // Validation
+  const handleSubmit = async () => {
     if (!formData.name.trim()) {
       toast.error('Customer name is required');
       return;
     }
-
-    toast.success(
-      customerData?.id ? 'Customer updated successfully' : 'Customer created successfully',
-      {
-        description: `${formData.name} has been ${customerData?.id ? 'updated' : 'added'} to your database.`,
+    setIsSaving(true);
+    try {
+      let customerId = customerData?.id;
+      if (customerId) {
+        // Update
+        const res = await fetch('/api/customers/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: customerId,
+            name: formData.name,
+            industry: formData.industry,
+            size: formData.size,
+            status: formData.status,
+            paymentTerms: formData.paymentTerms,
+            website: formData.website,
+            phone: formData.phone,
+            resaleCert: formData.hasResaleCert,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to update customer');
+      } else {
+        // Create
+        const res = await fetch('/api/customers/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            industry: formData.industry,
+            size: formData.size,
+            status: formData.status,
+            paymentTerms: formData.paymentTerms,
+            website: formData.website,
+            phone: formData.phone,
+            resaleCert: formData.hasResaleCert,
+          }),
+        });
+        if (!res.ok) throw new Error('Failed to create customer');
+        const data = await res.json();
+        customerId = data.customer?.id;
       }
-    );
-    onSuccess?.();
-    onClose();
+
+      // Upload logo if a new file was selected
+      if (customerId && logoFile) {
+        const logoKey = await uploadFileToS3(logoFile, 'customer-logo', customerId);
+        if (logoKey) {
+          await fetch('/api/customers/update', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: customerId, logoKey }),
+          });
+        }
+      }
+
+      // Upload cert if a new file was selected
+      if (customerId && certFile) {
+        const certKey = await uploadFileToS3(certFile, 'customer-cert', customerId);
+        if (certKey) {
+          await fetch('/api/customers/update', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: customerId, certKey }),
+          });
+        }
+      }
+
+      toast.success(customerData?.id ? 'Customer updated successfully' : 'Customer created successfully');
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save customer');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

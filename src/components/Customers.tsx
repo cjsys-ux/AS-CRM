@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { AddCustomerDrawer } from './AddCustomerDrawer';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CustomerDetailView } from './CustomerDetailView';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 
 interface Customer {
@@ -51,21 +51,41 @@ export function Customers() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Fetch customers from database
-  const fetchCustomers = () => {
-    setIsLoading(false);
-    setCustomers([]);
+  const fetchCustomers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/customers/list');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setCustomers(data.customers ?? []);
+    } catch {
+      setCustomers([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  const handleDeleteCustomer = () => {
+  const handleDeleteCustomer = async () => {
     if (!customerToDelete) return;
-
-    toast.success('Customer deleted successfully');
-    fetchCustomers();
+    try {
+      const res = await fetch('/api/customers/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: customerToDelete.id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Customer deleted successfully');
+      fetchCustomers();
+    } catch {
+      toast.error('Failed to delete customer');
+    } finally {
+      setDeleteModalOpen(false);
+      setCustomerToDelete(null);
+    }
   };
 
   const filteredCustomers = customers.filter((customer) => {
@@ -106,7 +126,7 @@ export function Customers() {
   // Calculate KPIs
   const totalCustomers = customers.length;
   const activeCustomers = customers.filter(c => c.status === 'Active').length;
-  const totalSpend = customers.reduce((sum, c) => sum + c.spend, 0);
+  const totalSpend = customers.reduce((sum, c) => sum + (c.spend ?? 0), 0);
   /* ui-qa-fixer: UI-2026-001 - guard divide-by-zero producing NaN when customers array is empty */
   const avgSpend = customers.length > 0 ? totalSpend / customers.length : 0;
 
@@ -462,7 +482,7 @@ export function Customers() {
                           )}
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap">
-                          <span className="text-sm text-slate-900 font-medium">${customer.spend.toLocaleString()}</span>
+                          <span className="text-sm text-slate-900 font-medium">${(customer.spend ?? 0).toLocaleString()}</span>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center justify-center gap-2">

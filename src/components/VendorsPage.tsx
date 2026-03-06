@@ -1,17 +1,67 @@
 import { motion } from 'motion/react';
 import { Building2, Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { AddVendorDrawer } from './AddVendorDrawer';
 import { VendorDetailView } from './VendorDetailView';
 
+interface Vendor {
+  id: string;
+  vendorName: string;
+  logo: string | null;
+  status: string;
+  vendorType: string;
+  contactName: string | null;
+  country: string | null;
+  fobCity: string | null;
+  fobState: string | null;
+  productsSupplied: string[];
+  paymentTerms: string | null;
+}
+
 export function VendorsPage() {
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('All Types');
   const [productFilter, setProductFilter] = useState('All Products');
   const [termsFilter, setTermsFilter] = useState('All Terms');
   const [isAddVendorDrawerOpen, setIsAddVendorDrawerOpen] = useState(false);
   const [isVendorDetailViewOpen, setIsVendorDetailViewOpen] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+
+  const fetchVendors = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/vendors/list');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setVendors(data.vendors ?? []);
+    } catch {
+      setVendors([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const handleDeleteVendor = async (id: string) => {
+    try {
+      const res = await fetch('/api/vendors/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Vendor deleted');
+      setVendors((prev) => prev.filter((v) => v.id !== id));
+    } catch {
+      toast.error('Failed to delete vendor');
+    }
+  };
 
   // Helper function to get initials from vendor name
   const getVendorInitials = (name: string) => {
@@ -22,58 +72,42 @@ export function VendorsPage() {
     return words.map(word => word.charAt(0).toUpperCase()).join('').slice(0, 2);
   };
 
-  const vendors = [
-    {
-      id: '1',
-      name: 'Ergodyne',
-      contact: 'Website',
-      logo: '',
-      status: 'Active',
-      type: 'Distributor',
-      location: null,
-      products: 'No products',
-      netTerms: 'N/A',
-      totalSpend: 'N/A',
-    },
-    {
-      id: '2',
-      name: 'SC Promo',
-      contact: 'Robbin Chan',
-      logo: '',
-      status: 'Active',
-      type: 'Product Manufacturer',
-      location: { city: 'China', region: 'Yiwu' },
-      products: 'Custom Products',
-      netTerms: 'N/A',
-      totalSpend: 'N/A',
-    },
-    {
-      id: '3',
-      name: 'TEST',
-      contact: 'Test',
-      logo: '',
-      status: 'Active',
-      type: 'Distributor',
-      location: null,
-      products: 'No products',
-      netTerms: 'N/A',
-      totalSpend: 'N/A',
-    },
-  ];
+  const filteredVendors = vendors.filter((v) => {
+    const matchesSearch = (v.vendorName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = typeFilter === 'All Types' || v.vendorType === typeFilter;
+    const matchesTerms = termsFilter === 'All Terms' || v.paymentTerms === termsFilter;
+    return matchesSearch && matchesType && matchesTerms;
+  });
+
+  const totalVendors = vendors.length;
+  const distributors = vendors.filter(v => v.vendorType === 'Distributor').length;
+  const manufacturers = vendors.filter(v => v.vendorType === 'Product Manufacturer').length;
+  const decorators = vendors.filter(v => v.vendorType === 'Decorator').length;
 
   const stats = [
-    { label: 'Total Vendors', value: '3', icon: Building2, color: 'blue' },
-    { label: 'Distributors', value: '2', icon: Building2, color: 'purple' },
-    { label: 'Manufacturers', value: '1', icon: Building2, color: 'green' },
-    { label: 'Decorators', value: '0', icon: Building2, color: 'orange' },
+    { label: 'Total Vendors', value: String(totalVendors), icon: Building2, color: 'blue' },
+    { label: 'Distributors', value: String(distributors), icon: Building2, color: 'purple' },
+    { label: 'Manufacturers', value: String(manufacturers), icon: Building2, color: 'green' },
+    { label: 'Decorators', value: String(decorators), icon: Building2, color: 'orange' },
   ];
 
   return (
     <>
       {/* Vendor Detail View - Full Screen */}
       {isVendorDetailViewOpen && selectedVendor ? (
-        <VendorDetailView 
-          vendor={selectedVendor}
+        <VendorDetailView
+          vendor={{
+            id: selectedVendor.id,
+            name: selectedVendor.vendorName,
+            contact: selectedVendor.contactName ?? '',
+            logo: selectedVendor.logo ?? '',
+            status: selectedVendor.status,
+            type: selectedVendor.vendorType,
+            location: selectedVendor.fobCity ? { city: selectedVendor.fobCity, region: selectedVendor.country ?? '' } : null,
+            products: selectedVendor.productsSupplied?.join(', ') || 'No products',
+            netTerms: selectedVendor.paymentTerms ?? 'N/A',
+            totalSpend: 'N/A',
+          }}
           onBack={() => setIsVendorDetailViewOpen(false)}
           onEdit={() => {
             setIsVendorDetailViewOpen(false);
@@ -249,7 +283,7 @@ export function VendorsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {vendors.map((vendor) => (
+                  {filteredVendors.map((vendor) => (
                     <tr key={vendor.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4">
                         <input type="checkbox" className="w-4 h-4 rounded border-slate-300" />
@@ -258,16 +292,16 @@ export function VendorsPage() {
                         <div className="flex items-center gap-3">
                           {vendor.logo ? (
                             <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                              <img src={vendor.logo} alt={vendor.name} className="w-full h-full object-cover" />
+                              <img src={vendor.logo} alt={vendor.vendorName} className="w-full h-full object-cover" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                               <span className="text-white text-sm font-bold">
-                                {getVendorInitials(vendor.name)}
+                                {getVendorInitials(vendor.vendorName ?? '')}
                               </span>
                             </div>
                           )}
-                          <div className="font-semibold text-slate-900">{vendor.name}</div>
+                          <div className="font-semibold text-slate-900">{vendor.vendorName}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -277,35 +311,32 @@ export function VendorsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
-                          {vendor.type}
+                          {vendor.vendorType}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {vendor.location ? (
+                        {vendor.fobCity ? (
                           <div className="flex items-center gap-1.5 text-sm text-slate-700">
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            <span>{vendor.location.city}, {vendor.location.region}</span>
+                            <span>{vendor.fobCity}{vendor.country ? `, ${vendor.country}` : ''}</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          </div>
+                          <span className="text-sm text-slate-400">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{vendor.products}</span>
+                        <span className="text-sm text-slate-700">
+                          {vendor.productsSupplied?.length > 0 ? vendor.productsSupplied.join(', ') : 'No products'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{vendor.netTerms}</span>
+                        <span className="text-sm text-slate-700">{vendor.paymentTerms ?? 'N/A'}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-slate-700">{vendor.totalSpend}</span>
+                        <span className="text-sm text-slate-700">N/A</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -335,6 +366,7 @@ export function VendorsPage() {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                            onClick={() => handleDeleteVendor(vendor.id)}
                           >
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </motion.button>
@@ -349,7 +381,7 @@ export function VendorsPage() {
             {/* Pagination */}
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
               <div className="text-sm text-slate-600">
-                Page 1 of 1 · Showing 1 to 3 of 3
+                Showing {filteredVendors.length} of {vendors.length} vendors
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-600">Rows per page:</span>
@@ -375,14 +407,12 @@ export function VendorsPage() {
           </div>
         </div>
       </div>
-      <AddVendorDrawer 
-        isOpen={isAddVendorDrawerOpen} 
-        onClose={() => setIsAddVendorDrawerOpen(false)}
-        vendorData={selectedVendor}
-        onSuccess={() => {
-          // Refresh vendors list in the future
-          setIsAddVendorDrawerOpen(false);
-        }}
+      <AddVendorDrawer
+        isOpen={isAddVendorDrawerOpen}
+        onClose={() => { setIsAddVendorDrawerOpen(false); setSelectedVendor(null); }}
+        vendorData={selectedVendor ? { id: selectedVendor.id, name: selectedVendor.vendorName, logo: selectedVendor.logo ?? '', status: selectedVendor.status, type: selectedVendor.vendorType, contactName: selectedVendor.contactName ?? '', country: selectedVendor.country ?? '', fobCity: selectedVendor.fobCity ?? '', fobState: selectedVendor.fobState ?? '', productsSupplied: selectedVendor.productsSupplied, paymentTerms: selectedVendor.paymentTerms ?? '' } : null}
+        mode="standalone"
+        onSuccess={fetchVendors}
       />
     </div>
       )}
