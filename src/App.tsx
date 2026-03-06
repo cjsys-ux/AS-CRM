@@ -14,6 +14,7 @@ import { ProfileSettings } from './components/ProfileSettings';
 import { SettingsPage } from './components/SettingsPage';
 import { LoginPage } from './components/LoginPage';
 import { SetPasswordPage } from './components/SetPasswordPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { ShipmentsModule } from './components/ShipmentsModule';
 import { ContactsModule } from './components/ContactsModule';
 import { ProductDatabaseModule } from './components/ProductDatabaseModule';
@@ -142,6 +143,9 @@ export default function App() {
   const inviteToken = urlParams.get('token');
   if (window.location.pathname === '/set-password' && inviteToken) {
     return <SetPasswordPage token={inviteToken} />;
+  }
+  if (window.location.pathname === '/reset-password' && inviteToken) {
+    return <ResetPasswordPage token={inviteToken} />;
   }
 
   if (isLoading) {

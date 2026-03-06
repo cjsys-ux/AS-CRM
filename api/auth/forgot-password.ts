@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
 import { getMgmtToken } from '../_mgmt-token';
 import { getMailer } from '../_mailer';
 import { renderResetPasswordEmail } from '../_templates/reset-password-email';
@@ -57,30 +58,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // Generate a 24-hour password reset ticket via Auth0 Management API
-  const ticketRes = await fetch(`https://${domain}/api/v2/tickets/password-change`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      user_id: user.user_id,
-      ttl_sec: 86400,
-      mark_email_as_verified: true,
-    }),
-  });
-
-  if (!ticketRes.ok) {
-    const err = await ticketRes.json().catch(() => ({}));
-    return res.status(502).json({ error: err.message || 'Failed to generate reset link.' });
-  }
-
-  const { ticket } = await ticketRes.json();
+  // Generate a custom 24-hour signed reset token (same pattern as invite tokens)
+  const secret = process.env.INVITE_TOKEN_SECRET ?? process.env.AUTH0_MGMT_CLIENT_SECRET ?? '';
+  const payload = Buffer.from(
+    JSON.stringify({ userId: user.user_id, email, exp: Date.now() + 24 * 60 * 60 * 1000 })
+  ).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+  const resetToken = `${payload}.${sig}`;
+  const appBaseUrl = process.env.APP_BASE_URL ?? 'https://crm.activateswag.com';
+  const resetLink = `${appBaseUrl}/reset-password?token=${resetToken}`;
 
   const html = renderResetPasswordEmail({
     firstName: user.given_name || 'there',
-    resetLink: ticket,
+    resetLink,
     currentYear: new Date().getFullYear().toString(),
   });
 
