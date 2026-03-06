@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Globe, Phone, FileCheck, File, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 
@@ -262,7 +263,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -665,6 +666,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
