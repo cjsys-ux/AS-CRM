@@ -76,9 +76,9 @@ export function ContactsModule() {
   };
 
   const filteredContacts = contactsData.filter(contact => {
-    const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.company.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (contact.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (contact.email ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (contact.company ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     
     // If no filters are active, show all
     if (activeFilters.length === 0) return matchesSearch;
@@ -409,7 +409,7 @@ export function ContactsModule() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
                             <span className="text-white font-semibold text-sm">
-                              {contact.name.split(' ').map(n => n[0]).join('')}
+                              {(contact.name ?? '?').split(' ').map((n: string) => n[0]).join('')}
                             </span>
                           </div>
                           <div className="font-semibold text-slate-900">{contact.name}</div>
