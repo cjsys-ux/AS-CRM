@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, Calendar, Building2, User, DollarSign, Loader2, ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
+import { X, Save, Calendar, Building2, User, DollarSign, Loader2, ShoppingCart, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface PurchaseOrder {
@@ -49,6 +49,55 @@ export function AddPurchaseOrderDrawer({
     isSample: false,
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingPoNumber, setIsLoadingPoNumber] = useState(false);
+
+  const [vendors, setVendors] = useState<{ id: string; name: string }[]>([]);
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [vendorSearch, setVendorSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [vendorOpen, setVendorOpen] = useState(false);
+  const [customerOpen, setCustomerOpen] = useState(false);
+
+  const vendorRef = useRef<HTMLDivElement>(null);
+  const customerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setIsLoadingPoNumber(true);
+    Promise.all([
+      fetch('/api/purchasing/nextPoNumber').then((r) => r.json()),
+      fetch('/api/vendors/list').then((r) => r.json()),
+      fetch('/api/customers/list').then((r) => r.json()),
+    ])
+      .then(([poData, vendorData, customerData]) => {
+        if (poData.poNumber) {
+          setFormData((prev) => ({ ...prev, poNumber: poData.poNumber }));
+        }
+        if (Array.isArray(vendorData.vendors)) {
+          setVendors(vendorData.vendors.map((v: { id: string; vendorName: string }) => ({ id: v.id, name: v.vendorName })));
+        }
+        if (Array.isArray(customerData.customers)) {
+          setCustomers(customerData.customers.map((c: { id: string; name: string }) => ({ id: c.id, name: c.name })));
+        }
+      })
+      .catch(() => toast.error('Failed to load form data'))
+      .finally(() => setIsLoadingPoNumber(false));
+  }, [isOpen]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (vendorRef.current && !vendorRef.current.contains(e.target as Node)) {
+        setVendorOpen(false);
+      }
+      if (customerRef.current && !customerRef.current.contains(e.target as Node)) {
+        setCustomerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const handleClose = () => {
     setFormData({
@@ -65,15 +114,14 @@ export function AddPurchaseOrderDrawer({
       contact: '',
       isSample: false,
     });
+    setVendorSearch('');
+    setCustomerSearch('');
+    setVendorOpen(false);
+    setCustomerOpen(false);
     onClose();
   };
 
   const handleSave = async () => {
-    if (!formData.poNumber.trim()) {
-      toast.error('PO Number is required');
-      return;
-    }
-
     setIsSaving(true);
     try {
       const res = await fetch('/api/purchasing/create', {
@@ -116,6 +164,14 @@ export function AddPurchaseOrderDrawer({
       setIsSaving(false);
     }
   };
+
+  const filteredVendors = vendors.filter((v) =>
+    v.name.toLowerCase().includes(vendorSearch.toLowerCase())
+  );
+
+  const filteredCustomers = customers.filter((c) =>
+    c.name.toLowerCase().includes(customerSearch.toLowerCase())
+  );
 
   return (
     <AnimatePresence>
@@ -170,15 +226,16 @@ export function AddPurchaseOrderDrawer({
                 {/* PO Number */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    PO Number <span className="text-red-500">*</span>
+                    PO Number
                   </label>
-                  <input
-                    type="text"
-                    value={formData.poNumber}
-                    onChange={(e) => setFormData({ ...formData, poNumber: e.target.value })}
-                    placeholder="e.g. PO-2026-001"
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-mono flex items-center justify-between">
+                    {isLoadingPoNumber ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                    ) : (
+                      <span>{formData.poNumber || '—'}</span>
+                    )}
+                    <span className="text-xs text-slate-400">Auto-generated</span>
+                  </div>
                 </div>
 
                 {/* PO Date */}
@@ -213,13 +270,47 @@ export function AddPurchaseOrderDrawer({
                     <Building2 className="w-4 h-4 inline mr-2" />
                     Vendor
                   </label>
-                  <input
-                    type="text"
-                    value={formData.vendor}
-                    onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                    placeholder="Vendor name"
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="relative" ref={vendorRef}>
+                    <button
+                      type="button"
+                      onClick={() => { setVendorOpen(!vendorOpen); setVendorSearch(''); }}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    >
+                      <span className={formData.vendor ? 'text-slate-900' : 'text-slate-400'}>
+                        {formData.vendor || 'Select vendor'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${vendorOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {vendorOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col">
+                        <div className="p-2 border-b border-slate-100">
+                          <input
+                            autoFocus
+                            value={vendorSearch}
+                            onChange={(e) => setVendorSearch(e.target.value)}
+                            placeholder="Search vendors..."
+                            className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="overflow-y-auto">
+                          {filteredVendors.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-slate-400">No vendors found</div>
+                          ) : (
+                            filteredVendors.map((v) => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => { setFormData({ ...formData, vendor: v.name }); setVendorOpen(false); }}
+                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                {v.name}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Customer */}
@@ -228,13 +319,47 @@ export function AddPurchaseOrderDrawer({
                     <User className="w-4 h-4 inline mr-2" />
                     Customer
                   </label>
-                  <input
-                    type="text"
-                    value={formData.customer}
-                    onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
-                    placeholder="Customer name"
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="relative" ref={customerRef}>
+                    <button
+                      type="button"
+                      onClick={() => { setCustomerOpen(!customerOpen); setCustomerSearch(''); }}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    >
+                      <span className={formData.customer ? 'text-slate-900' : 'text-slate-400'}>
+                        {formData.customer || 'Select customer'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${customerOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {customerOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-hidden flex flex-col">
+                        <div className="p-2 border-b border-slate-100">
+                          <input
+                            autoFocus
+                            value={customerSearch}
+                            onChange={(e) => setCustomerSearch(e.target.value)}
+                            placeholder="Search customers..."
+                            className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="overflow-y-auto">
+                          {filteredCustomers.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-slate-400">No customers found</div>
+                          ) : (
+                            filteredCustomers.map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => { setFormData({ ...formData, customer: c.name }); setCustomerOpen(false); }}
+                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                              >
+                                {c.name}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Contact */}
