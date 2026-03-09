@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_mongodb';
-import { getPublicS3Url } from '../_s3';
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       vendors: vendors.map((v) => ({
         ...v,
         id: v._id.toString(),
-        logo: v.logoKey ? getPublicS3Url(v.logoKey) : null,
+        logo: v.logoKey ? `/api/files/image?key=${encodeURIComponent(v.logoKey)}` : null,
       })),
     });
   } catch (error) {
