@@ -326,13 +326,13 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
                     <label htmlFor="logo-upload">
                       <motion.div
                         whileHover={{ scale: 1.02 }}
-                        className="w-40 h-40 border-3 border-dashed border-slate-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden"
+                        className="w-40 h-40 border-3 border-dashed border-slate-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden p-3"
                       >
                         {uploadedLogo || formData.logo ? (
-                          <img 
-                            src={uploadedLogo || formData.logo} 
-                            alt="Vendor logo preview" 
-                            className="w-full h-full object-cover"
+                          <img
+                            src={uploadedLogo || formData.logo}
+                            alt="Vendor logo preview"
+                            className="w-full h-full object-contain"
                           />
                         ) : isProcessingImage ? (
                           <div className="text-center">

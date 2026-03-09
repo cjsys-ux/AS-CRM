@@ -291,8 +291,8 @@ export function VendorsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {vendor.logo ? (
-                            <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
-                              <img src={vendor.logo} alt={vendor.vendorName} className="w-full h-full object-cover" />
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white border border-slate-200 p-1">
+                              <img src={vendor.logo} alt={vendor.vendorName} className="w-full h-full object-contain" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
