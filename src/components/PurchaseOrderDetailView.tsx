@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ArrowLeft, X, Calendar, MapPin, User, Mail, Phone, Building2, 
+import {
+  ArrowLeft, X, Calendar, MapPin, User, Mail, Phone, Building2,
   Clock, CheckCircle2, AlertCircle, Truck, FileText, MessageSquare,
-  Upload, Download, Printer, MoreVertical, Plus, Edit, Trash2, Send
+  Upload, Download, Printer, MoreVertical, Plus, Edit, Trash2, Send,
+  Loader2, CheckCircle, Paperclip
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ContactSelector } from './ContactSelector';
 import { ModernCalendar } from './ModernCalendar';
 import { ShippingMethodSelector } from './ShippingMethodSelector';
@@ -12,7 +13,8 @@ import { EditableLineItemsTable } from './EditableLineItemsTable';
 import { ModernDropdown } from './ModernDropdown';
 import { ConfirmPOModal } from './ConfirmPOModal';
 import { CreateShipmentFromPOModal } from './CreateShipmentFromPOModal';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 
 interface PurchaseOrder {
   id: string;
@@ -64,6 +66,8 @@ interface PurchaseOrderDetailViewProps {
 }
 
 export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange }: PurchaseOrderDetailViewProps) {
+  const { user } = useAuth();
+  const artworkFileInputRef = useRef<HTMLInputElement>(null);
   const [showTimeline, setShowTimeline] = useState(false);
   const [internalNote, setInternalNote] = useState('');
   const [notes, setNotes] = useState<Note[]>([]);
@@ -74,6 +78,11 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showShipmentModal, setShowShipmentModal] = useState(false);
   const [showArtworkDetails, setShowArtworkDetails] = useState(false);
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [isDeletingNote, setIsDeletingNote] = useState<string | null>(null);
+  const [artworkFiles, setArtworkFiles] = useState<{ id: string; name: string; fileUrl: string; uploadedAt: string }[]>([]);
+  const [isUploadingArtwork, setIsUploadingArtwork] = useState(false);
+  const [isSavingField, setIsSavingField] = useState(false);
   
   // Modal states
   const [showContactSelector, setShowContactSelector] = useState(false);
@@ -140,6 +149,75 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
     }
   ]);
 
+  // Load full PO data (notes + artwork files) from the API on mount
+  useEffect(() => {
+    const loadPoData = async () => {
+      try {
+        // Load notes and timeline from MongoDB record
+        const poRes = await fetch(`/api/purchasing/get?id=${encodeURIComponent(order.id)}`);
+        if (poRes.ok) {
+          const data = await poRes.json();
+          const po = data.purchaseOrder;
+          if (Array.isArray(po.notes)) setNotes(po.notes);
+          if (Array.isArray(po.timelineEvents) && po.timelineEvents.length > 0) {
+            setTimelineEvents(po.timelineEvents);
+          }
+          if (po.shippingMethod) setShippingMethod(po.shippingMethod);
+          if (po.carrierAccount) setCarrierAccount(po.carrierAccount);
+          if (po.shipToAddress) setShipToAddress(po.shipToAddress);
+          if (po.shipDate !== undefined) setShipDate(po.shipDate);
+          if (po.inHandsDate) setInHandsDate(po.inHandsDate);
+          if (po.contact) { setContact(po.contact); }
+          if (po.contactDetails) setContactDetails(po.contactDetails);
+          if (po.vendor) setVendor(po.vendor);
+          if (Array.isArray(po.lineItems) && po.lineItems.length > 0) setLineItems(po.lineItems);
+          if (Array.isArray(po.customLineItems)) setCustomLineItems(po.customLineItems);
+          if (typeof po.salesTaxRate === 'number') setSalesTaxRate(po.salesTaxRate);
+          if (po.taxStatus) setTaxStatus(po.taxStatus);
+        }
+
+        // Load artwork files from uploads collection
+        const filesRes = await fetch(
+          `/api/files/list?entityType=purchase-order-artwork&entityId=${encodeURIComponent(order.id)}`
+        );
+        if (filesRes.ok) {
+          const filesData = await filesRes.json();
+          setArtworkFiles(
+            (filesData.uploads ?? []).map((u: any) => ({
+              id: u.id ?? u._id,
+              name: u.fileName ?? 'Unknown',
+              fileUrl: u.fileUrl ?? '',
+              uploadedAt: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '',
+            }))
+          );
+        }
+      } catch {
+        // Non-blocking — UI still works if data can't be loaded
+      }
+    };
+    loadPoData();
+  }, [order.id]);
+
+  // Helper: persist a field change to MongoDB
+  const persistField = async (fields: Record<string, unknown>) => {
+    setIsSavingField(true);
+    try {
+      const res = await fetch('/api/purchasing/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: order.id, ...fields }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to save');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setIsSavingField(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Created':
@@ -163,33 +241,37 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
     }
   };
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     const oldStatus = status;
-    
+
     // Handle special status changes that need confirmation
     if (newStatus === 'Confirmed') {
       setShowConfirmModal(true);
       return; // Don't update status yet, wait for modal confirmation
     }
-    
+
     if (newStatus === 'Shipped') {
       setShowShipmentModal(true);
       setStatus(newStatus); // Update status and show shipment modal
       return;
     }
-    
+
     setStatus(newStatus);
-    
+
     // Add timeline event for status change
     const newEvent: TimelineEvent = {
       id: String(timelineEvents.length + 1),
       date: new Date().toISOString(),
       title: 'Status Updated',
       description: `Status changed from ${oldStatus} to ${newStatus}`,
-      user: 'Patrick Lowenthal',
+      user: user?.name ?? 'User',
       type: 'status_change'
     };
-    setTimelineEvents([...timelineEvents, newEvent]);
+    const updatedTimeline = [...timelineEvents, newEvent];
+    setTimelineEvents(updatedTimeline);
+
+    // Persist status + timeline to MongoDB
+    await persistField({ status: newStatus, timelineEvents: updatedTimeline });
 
     // Call the onStatusChange callback if provided
     if (onStatusChange) {
@@ -197,23 +279,142 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
     }
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!internalNote.trim()) return;
-    
-    const newNote: Note = {
-      id: String(notes.length + 1),
-      text: internalNote,
-      user: 'Patrick Lowenthal',
-      date: new Date().toISOString()
-    };
-    
-    setNotes([...notes, newNote]);
-    setInternalNote('');
-    setShowNoteInput(false);
+
+    setIsAddingNote(true);
+    try {
+      const res = await fetch('/api/purchasing/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseOrderId: order.id,
+          text: internalNote.trim(),
+          user: user?.name ?? 'User',
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to add note');
+      }
+      const data = await res.json();
+      setNotes((prev) => [...prev, data.note]);
+      setInternalNote('');
+      setShowNoteInput(false);
+      toast.success('Note added');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add note');
+    } finally {
+      setIsAddingNote(false);
+    }
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    setNotes(notes.filter(note => note.id !== noteId));
+  const handleDeleteNote = async (noteId: string) => {
+    setIsDeletingNote(noteId);
+    try {
+      const res = await fetch('/api/purchasing/notes/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseOrderId: order.id, noteId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to delete note');
+      }
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      toast.success('Note deleted');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete note');
+    } finally {
+      setIsDeletingNote(null);
+    }
+  };
+
+  // Handle artwork file upload → S3 presign → upload → record in MongoDB
+  const handleArtworkUpload = async (file: File) => {
+    // Validate file type
+    const ALLOWED_ARTWORK_TYPES = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/illustrator', 'image/svg+xml',
+    ];
+    const MAX_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+    if (!ALLOWED_ARTWORK_TYPES.includes(file.type) && !file.name.endsWith('.ai') && !file.name.endsWith('.eps')) {
+      toast.error('Unsupported file type. Please upload an image or PDF.');
+      return;
+    }
+    if (file.size > MAX_SIZE_BYTES) {
+      toast.error('File is too large. Maximum size is 25 MB.');
+      return;
+    }
+
+    setIsUploadingArtwork(true);
+    try {
+      // 1. Get presigned URL
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          entityType: 'purchase-order-artwork',
+          entityId: order.id,
+        }),
+      });
+      if (!presignRes.ok) throw new Error('Failed to get upload URL');
+      const { uploadUrl, key, fileUrl } = await presignRes.json();
+
+      // 2. Upload to S3
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+      if (!uploadRes.ok) throw new Error('S3 upload failed');
+
+      // 3. Record file metadata in MongoDB
+      const completeRes = await fetch('/api/files/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key,
+          fileName: file.name,
+          fileType: file.type,
+          size: file.size,
+          entityType: 'purchase-order-artwork',
+          entityId: order.id,
+          uploadedBy: user?.sub ?? user?.email ?? 'User',
+        }),
+      });
+      if (!completeRes.ok) throw new Error('Failed to record file metadata');
+      const completeData = await completeRes.json();
+
+      // 4. Update local artwork file list
+      setArtworkFiles((prev) => [
+        ...prev,
+        {
+          id: completeData.upload?.id ?? key,
+          name: file.name,
+          fileUrl,
+          uploadedAt: new Date().toLocaleDateString(),
+        },
+      ]);
+
+      // 5. Record artwork file reference in the PO document
+      await persistField({
+        artworkDetails: {
+          hasArtworkFile: true,
+          lastArtworkUploadAt: new Date().toISOString(),
+        },
+      });
+
+      toast.success(`Artwork file "${file.name}" uploaded successfully`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Artwork upload failed');
+    } finally {
+      setIsUploadingArtwork(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -470,7 +671,11 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
               {/* Blind Ship Notice */}
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-8">
                 <div className="flex items-center gap-4">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600" />
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                    onChange={(e) => persistField({ isBlindShip: e.target.checked })}
+                  />
                   <span className="text-sm font-medium text-slate-700">Blind Ship</span>
                   <div className="flex items-center gap-2 flex-1">
                     <span className="text-sm text-slate-600">Carrier Account:</span>
@@ -482,6 +687,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
                             setIsManualAccount(true);
                           } else {
                             setCarrierAccount(e.target.value);
+                            persistField({ carrierAccount: e.target.value });
                           }
                         }}
                         className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -505,9 +711,11 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
                         <button
                           onClick={() => {
                             if (manualAccountNumber.trim()) {
-                              setCarrierAccount(manualAccountNumber);
+                              const account = manualAccountNumber.trim();
+                              setCarrierAccount(account);
                               setIsManualAccount(false);
                               setManualAccountNumber('');
+                              persistField({ carrierAccount: account });
                               toast.success('Carrier account saved successfully!');
                             }
                           }}
@@ -537,10 +745,28 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
                 salesTaxRate={salesTaxRate}
                 taxStatus={taxStatus}
                 isEditingItems={isEditingItems}
-                onLineItemsChange={setLineItems}
-                onCustomLineItemsChange={setCustomLineItems}
-                onSalesTaxRateChange={setSalesTaxRate}
-                onTaxStatusChange={setTaxStatus}
+                onLineItemsChange={(items) => {
+                  setLineItems(items);
+                  const sub = items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                  const cust = customLineItems.reduce((s, i) => s + i.amount, 0);
+                  const newTotal = (sub + cust) * (1 + salesTaxRate);
+                  persistField({ lineItems: items, total: newTotal });
+                }}
+                onCustomLineItemsChange={(items) => {
+                  setCustomLineItems(items);
+                  const sub = lineItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+                  const cust = items.reduce((s, i) => s + i.amount, 0);
+                  const newTotal = (sub + cust) * (1 + salesTaxRate);
+                  persistField({ customLineItems: items, total: newTotal });
+                }}
+                onSalesTaxRateChange={(rate) => {
+                  setSalesTaxRate(rate);
+                  persistField({ salesTaxRate: rate });
+                }}
+                onTaxStatusChange={(ts) => {
+                  setTaxStatus(ts);
+                  persistField({ taxStatus: ts });
+                }}
                 onEditToggle={setIsEditingItems}
               />
 
@@ -612,10 +838,53 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
                           </div>
                         </div>
 
-                        {/* Artwork Preview - Optional */}
+                        {/* Artwork Files */}
                         <div className="mt-4 pt-4 border-t border-slate-200">
-                          <button className="text-xs text-blue-600 hover:text-blue-700 font-semibold">
-                            + Upload Artwork File
+                          {artworkFiles.length > 0 && (
+                            <div className="mb-3 space-y-2">
+                              {artworkFiles.map((af) => (
+                                <div key={af.id} className="flex items-center gap-2 text-xs text-slate-700">
+                                  <Paperclip className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                  <a
+                                    href={af.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-blue-600 hover:underline truncate max-w-xs"
+                                  >
+                                    {af.name}
+                                  </a>
+                                  <span className="text-slate-400 ml-auto flex-shrink-0">{af.uploadedAt}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <input
+                            type="file"
+                            ref={artworkFileInputRef}
+                            className="hidden"
+                            accept="image/*,.pdf,.ai,.eps,.svg"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleArtworkUpload(file);
+                              e.target.value = '';
+                            }}
+                          />
+                          <button
+                            onClick={() => artworkFileInputRef.current?.click()}
+                            disabled={isUploadingArtwork}
+                            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isUploadingArtwork ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3 h-3" />
+                                + Upload Artwork File
+                              </>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -625,6 +894,112 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
               </div>
 
               {/* Questions Section */}
+              {/* Internal Notes Section */}
+              <div className="mt-8 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-white">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <h4 className="text-sm font-bold text-slate-900">Internal Notes</h4>
+                    {notes.length > 0 && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                        {notes.length}
+                      </span>
+                    )}
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowNoteInput(!showNoteInput)}
+                    className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Note
+                  </motion.button>
+                </div>
+
+                <div className="p-6">
+                  {/* Note input */}
+                  <AnimatePresence>
+                    {showNoteInput && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="mb-4 overflow-hidden"
+                      >
+                        <textarea
+                          value={internalNote}
+                          onChange={(e) => setInternalNote(e.target.value)}
+                          placeholder="Write an internal note..."
+                          rows={3}
+                          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none"
+                        />
+                        <div className="flex items-center gap-2 mt-2">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleAddNote}
+                            disabled={isAddingNote || !internalNote.trim()}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isAddingNote ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-3 h-3" />
+                                Save Note
+                              </>
+                            )}
+                          </motion.button>
+                          <button
+                            onClick={() => { setShowNoteInput(false); setInternalNote(''); }}
+                            className="text-xs text-slate-500 hover:text-slate-700 font-medium"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Notes list */}
+                  {notes.length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center py-4">No internal notes yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {notes.map((note) => (
+                        <div key={note.id} className="bg-white rounded-lg p-4 border border-slate-200 group">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm text-slate-700 flex-1">{note.text}</p>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleDeleteNote(note.id)}
+                              disabled={isDeletingNote === note.id}
+                              className="p-1 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0 disabled:opacity-50"
+                            >
+                              {isDeletingNote === note.id ? (
+                                <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-500" />
+                              )}
+                            </motion.button>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs font-medium text-slate-600">{note.user}</span>
+                            <span className="text-xs text-slate-400">{formatDate(note.date)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="mt-8 bg-slate-50 rounded-xl p-6 border border-slate-200">
                 <h4 className="text-sm font-bold text-slate-900 mb-4">Questions about this purchase order?</h4>
                 <div className="space-y-1 text-xs text-slate-700">
@@ -650,6 +1025,10 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
         onSelectContact={(selectedContact) => {
           setContact(selectedContact.name);
           setContactDetails({ email: selectedContact.email, phone: selectedContact.phone });
+          persistField({
+            contact: selectedContact.name,
+            contactDetails: { email: selectedContact.email, phone: selectedContact.phone },
+          });
         }}
       />
 
@@ -659,6 +1038,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
         selectedDate={shipDate}
         onSelectDate={(date) => {
           setShipDate(date);
+          persistField({ shipDate: date });
         }}
         label="Select Ship Date"
       />
@@ -674,6 +1054,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
             return;
           }
           setInHandsDate(date);
+          persistField({ inHandsDate: date });
         }}
         label="Select In-Hands Date"
       />
@@ -684,6 +1065,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
         selectedMethod={shippingMethod}
         onSelectMethod={(method) => {
           setShippingMethod(method.name);
+          persistField({ shippingMethod: method.name });
         }}
       />
 
@@ -693,18 +1075,18 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
         onClose={() => setShowSendPOModal(false)}
         onConfirm={(method, details) => {
           setShowSendPOModal(false);
-          // Update status to "Sent"
-          handleStatusChange('Sent');
-          // Add timeline event with confirmation details
+          // Update status to "Sent" — handleStatusChange already persists status + timeline
           const newEvent: TimelineEvent = {
-            id: String(timelineEvents.length + 1),
+            id: String(timelineEvents.length + 2),
             date: new Date().toISOString(),
             title: 'PO Sent to Vendor',
             description: `Purchase Order sent via ${method}: ${details}`,
-            user: 'Patrick Lowenthal',
+            user: user?.name ?? 'User',
             type: 'status_change'
           };
-          setTimelineEvents([...timelineEvents, newEvent]);
+          const updatedTimeline = [...timelineEvents, newEvent];
+          setTimelineEvents(updatedTimeline);
+          handleStatusChange('Sent');
         }}
         poNumber={order.poNumber}
       />
@@ -715,17 +1097,17 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
         onClose={() => setShowConfirmModal(false)}
         onConfirm={(method, details) => {
           setShowConfirmModal(false);
-          handleStatusChange('Confirmed');
-          // Add timeline event with confirmation details
           const newEvent: TimelineEvent = {
-            id: String(timelineEvents.length + 1),
+            id: String(timelineEvents.length + 2),
             date: new Date().toISOString(),
             title: 'PO Confirmed',
             description: `Confirmed via ${method}: ${details}`,
-            user: 'Patrick Lowenthal',
+            user: user?.name ?? 'User',
             type: 'status_change'
           };
-          setTimelineEvents([...timelineEvents, newEvent]);
+          const updatedTimeline = [...timelineEvents, newEvent];
+          setTimelineEvents(updatedTimeline);
+          handleStatusChange('Confirmed');
         }}
         poNumber={order.poNumber}
       />
@@ -739,19 +1121,18 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange 
         }}
         onConfirm={(trackingNumber, carrier) => {
           setShowShipmentModal(false);
-          // Create shipment and update status
-          console.log('Creating shipment:', { trackingNumber, carrier, poNumber: order.poNumber });
-          alert(`Shipment created with tracking number: ${trackingNumber}`);
-          // Add timeline event
           const newEvent: TimelineEvent = {
-            id: String(timelineEvents.length + 1),
+            id: String(timelineEvents.length + 2),
             date: new Date().toISOString(),
             title: 'Shipment Created',
             description: `Shipment created with ${carrier} tracking: ${trackingNumber}`,
-            user: 'Patrick Lowenthal',
+            user: user?.name ?? 'User',
             type: 'status_change'
           };
-          setTimelineEvents([...timelineEvents, newEvent]);
+          const updatedTimeline = [...timelineEvents, newEvent];
+          setTimelineEvents(updatedTimeline);
+          persistField({ timelineEvents: updatedTimeline });
+          toast.success(`Shipment created with tracking: ${trackingNumber}`);
         }}
         poNumber={order.poNumber}
       />
