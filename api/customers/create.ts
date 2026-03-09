@@ -8,6 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const {
     name,
+    logo,
     industry,
     size,
     status,
@@ -29,6 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const doc = {
       name,
+      logo: logo ?? null,
       industry: industry ?? null,
       size: size ?? null,
       status: status ?? 'Active',

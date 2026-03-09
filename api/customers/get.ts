@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customer: {
         ...customer,
         id: customer._id.toString(),
-        logo: customer.logoKey ? getPublicS3Url(customer.logoKey) : null,
+        logo: customer.logoKey ? getPublicS3Url(customer.logoKey) : (customer.logo ?? null),
       },
     });
   } catch (error) {

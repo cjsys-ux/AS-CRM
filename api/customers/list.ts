@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customers: customers.map((c) => ({
         ...c,
         id: c._id.toString(),
-        logo: c.logoKey ? getPublicS3Url(c.logoKey) : null,
+        logo: c.logoKey ? getPublicS3Url(c.logoKey) : (c.logo ?? null),
       })),
     });
   } catch (error) {

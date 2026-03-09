@@ -101,6 +101,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
         resaleCert: customerData.resaleCert || '',
       });
       setUploadedLogo(customerData.logo || null);
+      setLogoFile(null);
     } else {
       // Reset for new customer
       setFormData({
@@ -116,6 +117,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
         resaleCert: '',
       });
       setUploadedLogo(null);
+      setLogoFile(null);
     }
   }, [customerData, isOpen]);
 
@@ -198,6 +200,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           body: JSON.stringify({
             id: customerId,
             name: formData.name,
+            logo: formData.logo || null,
             industry: formData.industry,
             size: formData.size,
             status: formData.status,
@@ -215,6 +218,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: formData.name,
+            logo: formData.logo || null,
             industry: formData.industry,
             size: formData.size,
             status: formData.status,

@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
 
 const ALLOWED_FIELDS = [
-  'name', 'industry', 'size', 'status', 'phone', 'website',
+  'name', 'logo', 'industry', 'size', 'status', 'phone', 'website',
   'paymentTerms', 'resaleCert', 'logoKey', 'certKey', 'spend',
 ];
 
