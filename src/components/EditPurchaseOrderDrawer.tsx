@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, Calendar, Building2, User, DollarSign } from 'lucide-react';
+import { X, Save, Calendar, Building2, User, DollarSign, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface PurchaseOrder {
   id: string;
@@ -21,7 +22,7 @@ interface EditPurchaseOrderDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   order: PurchaseOrder | null;
-  onSave: (order: PurchaseOrder) => void;
+  onSave: (order: PurchaseOrder) => Promise<void>;
 }
 
 export function EditPurchaseOrderDrawer({
@@ -31,6 +32,7 @@ export function EditPurchaseOrderDrawer({
   onSave,
 }: EditPurchaseOrderDrawerProps) {
   const [formData, setFormData] = useState<PurchaseOrder | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (order) {
@@ -38,9 +40,15 @@ export function EditPurchaseOrderDrawer({
     }
   }, [order]);
 
-  const handleSave = () => {
-    if (formData) {
-      onSave(formData);
+  const handleSave = async () => {
+    if (!formData) return;
+    setIsSaving(true);
+    try {
+      await onSave(formData);
+    } catch {
+      // error already toasted in parent
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -258,10 +266,20 @@ export function EditPurchaseOrderDrawer({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSave}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                  disabled={isSaving}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
-                  Save Changes
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Save Changes
+                    </>
+                  )}
                 </motion.button>
               </div>
             </div>

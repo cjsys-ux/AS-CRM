@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
-import { getPublicS3Url } from '../_s3';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -23,21 +22,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = await getDb();
-    const customer = await db.collection('customers').findOne(filter);
+    const order = await db.collection('purchaseOrders').findOne(filter);
 
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found.' });
+    if (!order) {
+      return res.status(404).json({ error: 'Purchase order not found.' });
     }
 
     return res.status(200).json({
-      customer: {
-        ...customer,
-        id: customer._id.toString(),
-        logo: customer.logoKey ? getPublicS3Url(customer.logoKey) : (customer.logo ?? null),
+      purchaseOrder: {
+        ...order,
+        id: order._id.toString(),
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch customer.';
+    const message = error instanceof Error ? error.message : 'Failed to fetch purchase order.';
     return res.status(500).json({ error: message });
   }
 }

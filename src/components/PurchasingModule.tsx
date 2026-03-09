@@ -1,9 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingCart, Search, Plus, Eye, Edit, Trash2, DollarSign, Package, Clock, CheckCircle, TrendingUp, ChevronLeft, ChevronRight, Calendar, User, Building2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { DeletePurchaseOrderModal } from './DeletePurchaseOrderModal';
 import { EditPurchaseOrderDrawer } from './EditPurchaseOrderDrawer';
 import { PurchaseOrderDetailView } from './PurchaseOrderDetailView';
+import { AddPurchaseOrderDrawer } from './AddPurchaseOrderDrawer';
+import { useAuth } from '../context/AuthContext';
 
 
 type PurchaseOrder = {
@@ -19,9 +22,11 @@ type PurchaseOrder = {
   total: number;
   priority: string;
   contact: string;
+  isSample?: boolean;
 };
 
 export function PurchasingModule() {
+  const { user } = useAuth();
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
@@ -35,11 +40,39 @@ export function PurchasingModule() {
   const [orderToEdit, setOrderToEdit] = useState<PurchaseOrder | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch purchase orders from database
-  const fetchPurchaseOrders = () => {
-    setLoading(false);
-    setPurchaseOrders([]);
+  const fetchPurchaseOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/purchasing/list');
+      if (!res.ok) throw new Error('Failed to fetch purchase orders');
+      const data = await res.json();
+      setPurchaseOrders(
+        (data.purchaseOrders ?? []).map((o: any) => ({
+          id: o.id ?? o._id?.toString(),
+          poNumber: o.poNumber ?? '',
+          poDate: o.poDate ?? '',
+          project: o.project ?? '',
+          vendor: o.vendor ?? '',
+          customer: o.customer ?? '',
+          status: o.status ?? 'Created',
+          shipDate: o.shipDate ?? null,
+          inHandsDate: o.inHandsDate ?? '',
+          total: typeof o.total === 'number' ? o.total : 0,
+          priority: o.priority ?? '1st Choice',
+          contact: o.contact ?? '',
+          isSample: o.isSample === true,
+        }))
+      );
+    } catch (err) {
+      toast.error('Failed to load purchase orders');
+      setPurchaseOrders([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -114,8 +147,26 @@ export function PurchasingModule() {
   const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
 
-    setDeleteModalOpen(false);
-    setOrderToDelete(null);
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/purchasing/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderToDelete.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to delete purchase order');
+      }
+      toast.success(`Purchase order ${orderToDelete.poNumber} deleted`);
+      setPurchaseOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete purchase order');
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+      setOrderToDelete(null);
+    }
   };
 
   const handleEditOrder = (order: PurchaseOrder) => {
@@ -124,8 +175,32 @@ export function PurchasingModule() {
   };
 
   const handleSaveOrder = async (updatedOrder: PurchaseOrder) => {
-    setEditDrawerOpen(false);
-    setOrderToEdit(null);
+    try {
+      const res = await fetch('/api/purchasing/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: updatedOrder.id, ...updatedOrder }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to update purchase order');
+      }
+      toast.success('Purchase order updated');
+      setPurchaseOrders((prev) =>
+        prev.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o))
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update purchase order');
+    } finally {
+      setEditDrawerOpen(false);
+      setOrderToEdit(null);
+    }
+  };
+
+  const handleOrderCreated = (newOrder: PurchaseOrder) => {
+    setPurchaseOrders((prev) => [newOrder, ...prev]);
+    setAddDrawerOpen(false);
+    toast.success(`Purchase order ${newOrder.poNumber} created`);
   };
 
   const handleViewOrder = (orderId: string) => {
@@ -134,12 +209,24 @@ export function PurchasingModule() {
 
   // Handle status change from detail view
   const handleStatusChange = async (orderId: string, newStatus: string) => {
-    // Update local state
-    setPurchaseOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
+    try {
+      const res = await fetch('/api/purchasing/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderId, status: newStatus }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to update status');
+      }
+      setPurchaseOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
+    }
   };
 
   // If viewing a specific PO, show detail view
@@ -210,6 +297,7 @@ export function PurchasingModule() {
             <motion.button
               whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
               whileTap={{ scale: 0.95 }}
+              onClick={() => setAddDrawerOpen(true)}
               className="flex items-center gap-2 px-8 py-4 bg-white text-blue-600 font-bold rounded-2xl shadow-2xl hover:shadow-blue-500/20 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -447,7 +535,16 @@ export function PurchasingModule() {
                 </thead>
                 <tbody className="bg-white">
                   <AnimatePresence mode="popLayout">
-                    {paginatedOrders.length === 0 ? (
+                    {loading ? (
+                      <tr>
+                        <td colSpan={11} className="px-8 py-20">
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Loading purchase orders...</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : paginatedOrders.length === 0 ? (
                       <tr>
                         <td colSpan={11} className="px-8 py-20">
                           <motion.div
@@ -456,13 +553,13 @@ export function PurchasingModule() {
                             className="flex flex-col items-center justify-center text-center"
                           >
                             <motion.div
-                              animate={{ 
+                              animate={{
                                 y: [0, -10, 0],
                               }}
-                              transition={{ 
+                              transition={{
                                 duration: 2,
                                 repeat: Infinity,
-                                ease: "easeInOut" 
+                                ease: "easeInOut"
                               }}
                               className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl flex items-center justify-center mb-6 shadow-lg"
                             >
@@ -646,6 +743,14 @@ export function PurchasingModule() {
         }}
         order={orderToEdit}
         onSave={handleSaveOrder}
+      />
+
+      {/* Add Drawer */}
+      <AddPurchaseOrderDrawer
+        isOpen={addDrawerOpen}
+        onClose={() => setAddDrawerOpen(false)}
+        onSuccess={handleOrderCreated}
+        createdBy={user?.name ?? user?.email ?? 'User'}
       />
     </div>
   );

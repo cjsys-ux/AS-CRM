@@ -1,14 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
-import { getPublicS3Url } from '../_s3';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') {
+  if (req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id } = req.query;
+  const { id } = req.body ?? {};
 
   if (!id) {
     return res.status(400).json({ error: 'id is required.' });
@@ -23,21 +22,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = await getDb();
-    const customer = await db.collection('customers').findOne(filter);
+    const result = await db.collection('purchaseOrders').deleteOne(filter);
 
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found.' });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ error: 'Purchase order not found.' });
     }
 
-    return res.status(200).json({
-      customer: {
-        ...customer,
-        id: customer._id.toString(),
-        logo: customer.logoKey ? getPublicS3Url(customer.logoKey) : (customer.logo ?? null),
-      },
-    });
+    return res.status(200).json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch customer.';
+    const message = error instanceof Error ? error.message : 'Failed to delete purchase order.';
     return res.status(500).json({ error: message });
   }
 }

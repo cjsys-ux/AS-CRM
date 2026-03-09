@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_mongodb';
-import { getPublicS3Url } from '../_s3';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -9,17 +8,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = await getDb();
-    const customers = await db.collection('customers').find({}).sort({ name: 1 }).toArray();
+    const orders = await db
+      .collection('purchaseOrders')
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
 
     return res.status(200).json({
-      customers: customers.map((c) => ({
-        ...c,
-        id: c._id.toString(),
-        logo: c.logoKey ? getPublicS3Url(c.logoKey) : (c.logo ?? null),
+      purchaseOrders: orders.map((o) => ({
+        ...o,
+        id: o._id.toString(),
       })),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch customers.';
+    const message = error instanceof Error ? error.message : 'Failed to fetch purchase orders.';
     return res.status(500).json({ error: message });
   }
 }

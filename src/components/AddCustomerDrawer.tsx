@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Globe, Phone, FileCheck, File, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
 
@@ -100,6 +101,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
         resaleCert: customerData.resaleCert || '',
       });
       setUploadedLogo(customerData.logo || null);
+      setLogoFile(null);
     } else {
       // Reset for new customer
       setFormData({
@@ -115,6 +117,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
         resaleCert: '',
       });
       setUploadedLogo(null);
+      setLogoFile(null);
     }
   }, [customerData, isOpen]);
 
@@ -197,6 +200,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           body: JSON.stringify({
             id: customerId,
             name: formData.name,
+            logo: formData.logo || null,
             industry: formData.industry,
             size: formData.size,
             status: formData.status,
@@ -214,6 +218,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: formData.name,
+            logo: formData.logo || null,
             industry: formData.industry,
             size: formData.size,
             status: formData.status,
@@ -262,7 +267,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -324,9 +329,9 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
                   Logo
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-200">
+                  <div className="h-16 w-28 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-200 p-1">
                     {uploadedLogo || formData.logo ? (
-                      <img src={uploadedLogo || formData.logo} alt="Logo" className="w-full h-full object-cover" />
+                      <img src={uploadedLogo || formData.logo} alt="Logo" className="max-h-full max-w-full object-contain" />
                     ) : (
                       <Building2 className="w-8 h-8 text-slate-400" />
                     )}
@@ -665,6 +670,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
