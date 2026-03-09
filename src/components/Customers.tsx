@@ -432,16 +432,18 @@ export function Customers() {
                       >
                         <td className="px-6 py-5">
                           {customer.logo ? (
-                            <motion.img
-                              whileHover={{ scale: 1.15 }}
-                              src={customer.logo}
-                              alt={customer.name}
-                              className="w-14 h-14 rounded-xl object-cover border-2 border-slate-200 shadow-md"
-                            />
+                            <div className="h-12 w-20 rounded-xl bg-white border-2 border-slate-200 shadow-md flex items-center justify-center overflow-hidden p-1">
+                              <motion.img
+                                whileHover={{ scale: 1.05 }}
+                                src={customer.logo}
+                                alt={customer.name}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            </div>
                           ) : (
                             <motion.div
-                              whileHover={{ scale: 1.15 }}
-                              className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border-2 border-slate-200 shadow-md"
+                              whileHover={{ scale: 1.05 }}
+                              className="h-12 w-20 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border-2 border-slate-200 shadow-md"
                             >
                               <span className="text-white text-lg font-bold">
                                 {customer.name.charAt(0).toUpperCase()}

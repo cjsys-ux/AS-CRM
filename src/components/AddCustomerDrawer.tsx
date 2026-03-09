@@ -325,9 +325,9 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
                   Logo
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-200">
+                  <div className="h-16 w-28 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-200 p-1">
                     {uploadedLogo || formData.logo ? (
-                      <img src={uploadedLogo || formData.logo} alt="Logo" className="w-full h-full object-cover" />
+                      <img src={uploadedLogo || formData.logo} alt="Logo" className="max-h-full max-w-full object-contain" />
                     ) : (
                       <Building2 className="w-8 h-8 text-slate-400" />
                     )}

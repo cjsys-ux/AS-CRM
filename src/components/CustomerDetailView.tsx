@@ -318,7 +318,7 @@ export function CustomerDetailView({ customerId, onBack, onEdit }: CustomerDetai
                 className="w-24 h-24 rounded-3xl bg-white shadow-2xl p-2 flex items-center justify-center overflow-hidden"
               >
                 {customer.logo ? (
-                  <img src={customer.logo} alt={customer.name} className="w-full h-full object-cover rounded-2xl" />
+                  <img src={customer.logo} alt={customer.name} className="w-full h-full object-contain rounded-2xl" />
                 ) : (
                   <Building2 className="w-12 h-12 text-slate-400" />
                 )}
