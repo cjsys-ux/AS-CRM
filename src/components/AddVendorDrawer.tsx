@@ -200,29 +200,21 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
 
       // Upload logo to S3 if a file was selected (standalone mode)
       if (mode === 'standalone' && savedId && uploadedLogo && uploadedLogo.startsWith('data:')) {
-        // Convert base64 to File for upload - fetch the data URI
         try {
-          const blob = await fetch(uploadedLogo).then(r => r.blob());
-          const file = new File([blob], 'logo.png', { type: blob.type });
-          const presignRes = await fetch('/api/files/presign', {
+          const [header, base64Data] = uploadedLogo.split(',');
+          const fileType = header.match(/:(.*?);/)?.[1] ?? 'image/png';
+          const uploadRes = await fetch('/api/files/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileName: 'logo.png', fileType: file.type, entityType: 'vendor-logo', entityId: savedId }),
+            body: JSON.stringify({ fileName: 'logo.png', fileType, entityType: 'vendor-logo', entityId: savedId, fileData: base64Data }),
           });
-          if (presignRes.ok) {
-            const { uploadUrl, key } = await presignRes.json();
-            await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-            await fetch('/api/files/complete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ key, fileName: 'logo.png', fileType: file.type, size: file.size, entityType: 'vendor-logo', entityId: savedId, uploadedBy: 'User' }),
-            });
-            await fetch(updateUrl, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: savedId, logoKey: key }),
-            });
-          }
+          if (!uploadRes.ok) throw new Error('Upload failed');
+          const { key } = await uploadRes.json();
+          await fetch(updateUrl, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: savedId, logoKey: key }),
+          });
         } catch {
           toast.warning('Vendor saved, but logo could not be uploaded. Try editing the vendor to re-upload the logo.');
         }
