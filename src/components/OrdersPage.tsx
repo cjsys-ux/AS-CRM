@@ -1,10 +1,13 @@
-import { motion } from 'motion/react';
-import { ShoppingCart, Plus, Search, Filter, Download, Eye, Edit2, Trash2, Package, Truck, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ShoppingCart, Plus, Search, Filter, Download, Eye, Edit2, Trash2, Package, Truck, CheckCircle, Loader2, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { CreateOrderDrawer } from './CreateOrderDrawer';
 
 
 interface Order {
   id: string;
+  orderNumber?: string;
   customer: string;
   email: string;
   status: string;
@@ -13,6 +16,7 @@ interface Order {
   date: string;
   paymentStatus: string;
   shipping: string;
+  notes?: string;
   createdAt?: string;
 }
 
@@ -51,12 +55,71 @@ export function OrdersPage() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch orders from database
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/orders/list');
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      setOrders(data.orders ?? []);
+    } catch {
+      toast.error('Failed to load orders');
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setLoading(false);
-    setOrders([]);
+    fetchOrders();
   }, []);
+
+  const handleSaveOrder = (_order: any) => {
+    fetchOrders();
+    setIsDrawerOpen(false);
+    setSelectedOrder(null);
+  };
+
+  const handleEditOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDrawerOpen(true);
+  };
+
+  const handleDeleteClick = (order: Order) => {
+    setOrderToDelete(order);
+    setDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/orders/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderToDelete.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to delete order');
+      }
+      toast.success('Order deleted');
+      await fetchOrders();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete order');
+    } finally {
+      setIsDeleting(false);
+      setDeleteModal(false);
+      setOrderToDelete(null);
+    }
+  };
 
   // Calculate statistics from real data
   const totalOrders = orders.length;
@@ -66,9 +129,10 @@ export function OrdersPage() {
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase());
+      (order.orderNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.id ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customer ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.email ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
@@ -96,6 +160,7 @@ export function OrdersPage() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => { setSelectedOrder(null); setIsDrawerOpen(true); }}
               className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -243,6 +308,7 @@ export function OrdersPage() {
                           <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
+                            onClick={() => { setSelectedOrder(null); setIsDrawerOpen(true); }}
                             className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-600 transition-all"
                           >
                             <Plus className="w-5 h-5" />
@@ -261,7 +327,9 @@ export function OrdersPage() {
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
                         <td className="px-6 py-4">
-                          <span className="font-mono text-sm font-semibold text-slate-900">{order.id}</span>
+                          <span className="font-mono text-sm font-semibold text-slate-900">
+                            {order.orderNumber ?? order.id}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
                           <div>
@@ -296,6 +364,8 @@ export function OrdersPage() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
+                              onClick={() => handleEditOrder(order)}
+                              title="View / Edit"
                               className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                             >
                               <Eye className="w-4 h-4" />
@@ -303,6 +373,8 @@ export function OrdersPage() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
+                              onClick={() => handleEditOrder(order)}
+                              title="Edit"
                               className="p-2 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -310,6 +382,8 @@ export function OrdersPage() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
+                              onClick={() => handleDeleteClick(order)}
+                              title="Delete"
                               className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -325,6 +399,68 @@ export function OrdersPage() {
           </div>
         </div>
       </div>
+
+      {/* Create / Edit Order Drawer */}
+      <CreateOrderDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => { setIsDrawerOpen(false); setSelectedOrder(null); }}
+        order={selectedOrder}
+        onSave={handleSaveOrder}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteModal && orderToDelete && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => { if (!isDeleting) { setDeleteModal(false); setOrderToDelete(null); } }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none"
+            >
+              <div className="bg-white rounded-2xl p-8 shadow-2xl w-full max-w-md pointer-events-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-slate-900">Delete Order</h3>
+                  <button
+                    onClick={() => { if (!isDeleting) { setDeleteModal(false); setOrderToDelete(null); } }}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-500" />
+                  </button>
+                </div>
+                <p className="text-slate-600 mb-6">
+                  Are you sure you want to delete the order for <strong>{orderToDelete.customer}</strong>
+                  {orderToDelete.orderNumber ? ` (${orderToDelete.orderNumber})` : ''}? This action cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setDeleteModal(false); setOrderToDelete(null); }}
+                    disabled={isDeleting}
+                    className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmDelete}
+                    disabled={isDeleting}
+                    className="flex-1 px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {isDeleting ? 'Deleting...' : 'Delete Order'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
