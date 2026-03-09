@@ -124,7 +124,7 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
         
         // Use original image
         setUploadedLogo(base64String);
-        setFormData({ ...formData, logo: base64String });
+        setFormData(prev => ({ ...prev, logo: base64String }));
         
         setIsProcessingImage(false);
       };
@@ -172,16 +172,17 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
     try {
       const createUrl = mode === 'standalone' ? '/api/vendors/create' : '/api/pipeline/vendors/create';
       const updateUrl = mode === 'standalone' ? '/api/vendors/update' : '/api/pipeline/vendors/update';
+      const { logo: _logo, ...formDataWithoutLogo } = formData;
       const payload = mode === 'standalone'
-        ? { ...formData }
-        : { productId, ...formData };
+        ? formDataWithoutLogo
+        : { productId, ...formDataWithoutLogo };
 
       let savedId = vendorData?.id;
       if (vendorData?.id) {
         const res = await fetch(updateUrl, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: vendorData.id, ...formData }),
+          body: JSON.stringify({ id: vendorData.id, ...formDataWithoutLogo }),
         });
         if (!res.ok) throw new Error('Failed to update vendor');
         toast.success('Vendor updated successfully');
@@ -223,7 +224,7 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
             });
           }
         } catch {
-          // Logo upload failure is non-fatal
+          toast.warning('Vendor saved, but logo could not be uploaded. Try editing the vendor to re-upload the logo.');
         }
       }
 
