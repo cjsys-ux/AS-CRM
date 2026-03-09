@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Mail, Phone, Building2, Briefcase, Globe, ChevronDown } from 'lucide-react';
+import { X, User, Mail, Phone, Building2, Briefcase, Globe, ChevronDown, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 
 interface ContactDrawerProps {
   isOpen: boolean;
@@ -30,7 +32,9 @@ const countries = [
 
 export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawerProps) {
   const isEditMode = !!contact;
-  
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+
   const [formData, setFormData] = useState({
     id: '',
     firstName: '',
@@ -103,18 +107,68 @@ export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawe
     setFormData(prev => ({ ...prev, phone: formatted }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const contactData = {
-      ...formData,
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-    };
-    
-    // Remove firstName and lastName from the final object since we have name
-    const { firstName, lastName, ...finalData } = contactData;
-    
-    onSave(finalData);
+    if (isSaving) return;
+
+    const name = `${formData.firstName} ${formData.lastName}`.trim();
+
+    setIsSaving(true);
+    try {
+      if (isEditMode && formData.id) {
+        // Update existing contact
+        const res = await fetch('/api/contacts/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: formData.id,
+            name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.company,
+            position: formData.position,
+            type: formData.type,
+            country: formData.country,
+            status: formData.status,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error ?? 'Failed to update contact');
+        }
+        toast.success('Contact updated');
+        const { firstName: _f, lastName: _l, ...rest } = { ...formData, name };
+        onSave({ ...rest, name });
+      } else {
+        // Create new contact
+        const res = await fetch('/api/contacts/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.company,
+            position: formData.position,
+            type: formData.type,
+            country: formData.country,
+            status: formData.status,
+            createdBy: user?.sub ?? null,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error ?? 'Failed to create contact');
+        }
+        const data = await res.json();
+        toast.success('Contact created');
+        onSave(data.contact);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save contact');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -462,13 +516,14 @@ export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawe
               </motion.button>
               <motion.button
                 type="submit"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: isSaving ? 1 : 1.03 }}
+                whileTap={{ scale: isSaving ? 1 : 0.97 }}
                 onClick={handleSubmit}
-                className="px-8 py-4 text-white font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl hover:shadow-2xl transition-all shadow-lg flex items-center gap-2"
+                disabled={isSaving}
+                className={`px-8 py-4 text-white font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl hover:shadow-2xl transition-all shadow-lg flex items-center gap-2 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
-                <User className="w-5 h-5" />
-                {isEditMode ? 'Save Changes' : 'Add Contact'}
+                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <User className="w-5 h-5" />}
+                {isSaving ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Contact')}
               </motion.button>
             </div>
           </motion.div>

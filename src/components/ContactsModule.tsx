@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Plus, Search, Filter, Download, Mail, Phone, Building2, ChevronLeft, ChevronRight, Eye, Edit, Trash2, X } from 'lucide-react';
+import { Users, Plus, Search, Filter, Download, Mail, Phone, Building2, ChevronLeft, ChevronRight, Eye, Edit, Trash2, X, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { ContactDrawer } from './ContactDrawer';
 import { ContactDetailView } from './ContactDetailView';
 
@@ -18,12 +19,23 @@ export function ContactsModule() {
   const [editFromDetailView, setEditFromDetailView] = useState(false);
   const [contactsData, setContactsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const itemsPerPage = 10;
 
   // Fetch contacts from database
-  const fetchContacts = () => {
-    setLoading(false);
-    setContactsData([]);
+  const fetchContacts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/contacts/list');
+      if (!res.ok) throw new Error('Failed to fetch contacts');
+      const data = await res.json();
+      setContactsData(data.contacts ?? []);
+    } catch {
+      toast.error('Failed to load contacts');
+      setContactsData([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -35,24 +47,38 @@ export function ContactsModule() {
     fetchContacts();
     setIsContactDrawerOpen(false);
     setSelectedContact(null);
-    console.log(`Contact ${contactData.id ? 'updated' : 'created'} successfully`);
   };
 
   // Delete contact
-  const handleDeleteContact = () => {
+  const handleDeleteContact = async () => {
     if (!contactToDelete) return;
 
-    // Refresh contacts list
-    fetchContacts();
-    setDeleteModal(false);
-    setContactToDelete(null);
-    console.log('Contact deleted successfully');
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/contacts/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: contactToDelete.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Failed to delete contact');
+      }
+      toast.success('Contact deleted');
+      await fetchContacts();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete contact');
+    } finally {
+      setIsDeleting(false);
+      setDeleteModal(false);
+      setContactToDelete(null);
+    }
   };
 
   const filteredContacts = contactsData.filter(contact => {
-    const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         contact.company.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (contact.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (contact.email ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (contact.company ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     
     // If no filters are active, show all
     if (activeFilters.length === 0) return matchesSearch;
@@ -357,7 +383,21 @@ export function ContactsModule() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paginatedContacts.map((contact, index) => (
+                  {loading && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-indigo-500 mx-auto" />
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && paginatedContacts.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                        No contacts found.
+                      </td>
+                    </tr>
+                  )}
+                  {!loading && paginatedContacts.map((contact, index) => (
                     <motion.tr
                       key={contact.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -369,7 +409,7 @@ export function ContactsModule() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
                             <span className="text-white font-semibold text-sm">
-                              {contact.name.split(' ').map(n => n[0]).join('')}
+                              {(contact.name ?? '?').split(' ').map((n: string) => n[0]).join('')}
                             </span>
                           </div>
                           <div className="font-semibold text-slate-900">{contact.name}</div>
@@ -546,12 +586,14 @@ export function ContactsModule() {
                     Cancel
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: isDeleting ? 1 : 1.02 }}
+                    whileTap={{ scale: isDeleting ? 1 : 0.98 }}
                     onClick={handleDeleteContact}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
+                    disabled={isDeleting}
+                    className={`px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 ${isDeleting ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
-                    Delete Contact
+                    {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isDeleting ? 'Deleting...' : 'Delete Contact'}
                   </motion.button>
                 </div>
               </motion.div>

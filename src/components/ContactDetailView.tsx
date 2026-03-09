@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Mail, Phone, Building2, Globe, MapPin, FileText, DollarSign, ShoppingCart, Package, Calendar, Edit, Trash2, MessageSquare, Video, Send, Upload, File, X, Download } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Building2, Globe, MapPin, FileText, DollarSign, ShoppingCart, Package, Calendar, Edit, Trash2, MessageSquare, Video, Send, Upload, File, X, Download, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
 
 
 interface Contact {
@@ -24,27 +26,59 @@ interface ContactDetailViewProps {
 }
 
 export function ContactDetailView({ contact, onBack, onEdit, onDelete }: ContactDetailViewProps) {
+  const { user } = useAuth();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteFileModal, setShowDeleteFileModal] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isDeletingFile, setIsDeletingFile] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{
     id: string;
     name: string;
     size: string;
     uploadedDate: string;
     uploadedBy: string;
-  }>>([
-    { id: '1', name: 'Contract_Agreement.pdf', size: '2.4 MB', uploadedDate: '2026-02-15', uploadedBy: 'Patrick Lowenthal' },
-    { id: '2', name: 'Product_Catalog.pdf', size: '5.1 MB', uploadedDate: '2026-02-10', uploadedBy: 'Sarah Chen' },
-  ]);
+    fileUrl?: string;
+  }>>([]);
 
   // Fetch purchase orders for this contact
   useEffect(() => {
     setLoading(false);
     setOrders([]);
   }, [contact.company]);
+
+  // Fetch uploaded files for this contact
+  const fetchFiles = async () => {
+    if (!contact.id) return;
+    try {
+      const res = await fetch(`/api/files/list?entityType=contact-file&entityId=${encodeURIComponent(contact.id)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const mapped = (data.uploads ?? []).map((u: any) => {
+        const sizeBytes = typeof u.size === 'number' ? u.size : 0;
+        const sizeStr = sizeBytes > 1024 * 1024
+          ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+          : `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+        return {
+          id: u.id ?? u._id,
+          name: u.fileName ?? 'Unknown',
+          size: sizeStr,
+          uploadedDate: u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : '',
+          uploadedBy: u.uploadedBy ?? 'User',
+          fileUrl: u.fileUrl ?? '',
+        };
+      });
+      setUploadedFiles(mapped);
+    } catch {
+      // non-fatal
+    }
+  };
+
+  useEffect(() => {
+    fetchFiles();
+  }, [contact.id]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -55,32 +89,94 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
     onDelete();
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        const newFile = {
-          id: Date.now().toString() + Math.random(),
-          name: file.name,
-          size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-          uploadedDate: new Date().toISOString().split('T')[0],
-          uploadedBy: 'Current User'
-        };
-        setUploadedFiles(prev => [...prev, newFile]);
-      });
+    if (!files || files.length === 0 || !contact.id) return;
+
+    const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_SIZE) {
+        toast.error(`${file.name} exceeds the 50 MB size limit`);
+        return;
+      }
+    }
+
+    setIsUploadingFile(true);
+    try {
+      for (const file of Array.from(files)) {
+        // 1. Get presigned URL
+        const presignRes = await fetch('/api/files/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            entityType: 'contact-file',
+            entityId: contact.id,
+          }),
+        });
+        if (!presignRes.ok) throw new Error('Failed to get upload URL');
+        const { uploadUrl, key } = await presignRes.json();
+
+        // 2. Upload to S3
+        const s3Res = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type },
+        });
+        if (!s3Res.ok) throw new Error('Failed to upload file to storage');
+
+        // 3. Record metadata in MongoDB
+        const completeRes = await fetch('/api/files/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            fileName: file.name,
+            fileType: file.type,
+            size: file.size,
+            entityType: 'contact-file',
+            entityId: contact.id,
+            uploadedBy: user?.sub ?? user?.name ?? 'User',
+          }),
+        });
+        if (!completeRes.ok) throw new Error('Failed to record file metadata');
+      }
+      toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded`);
+      await fetchFiles();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsUploadingFile(false);
+      // Reset input
+      event.target.value = '';
     }
   };
 
-  const handleRemoveFile = (fileId: string) => {
-    setFileToDelete(fileId);
+  const handleRemoveFile = (file: { id: string; name: string }) => {
+    setFileToDelete(file);
     setShowDeleteFileModal(true);
   };
 
-  const handleConfirmFileDelete = () => {
-    if (fileToDelete) {
-      setUploadedFiles(prev => prev.filter(f => f.id !== fileToDelete));
+  const handleConfirmFileDelete = async () => {
+    if (!fileToDelete) return;
+    setIsDeletingFile(true);
+    try {
+      const res = await fetch('/api/files/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: fileToDelete.id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete file');
+      toast.success('File deleted');
+      await fetchFiles();
+    } catch {
+      toast.error('Failed to delete file');
+    } finally {
+      setIsDeletingFile(false);
+      setShowDeleteFileModal(false);
+      setFileToDelete(null);
     }
-    setShowDeleteFileModal(false);
   };
 
   // Sample data for associated records
@@ -610,19 +706,23 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
                         onChange={handleFileUpload}
                         className="hidden"
                         id="file-upload"
+                        disabled={isUploadingFile}
                       />
                       <label
                         htmlFor="file-upload"
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-300 transition-colors cursor-pointer"
+                        className={`flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-300 transition-colors cursor-pointer ${isUploadingFile ? 'opacity-60 cursor-not-allowed pointer-events-none' : ''}`}
                       >
-                        <Upload className="w-4 h-4" />
-                        Upload File
+                        {isUploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        {isUploadingFile ? 'Uploading...' : 'Upload File'}
                       </label>
                     </div>
                   </div>
                 </div>
                 <div className="p-6">
                   <div className="space-y-3">
+                    {uploadedFiles.length === 0 && (
+                      <p className="text-sm text-slate-500 text-center py-4">No documents uploaded yet.</p>
+                    )}
                     {uploadedFiles.map((file) => (
                       <div key={file.id} className="flex items-center justify-between py-2">
                         <div className="flex items-center gap-3 flex-1">
@@ -636,6 +736,7 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
+                            onClick={() => { if (file.fileUrl) window.open(file.fileUrl, '_blank'); }}
                             className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
                           >
                             <Download className="w-4 h-4" />
@@ -643,7 +744,7 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => handleRemoveFile(file.id)}
+                            onClick={() => handleRemoveFile({ id: file.id, name: file.name })}
                             className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -710,7 +811,7 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
             <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden w-96">
               <div className="bg-gradient-to-r from-red-50 to-red-100 px-6 py-4 border-b border-slate-200">
                 <h3 className="text-lg font-bold text-red-900">Confirm Delete</h3>
-                <p className="text-sm text-slate-500">Are you sure you want to delete this file?</p>
+                <p className="text-sm text-slate-500">Are you sure you want to delete &quot;{fileToDelete?.name}&quot;?</p>
               </div>
               <div className="p-6">
                 <div className="flex items-center justify-end gap-3">
@@ -718,17 +819,20 @@ export function ContactDetailView({ contact, onBack, onEdit, onDelete }: Contact
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowDeleteFileModal(false)}
+                    disabled={isDeletingFile}
                     className="flex items-center gap-2 px-5 py-2.5 bg-gray-500/20 backdrop-blur-sm border border-gray-300/30 text-gray-500 font-semibold rounded-xl hover:bg-gray-500/30 transition-colors"
                   >
                     Cancel
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: isDeletingFile ? 1 : 1.05 }}
+                    whileTap={{ scale: isDeletingFile ? 1 : 0.95 }}
                     onClick={handleConfirmFileDelete}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-red-500/20 backdrop-blur-sm border border-red-300/30 text-red-500 font-semibold rounded-xl hover:bg-red-500/30 transition-colors"
+                    disabled={isDeletingFile}
+                    className={`flex items-center gap-2 px-5 py-2.5 bg-red-500/20 backdrop-blur-sm border border-red-300/30 text-red-500 font-semibold rounded-xl hover:bg-red-500/30 transition-colors ${isDeletingFile ? 'opacity-60 cursor-not-allowed' : ''}`}
                   >
-                    Delete
+                    {isDeletingFile && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isDeletingFile ? 'Deleting...' : 'Delete'}
                   </motion.button>
                 </div>
               </div>

@@ -124,7 +124,7 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
         
         // Use original image
         setUploadedLogo(base64String);
-        setFormData({ ...formData, logo: base64String });
+        setFormData(prev => ({ ...prev, logo: base64String }));
         
         setIsProcessingImage(false);
       };
@@ -172,16 +172,17 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
     try {
       const createUrl = mode === 'standalone' ? '/api/vendors/create' : '/api/pipeline/vendors/create';
       const updateUrl = mode === 'standalone' ? '/api/vendors/update' : '/api/pipeline/vendors/update';
+      const { logo: _logo, ...formDataWithoutLogo } = formData;
       const payload = mode === 'standalone'
-        ? { ...formData }
-        : { productId, ...formData };
+        ? formDataWithoutLogo
+        : { productId, ...formDataWithoutLogo };
 
       let savedId = vendorData?.id;
       if (vendorData?.id) {
         const res = await fetch(updateUrl, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: vendorData.id, ...formData }),
+          body: JSON.stringify({ id: vendorData.id, ...formDataWithoutLogo }),
         });
         if (!res.ok) throw new Error('Failed to update vendor');
         toast.success('Vendor updated successfully');
@@ -199,31 +200,23 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
 
       // Upload logo to S3 if a file was selected (standalone mode)
       if (mode === 'standalone' && savedId && uploadedLogo && uploadedLogo.startsWith('data:')) {
-        // Convert base64 to File for upload - fetch the data URI
         try {
-          const blob = await fetch(uploadedLogo).then(r => r.blob());
-          const file = new File([blob], 'logo.png', { type: blob.type });
-          const presignRes = await fetch('/api/files/presign', {
+          const [header, base64Data] = uploadedLogo.split(',');
+          const fileType = header.match(/:(.*?);/)?.[1] ?? 'image/png';
+          const uploadRes = await fetch('/api/files/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileName: 'logo.png', fileType: file.type, entityType: 'vendor-logo', entityId: savedId }),
+            body: JSON.stringify({ fileName: 'logo.png', fileType, entityType: 'vendor-logo', entityId: savedId, fileData: base64Data }),
           });
-          if (presignRes.ok) {
-            const { uploadUrl, key } = await presignRes.json();
-            await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-            await fetch('/api/files/complete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ key, fileName: 'logo.png', fileType: file.type, size: file.size, entityType: 'vendor-logo', entityId: savedId, uploadedBy: 'User' }),
-            });
-            await fetch(updateUrl, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: savedId, logoKey: key }),
-            });
-          }
+          if (!uploadRes.ok) throw new Error('Upload failed');
+          const { key } = await uploadRes.json();
+          await fetch(updateUrl, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: savedId, logoKey: key }),
+          });
         } catch {
-          // Logo upload failure is non-fatal
+          toast.warning('Vendor saved, but logo could not be uploaded. Try editing the vendor to re-upload the logo.');
         }
       }
 
@@ -326,13 +319,13 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess, produc
                     <label htmlFor="logo-upload">
                       <motion.div
                         whileHover={{ scale: 1.02 }}
-                        className="w-40 h-40 border-3 border-dashed border-slate-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden"
+                        className="w-40 h-40 border-3 border-dashed border-slate-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden p-3"
                       >
                         {uploadedLogo || formData.logo ? (
-                          <img 
-                            src={uploadedLogo || formData.logo} 
-                            alt="Vendor logo preview" 
-                            className="w-full h-full object-cover"
+                          <img
+                            src={uploadedLogo || formData.logo}
+                            alt="Vendor logo preview"
+                            className="w-full h-full object-contain"
                           />
                         ) : isProcessingImage ? (
                           <div className="text-center">
