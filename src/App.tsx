@@ -22,6 +22,7 @@ import { AnalyticsModule } from './components/AnalyticsModule';
 import { PurchasingModule } from './components/PurchasingModule';
 import { EmailTemplatesModule } from './components/EmailTemplatesModule';
 import { AmazonDistributionModule } from './components/AmazonDistributionModule';
+import { OfficePage } from './components/OfficePage';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 
@@ -133,6 +134,8 @@ export default function App() {
         return <EmailTemplatesModule />;
       case 'amazon-distribution':
         return <AmazonDistributionModule />;
+      case 'office':
+        return <OfficePage />;
       default:
         return <Dashboard />;
     }
