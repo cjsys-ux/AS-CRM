@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from './context/AuthContext';
+import { useState } from 'react';
+import { AmazonDistributionModule } from './components/AmazonDistributionModule';
+import { AnimatePresence } from 'motion/react';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -13,16 +14,14 @@ import { OrdersPage } from './components/OrdersPage';
 import { ProfileSettings } from './components/ProfileSettings';
 import { SettingsPage } from './components/SettingsPage';
 import { LoginPage } from './components/LoginPage';
-import { SetPasswordPage } from './components/SetPasswordPage';
-import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { ShipmentsModule } from './components/ShipmentsModule';
 import { ContactsModule } from './components/ContactsModule';
 import { ProductDatabaseModule } from './components/ProductDatabaseModule';
 import { AnalyticsModule } from './components/AnalyticsModule';
 import { PurchasingModule } from './components/PurchasingModule';
 import { EmailTemplatesModule } from './components/EmailTemplatesModule';
-import { AmazonDistributionModule } from './components/AmazonDistributionModule';
-import { AnimatePresence } from 'motion/react';
+import { WMSModule } from './components/WMSModule';
+import { SalesLeadModule } from './components/SalesLeadModule';
 import { Toaster } from './components/ui/sonner';
 
 export interface UserProfile {
@@ -37,53 +36,23 @@ export interface UserProfile {
 }
 
 export default function App() {
-  const { isAuthenticated, isLoading, user, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    profileImage: '',
-    jobTitle: '',
-    department: '',
+    firstName: 'Patrick',
+    lastName: 'Lowenthal',
+    email: 'patrick@activateswag.com',
+    phone: '(305) 215-2199',
+    profileImage: 'https://images.unsplash.com/photo-1655249493799-9cee4fe983bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlcnNvbiUyMGhlYWRzaG90fGVufDF8fHx8MTc3MDI1NDAyM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    jobTitle: 'Product Manager',
+    department: 'Product',
     timezone: 'America/New_York',
   });
 
-  useEffect(() => {
-    if (user) {
-      const nameParts = (user.name || '').split(' ');
-      setUserProfile((prev) => ({
-        ...prev,
-        firstName: user.given_name || nameParts[0] || '',
-        lastName: user.family_name || nameParts.slice(1).join(' ') || '',
-        email: user.email || '',
-        profileImage: user.picture || prev.profileImage,
-      }));
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (!user?.sub || user.sub.startsWith('local|')) return;
-    fetch(`/api/users/me?userId=${encodeURIComponent(user.sub)}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data) {
-          setUserProfile((prev) => ({
-            ...prev,
-            ...(data.profile_image_key ? { profileImage: data.profile_image_key } : {}),
-            ...(data.phone ? { phone: data.phone } : {}),
-            ...(data.timezone ? { timezone: data.timezone } : {}),
-          }));
-        }
-      })
-      .catch(() => {});
-  }, [user?.sub]);
-
   const handleNavigate = (page: string) => {
     if (page === 'logout') {
-      logout();
+      setIsLoggedIn(false);
       setCurrentPage('dashboard');
     } else {
       setCurrentPage(page);
@@ -118,7 +87,7 @@ export default function App() {
       case 'pending-orders':
       case 'in-progress-orders':
       case 'completed-orders':
-        return <OrdersPage />;
+        return <OrdersPage onNavigate={handleNavigate} />;
       case 'shipments':
         return <ShipmentsModule />;
       case 'contacts':
@@ -127,41 +96,34 @@ export default function App() {
         return <ProductDatabaseModule />;
       case 'analytics':
         return <AnalyticsModule />;
+      case 'sales-leads':
+        return <SalesLeadModule />;
       case 'purchasing':
-        return <PurchasingModule />;
+        return <PurchasingModule onNavigate={handleNavigate} />;
       case 'email-templates':
         return <EmailTemplatesModule />;
       case 'amazon-distribution':
         return <AmazonDistributionModule />;
+      case 'wms':
+      case 'wms-overview':
+      case 'wms-warehouses':
+      case 'wms-inventory':
+      case 'wms-receiving':
+      case 'wms-picking':
+      case 'wms-shipping':
+        return <WMSModule key={currentPage} initialTab={currentPage.replace('wms-', '').replace('wms', 'overview')} onNavigate={handleNavigate} />;
       default:
         return <Dashboard />;
     }
   };
 
-  // Intercept invite password-setup links before the auth gate
-  const urlParams = new URLSearchParams(window.location.search);
-  const inviteToken = urlParams.get('token');
-  if (window.location.pathname === '/set-password' && inviteToken) {
-    return <SetPasswordPage token={inviteToken} />;
-  }
-  if (window.location.pathname === '/reset-password' && inviteToken) {
-    return <ResetPasswordPage token={inviteToken} />;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="size-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        <div className="text-white text-xl font-semibold animate-pulse">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage />;
+  // Show login page if not logged in
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
   }
 
   return (
-    <div className="w-full h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <div className="size-full flex bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       <Sidebar 
         onNavigate={handleNavigate} 
         isMobileMenuOpen={isMobileMenuOpen}
