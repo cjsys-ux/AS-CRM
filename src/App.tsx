@@ -123,7 +123,7 @@ export default function App() {
   }
 
   return (
-    <div className="size-full flex bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <div className="w-full h-screen flex bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       <Sidebar 
         onNavigate={handleNavigate} 
         isMobileMenuOpen={isMobileMenuOpen}
