@@ -126,12 +126,15 @@
 
   html, body, #root {
     height: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
   }
 }
 
