@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Cpu } from 'lucide-react';
+import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Cpu, Warehouse, Target } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface SubItem {
@@ -17,6 +17,7 @@ interface MenuItem {
 const menuData: MenuItem[] = [
   { icon: Home, label: 'Dashboard', id: 'home' },
   { icon: BarChart3, label: 'Analytics', id: 'analytics' },
+  { icon: Target, label: 'Sales Leads', id: 'sales-leads' },
   {
     icon: Package,
     label: 'Products',
@@ -25,6 +26,19 @@ const menuData: MenuItem[] = [
       { label: 'Pipeline', id: 'pipeline' },
       { label: 'Product Database', id: 'product-database' },
       { label: 'Inventory', id: 'inventory' },
+    ],
+  },
+  {
+    icon: Warehouse,
+    label: 'Warehouse',
+    id: 'wms',
+    subItems: [
+      { label: 'Overview', id: 'wms-overview' },
+      { label: 'Warehouses', id: 'wms-warehouses' },
+      { label: 'Inventory', id: 'wms-inventory' },
+      { label: 'Receiving', id: 'wms-receiving' },
+      { label: 'Picking', id: 'wms-picking' },
+      { label: 'Shipping', id: 'wms-shipping' },
     ],
   },
   {

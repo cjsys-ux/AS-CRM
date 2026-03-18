@@ -1,8 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Mail, Phone, Building2, Briefcase, Globe, ChevronDown, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { useAuth } from '../context/AuthContext';
+import { X, User, Mail, Phone, Building2, Briefcase, Globe, ChevronDown, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 interface ContactDrawerProps {
   isOpen: boolean;
@@ -30,11 +28,132 @@ const countries = [
   { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
 ];
 
+const CONTACT_TYPES = ['Customer', 'Vendor', 'Lead'];
+const CONTACT_STATUSES = ['Active', 'Inactive', 'Prospect', 'Cold'];
+
+// ─── Custom Dropdown (matching Vendor Drawer FormDropdown) ───
+function FormDropdown({
+  label,
+  required,
+  value,
+  options,
+  onChange,
+  placeholder,
+  accentColor = 'purple',
+}: {
+  label: string;
+  required?: boolean;
+  value: string;
+  options: string[];
+  onChange: (val: string) => void;
+  placeholder?: string;
+  accentColor?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const ringColor: Record<string, string> = {
+    purple: 'ring-purple-500/30 border-purple-500',
+    green: 'ring-green-500/30 border-green-500',
+    orange: 'ring-orange-500/30 border-orange-500',
+    teal: 'ring-teal-500/30 border-teal-500',
+    blue: 'ring-blue-500/30 border-blue-500',
+    pink: 'ring-pink-500/30 border-pink-500',
+  };
+
+  const checkColor: Record<string, string> = {
+    purple: 'text-purple-600', green: 'text-green-600', orange: 'text-orange-600',
+    teal: 'text-teal-600', blue: 'text-blue-600', pink: 'text-pink-600',
+  };
+
+  const hoverColor: Record<string, string> = {
+    purple: 'bg-purple-50', green: 'bg-green-50', orange: 'bg-orange-50',
+    teal: 'bg-teal-50', blue: 'bg-blue-50', pink: 'bg-pink-50',
+  };
+
+  const getStatusBadge = (opt: string) => {
+    if (label !== 'Status') return null;
+    const colors: Record<string, string> = {
+      Active: 'bg-green-100 text-green-700',
+      Inactive: 'bg-slate-100 text-slate-600',
+      Prospect: 'bg-amber-100 text-amber-700',
+      Cold: 'bg-blue-100 text-blue-700',
+    };
+    return colors[opt] || null;
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative" ref={ref}>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className={`w-full flex items-center justify-between px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 font-medium transition-all ${open ? `ring-2 ${ringColor[accentColor] || ringColor.purple}` : ''}`}
+        >
+          <span className={value ? 'text-slate-900' : 'text-slate-400'}>
+            {value || placeholder || `Select ${label.toLowerCase()}`}
+          </span>
+          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.12 }}
+              className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto"
+            >
+              <div className="py-1">
+                {options.map((opt) => {
+                  const badge = getStatusBadge(opt);
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => { onChange(opt); setOpen(false); }}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${
+                        value === opt
+                          ? `${hoverColor[accentColor] || hoverColor.purple} font-semibold`
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        {badge ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${badge}`}>
+                            {opt}
+                          </span>
+                        ) : (
+                          opt
+                        )}
+                      </span>
+                      {value === opt && <Check className={`w-4 h-4 ${checkColor[accentColor] || checkColor.purple}`} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawerProps) {
   const isEditMode = !!contact;
-  const { user } = useAuth();
-  const [isSaving, setIsSaving] = useState(false);
-
+  
   const [formData, setFormData] = useState({
     id: '',
     firstName: '',
@@ -46,15 +165,11 @@ export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawe
     type: 'Customer',
     country: 'United States',
     status: 'Active',
+    owner: '',
   });
-
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   useEffect(() => {
     if (contact) {
-      // Parse full name into first and last name
       const nameParts = contact.name?.split(' ') || ['', ''];
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
@@ -70,9 +185,9 @@ export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawe
         type: contact.type || 'Customer',
         country: contact.country || 'United States',
         status: contact.status || 'Active',
+        owner: (contact as any).owner || '',
       });
     } else {
-      // Reset form for new contact
       setFormData({
         id: '',
         firstName: '',
@@ -84,100 +199,43 @@ export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawe
         type: 'Customer',
         country: 'United States',
         status: 'Active',
+        owner: '',
       });
     }
   }, [contact, isOpen]);
 
   const formatPhoneNumber = (value: string) => {
-    // Remove all non-numeric characters
-    const phoneNumber = value.replace(/\D/g, '');
-    
-    // Format as (XXX) XXX-XXXX
-    if (phoneNumber.length <= 3) {
-      return phoneNumber;
-    } else if (phoneNumber.length <= 6) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    } else {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
-    }
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} - ${digits.slice(6)}`;
   };
 
-  const handlePhoneChange = (value: string) => {
-    const formatted = formatPhoneNumber(value);
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhoneNumber(e.target.value);
     setFormData(prev => ({ ...prev, phone: formatted }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSaving) return;
-
-    const name = `${formData.firstName} ${formData.lastName}`.trim();
-
-    setIsSaving(true);
-    try {
-      if (isEditMode && formData.id) {
-        // Update existing contact
-        const res = await fetch('/api/contacts/update', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: formData.id,
-            name,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            position: formData.position,
-            type: formData.type,
-            country: formData.country,
-            status: formData.status,
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error ?? 'Failed to update contact');
-        }
-        toast.success('Contact updated');
-        const { firstName: _f, lastName: _l, ...rest } = { ...formData, name };
-        onSave({ ...rest, name });
-      } else {
-        // Create new contact
-        const res = await fetch('/api/contacts/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            email: formData.email,
-            phone: formData.phone,
-            company: formData.company,
-            position: formData.position,
-            type: formData.type,
-            country: formData.country,
-            status: formData.status,
-            createdBy: user?.sub ?? null,
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error ?? 'Failed to create contact');
-        }
-        const data = await res.json();
-        toast.success('Contact created');
-        onSave(data.contact);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save contact');
-    } finally {
-      setIsSaving(false);
+    
+    if (!formData.firstName.trim()) {
+      return;
     }
+    
+    const contactData = {
+      ...formData,
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+    };
+    
+    const { firstName, lastName, ...finalData } = contactData;
+    
+    onSave(finalData);
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const getCountryFlag = (countryName: string) => {
-    const country = countries.find(c => c.name === countryName);
-    return country?.flag || '🌍';
   };
 
   return (
@@ -199,331 +257,227 @@ export function ContactDrawer({ isOpen, onClose, contact, onSave }: ContactDrawe
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 35, stiffness: 350 }}
-            className="fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-xl bg-slate-50 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 px-8 py-8 flex items-center justify-between shadow-xl">
-              <div className="flex items-center gap-5">
+            <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 px-6 py-5 flex items-center justify-between shadow-xl shrink-0">
+              <div className="flex items-center gap-4">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.2, type: 'spring' }}
-                  className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl"
+                  className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl"
                 >
-                  <User className="w-8 h-8 text-white" />
+                  <User className="w-6 h-6 text-white" />
                 </motion.div>
                 <div>
-                  <motion.h2
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-3xl font-black text-white mb-1"
-                  >
-                    {isEditMode ? 'Edit Contact' : 'New Contact'}
-                  </motion.h2>
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-purple-50 font-medium"
-                  >
-                    Add a new contact to your directory
-                  </motion.p>
+                  <h2 className="text-xl font-black text-white">
+                    {isEditMode ? 'Edit Contact' : 'Add New Contact'}
+                  </h2>
+                  <p className="text-purple-100 text-sm">
+                    {isEditMode ? 'Update contact information' : 'Add a new contact to your directory'}
+                  </p>
                 </div>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-3 hover:bg-white/20 rounded-2xl transition-all"
+                className="p-2 hover:bg-white/20 rounded-xl transition-all"
               >
-                <X className="w-7 h-7 text-white" />
+                <X className="w-6 h-6 text-white" />
               </motion.button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Basic Information Section */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 drawer-scroll">
+              <form id="contact-form" onSubmit={handleSubmit} className="space-y-4">
+                {/* Basic Information */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                  className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
                 >
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <User className="w-5 h-5 text-white" />
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow">
+                      <User className="w-4 h-4 text-white" />
                     </div>
-                    <h3 className="text-xl font-black text-slate-900">Basic Information</h3>
+                    <h3 className="text-base font-bold text-slate-900">Basic Information</h3>
                   </div>
 
-                  <div className="space-y-6">
-                    {/* First Name */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                          First Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.firstName}
+                          onChange={(e) => handleChange('firstName', e.target.value)}
+                          placeholder="John"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                          Last Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.lastName}
+                          onChange={(e) => handleChange('lastName', e.target.value)}
+                          placeholder="Doe"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    <FormDropdown
+                      label="Status"
+                      value={formData.status}
+                      options={CONTACT_STATUSES}
+                      onChange={(val) => handleChange('status', val)}
+                      accentColor="purple"
+                    />
+
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <User className="w-4 h-4 text-indigo-600" />
-                        First Name <span className="text-red-500">*</span>
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Contact Owner</label>
                       <input
                         type="text"
-                        required
-                        value={formData.firstName}
-                        onChange={(e) => handleChange('firstName', e.target.value)}
-                        placeholder="John"
-                        className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50"
+                        value={formData.owner}
+                        onChange={(e) => handleChange('owner', e.target.value)}
+                        placeholder="e.g. Mitch Slater"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
                       />
+                      <p className="text-xs text-slate-400 mt-1">Assigns visibility of this contact to a specific user</p>
                     </div>
+                  </div>
+                </motion.div>
 
-                    {/* Last Name */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <User className="w-4 h-4 text-indigo-600" />
-                        Last Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.lastName}
-                        onChange={(e) => handleChange('lastName', e.target.value)}
-                        placeholder="Smith"
-                        className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50"
-                      />
+                {/* Contact Information */}
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                >
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
+                      <Mail className="w-4 h-4 text-white" />
                     </div>
+                    <h3 className="text-base font-bold text-slate-900">Contact Information</h3>
+                  </div>
 
-                    {/* Email */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Mail className="w-4 h-4 text-indigo-600" />
-                        Email <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => handleChange('email', e.target.value)}
-                        placeholder="john.smith@company.com"
-                        className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={formData.email}
+                          onChange={(e) => handleChange('email', e.target.value)}
+                          placeholder="contact@company.com"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1.5">Phone</label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={handlePhoneChange}
+                          placeholder="(555) 123 - 4567"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all font-medium"
+                        />
+                      </div>
                     </div>
+                  </div>
+                </motion.div>
 
-                    {/* Phone */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Phone className="w-4 h-4 text-indigo-600" />
-                        Phone
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder="(407) 342-9035"
-                        className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50"
-                      />
+                {/* Business Details */}
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                >
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow">
+                      <Building2 className="w-4 h-4 text-white" />
                     </div>
+                    <h3 className="text-base font-bold text-slate-900">Business Details</h3>
+                  </div>
 
-                    {/* Company Name */}
+                  <div className="space-y-4">
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Building2 className="w-4 h-4 text-indigo-600" />
-                        Company Name
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Company Name</label>
                       <input
                         type="text"
                         value={formData.company}
                         onChange={(e) => handleChange('company', e.target.value)}
                         placeholder="Acme Corporation"
-                        className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all font-medium"
                       />
                     </div>
 
-                    {/* Position / Title */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Briefcase className="w-4 h-4 text-indigo-600" />
-                        Position / Title
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Position / Title</label>
                       <input
                         type="text"
                         value={formData.position}
                         onChange={(e) => handleChange('position', e.target.value)}
                         placeholder="Sales Manager"
-                        className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all font-medium"
                       />
                     </div>
 
-                    {/* Country Dropdown with Flags */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Globe className="w-4 h-4 text-indigo-600" />
-                        Country
-                      </label>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                          className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-base font-medium bg-slate-50/50 flex items-center justify-between"
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className="text-2xl">{getCountryFlag(formData.country)}</span>
-                            <span className="text-slate-700">{formData.country}</span>
-                          </span>
-                          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                        
-                        <AnimatePresence>
-                          {showCountryDropdown && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="absolute z-10 w-full mt-2 bg-white border-2 border-slate-300 rounded-2xl shadow-2xl max-h-64 overflow-y-auto"
-                            >
-                              {countries.map((country) => (
-                                <button
-                                  key={country.code}
-                                  type="button"
-                                  onClick={() => {
-                                    handleChange('country', country.name);
-                                    setShowCountryDropdown(false);
-                                  }}
-                                  className="w-full px-5 py-4 flex items-center gap-3 hover:bg-purple-50 transition-colors text-left font-medium"
-                                >
-                                  <span className="text-2xl">{country.flag}</span>
-                                  <span className="text-slate-700">{country.name}</span>
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    {/* Contact Type - Only Customer and Vendor */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Building2 className="w-4 h-4 text-indigo-600" />
-                        Contact Type
-                      </label>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                          className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-slate-50/50 text-base font-medium text-slate-700 flex items-center justify-between"
-                        >
-                          <span className="text-slate-700">{formData.type}</span>
-                          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showTypeDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                        
-                        <AnimatePresence>
-                          {showTypeDropdown && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="absolute z-10 w-full mt-2 bg-white border-2 border-slate-300 rounded-2xl shadow-2xl max-h-64 overflow-y-auto"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleChange('type', 'Customer');
-                                  setShowTypeDropdown(false);
-                                }}
-                                className="w-full px-5 py-4 flex items-center gap-3 hover:bg-purple-50 transition-colors text-left font-medium"
-                              >
-                                <span className="text-slate-700">Customer</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleChange('type', 'Vendor');
-                                  setShowTypeDropdown(false);
-                                }}
-                                className="w-full px-5 py-4 flex items-center gap-3 hover:bg-purple-50 transition-colors text-left font-medium"
-                              >
-                                <span className="text-slate-700">Vendor</span>
-                              </button>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    {/* Status - Active or Inactive */}
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
-                        <Briefcase className="w-4 h-4 text-indigo-600" />
-                        Status
-                      </label>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                          className="w-full px-5 py-4 border-2 border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-slate-50/50 text-base font-medium text-slate-700 flex items-center justify-between"
-                        >
-                          <span className="text-slate-700">{formData.status}</span>
-                          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                        
-                        <AnimatePresence>
-                          {showStatusDropdown && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="absolute z-10 w-full mt-2 bg-white border-2 border-slate-300 rounded-2xl shadow-2xl max-h-64 overflow-y-auto"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleChange('status', 'Active');
-                                  setShowStatusDropdown(false);
-                                }}
-                                className="w-full px-5 py-4 flex items-center gap-3 hover:bg-purple-50 transition-colors text-left font-medium"
-                              >
-                                <span className="text-slate-700">Active</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleChange('status', 'Inactive');
-                                  setShowStatusDropdown(false);
-                                }}
-                                className="w-full px-5 py-4 flex items-center gap-3 hover:bg-purple-50 transition-colors text-left font-medium"
-                              >
-                                <span className="text-slate-700">Inactive</span>
-                              </button>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormDropdown
+                        label="Contact Type"
+                        value={formData.type}
+                        options={CONTACT_TYPES}
+                        onChange={(val) => handleChange('type', val)}
+                        accentColor="orange"
+                      />
+                      <FormDropdown
+                        label="Country"
+                        value={formData.country}
+                        options={countries.map(c => c.name)}
+                        onChange={(val) => handleChange('country', val)}
+                        accentColor="pink"
+                      />
                     </div>
                   </div>
                 </motion.div>
               </form>
             </div>
 
-            {/* Footer Actions */}
-            <div className="border-t-2 border-slate-200 bg-white px-8 py-6 flex items-center justify-between shadow-xl">
+            {/* Fixed Footer Buttons */}
+            <div className="shrink-0 px-6 py-4 bg-white border-t border-slate-200 flex gap-3">
               <motion.button
                 type="button"
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={onClose}
-                className="px-8 py-4 text-slate-700 font-bold text-base bg-slate-100 border-2 border-slate-300 rounded-2xl hover:bg-slate-200 transition-all shadow-lg"
+                className="flex-1 px-6 py-3.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded-xl font-bold text-slate-700 transition-all"
               >
                 Cancel
               </motion.button>
               <motion.button
                 type="submit"
-                whileHover={{ scale: isSaving ? 1 : 1.03 }}
-                whileTap={{ scale: isSaving ? 1 : 0.97 }}
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className={`px-8 py-4 text-white font-bold text-base bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl hover:shadow-2xl transition-all shadow-lg flex items-center gap-2 ${isSaving ? 'opacity-60 cursor-not-allowed' : ''}`}
+                form="contact-form"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                className="flex-1 px-6 py-3.5 bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2"
               >
-                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <User className="w-5 h-5" />}
-                {isSaving ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Contact')}
+                {isEditMode ? 'Update Contact' : 'Create Contact'}
               </motion.button>
             </div>
           </motion.div>

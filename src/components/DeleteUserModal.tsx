@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, AlertTriangle, Trash2, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { X, AlertTriangle, Trash2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -15,33 +14,17 @@ interface User {
 interface DeleteUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm?: () => Promise<void>;
+  onConfirm?: () => void;
   user: User | null;
 }
 
 export function DeleteUserModal({ isOpen, onClose, onConfirm, user }: DeleteUserModalProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsDeleting(false);
-      setDeleteError('');
-    }
-  }, [isOpen]);
-
   if (!user) return null;
 
-  const handleConfirm = async () => {
-    setIsDeleting(true);
-    setDeleteError('');
-    try {
-      await onConfirm?.();
-      // Parent closes the modal on success
-    } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete user.');
-      setIsDeleting(false);
-    }
+  const handleConfirm = () => {
+    console.log('Deleting user:', user);
+    onConfirm?.();
+    onClose();
   };
 
   return (
@@ -78,11 +61,10 @@ export function DeleteUserModal({ isOpen, onClose, onConfirm, user }: DeleteUser
                     </div>
                   </div>
                   <motion.button
-                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                    whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={onClose}
-                    disabled={isDeleting}
-                    className="p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5 text-white" />
                   </motion.button>
@@ -131,41 +113,23 @@ export function DeleteUserModal({ isOpen, onClose, onConfirm, user }: DeleteUser
                   </div>
                 </div>
 
-                {/* Error banner */}
-                {deleteError && (
-                  <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                    {deleteError}
-                  </div>
-                )}
-
                 <div className="flex gap-3">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={onClose}
-                    disabled={isDeleting}
-                    className="flex-1 py-3 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 py-3 bg-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-300 transition-all"
                   >
                     Cancel
                   </motion.button>
                   <motion.button
-                    whileHover={!isDeleting ? { scale: 1.02 } : {}}
-                    whileTap={!isDeleting ? { scale: 0.98 } : {}}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleConfirm}
-                    disabled={isDeleting}
-                    className="flex-1 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-700 transition-all shadow-lg flex items-center justify-center gap-2"
                   >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="w-4 h-4" />
-                        Delete User
-                      </>
-                    )}
+                    <Trash2 className="w-4 h-4" />
+                    Delete User
                   </motion.button>
                 </div>
               </div>

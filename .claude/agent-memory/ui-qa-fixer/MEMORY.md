@@ -72,5 +72,30 @@ Modules with existing responsive padding (already correct):
 - Commit format: `fix(ui): [ISSUE-ID] description`
 - Vercel auto-deploys preview from any pushed branch
 
+## Status Option Mismatch Pattern (ProductPipeline)
+FilterDropdown and BulkEditModal in ProductPipeline had wrong status
+values ("In Production", "Design Review", "Completed") vs real statuses
+("New Product", "In Progress", "Ready For Live", "Live").
+Watch for this if any other module has inline filter/bulk-edit dropdowns.
+
+## Advanced Filters Silently Ignored Pattern
+AdvancedFilterPanel collects filter state that is passed via onApply,
+but callers must explicitly wire the returned object into filteredProducts.
+ProductPipeline was not doing this — fixed 2026-03-04.
+
+## Dead Import Pattern
+BulkActionBar was imported in ProductPipeline but replaced by an inline
+bulk bar. Always check that imported sub-components are actually used in JSX.
+
+## Loading/Error State CTA Pattern
+Empty-state CTAs ("Add Your First Product") must be gated with
+`!loading && !error`. Without this guard the CTA shows during load and
+during error states, which is misleading.
+
+## Numeric Safety Pattern (MongoDB data)
+Fields like yearlyQty and pricePerUnit marked required in TypeScript types
+may still arrive as undefined/null from MongoDB if legacy records are
+missing them. Guard with `?? 0` before calling .toFixed() / .toLocaleString().
+
 ## Known Needs-Human-Decision Issues
-- None flagged yet in this session
+- None flagged yet

@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Plus, Search, Filter, Download, Eye, Edit, Trash2, ChevronLeft, ChevronRight, Building2, DollarSign, TrendingUp, UserCheck, ArrowUpDown, ExternalLink, ChevronDown } from 'lucide-react';
+import { Users, Plus, Search, Filter, Download, Eye, Edit, Trash2, ChevronLeft, ChevronRight, Building2, DollarSign, TrendingUp, UserCheck, ArrowUpDown, ExternalLink, ChevronDown, X, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AddCustomerDrawer } from './AddCustomerDrawer';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { CustomerDetailView } from './CustomerDetailView';
-import { toast } from 'sonner';
-
+import { toast } from 'sonner@2.0.3';
+import { ColumnVisibilityDropdown, ColumnDef } from './ColumnVisibilityDropdown';
 
 interface Customer {
   id: string;
@@ -51,18 +51,30 @@ export function Customers() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // Column visibility
+  const customerColumns: ColumnDef[] = [
+    { key: 'logo', label: 'Logo' },
+    { key: 'customer', label: 'Customer' },
+    { key: 'industry', label: 'Industry' },
+    { key: 'size', label: 'Size' },
+    { key: 'status', label: 'Status' },
+    { key: 'resaleCert', label: 'Resale Cert' },
+    { key: 'website', label: 'Website' },
+    { key: 'spend', label: 'Spend' },
+    { key: 'actions', label: 'Actions' },
+  ];
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    customerColumns.forEach(c => { init[c.key] = true; });
+    return init;
+  });
+  const isColVisible = (key: string) => columnVisibility[key] !== false;
+  const visibleColCount = customerColumns.filter(c => isColVisible(c.key)).length;
+
   const fetchCustomers = async () => {
     setIsLoading(true);
-    try {
-      const res = await fetch('/api/customers/list');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setCustomers(data.customers ?? []);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setIsLoading(false);
-    }
+    setCustomers([]);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -71,21 +83,8 @@ export function Customers() {
 
   const handleDeleteCustomer = async () => {
     if (!customerToDelete) return;
-    try {
-      const res = await fetch('/api/customers/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: customerToDelete.id }),
-      });
-      if (!res.ok) throw new Error('Failed to delete');
-      toast.success('Customer deleted successfully');
-      fetchCustomers();
-    } catch {
-      toast.error('Failed to delete customer');
-    } finally {
-      setDeleteModalOpen(false);
-      setCustomerToDelete(null);
-    }
+    setCustomers(prev => prev.filter(item => item.id !== customerToDelete.id));
+    toast.success('Customer deleted successfully');
   };
 
   const filteredCustomers = customers.filter((customer) => {
@@ -126,35 +125,40 @@ export function Customers() {
   // Calculate KPIs
   const totalCustomers = customers.length;
   const activeCustomers = customers.filter(c => c.status === 'Active').length;
-  const totalSpend = customers.reduce((sum, c) => sum + (c.spend ?? 0), 0);
-  /* ui-qa-fixer: UI-2026-001 - guard divide-by-zero producing NaN when customers array is empty */
-  const avgSpend = customers.length > 0 ? totalSpend / customers.length : 0;
+  const totalSpend = customers.reduce((sum, c) => sum + c.spend, 0);
+  const avgSpend = totalSpend / customers.length;
+
+  const activeFilters = (selectedStatus !== 'all' ? 1 : 0) + (selectedIndustry !== 'all' ? 1 : 0) + (selectedSize !== 'all' ? 1 : 0);
 
   return (
+    <>
+      {viewingCustomerId ? (
+        <CustomerDetailView
+          customerId={viewingCustomerId}
+          onBack={() => setViewingCustomerId(null)}
+          onCustomerUpdated={(updatedCustomer) => {
+            fetchCustomers();
+          }}
+        />
+      ) : (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header Section */}
-      {/* ui-qa-fixer: UI-2026-009 - responsive padding prevents content overflow on mobile */}
-      <div className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 px-4 md:px-8 py-8 shadow-lg">
+      <div className="bg-white border-b border-slate-200 px-8 py-8">
         <div className="max-w-[1800px] mx-auto">
-          {/* ui-qa-fixer: UI-2026-009 - flex-wrap prevents button overflow at 375px */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <motion.div
-                whileHover={{ scale: 1.05, rotate: 360 }}
-                transition={{ duration: 0.6 }}
-                className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl"
-              >
-                <Users className="w-8 h-8 text-white" />
-              </motion.div>
+              <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
+                <Users className="w-7 h-7 text-white" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">Customers</h1>
-                <p className="text-blue-50">Manage and track customer relationships</p>
+                <h1 className="text-3xl font-bold text-slate-900 mb-1">Customers</h1>
+                <p className="text-slate-500">Manage and track customer relationships</p>
               </div>
             </div>
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-8 py-4 bg-white text-blue-600 font-bold rounded-2xl shadow-2xl hover:shadow-blue-500/20 transition-all"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
               onClick={() => setIsAddCustomerDrawerOpen(true)}
             >
               <Plus className="w-5 h-5" />
@@ -165,35 +169,26 @@ export function Customers() {
       </div>
 
       {/* KPI Cards */}
-      {/* ui-qa-fixer: UI-2026-009 - responsive padding */}
-      <div className="px-4 md:px-8 -mt-6 mb-6 relative z-10">
+      <div className="px-8 mt-6 mb-6 relative z-10">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl"
+              className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <DollarSign className="w-7 h-7 text-white" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <DollarSign className="w-6 h-6 text-white" />
                 </div>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: 'spring' }}
-                  className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-xs font-bold"
-                >
-                  YTD
-                </motion.div>
               </div>
-              <p className="text-sm font-medium text-slate-600 mb-1">Total Spend</p>
+              <p className="text-xs font-medium text-slate-600 mb-1">Total Spend</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-4xl font-bold text-slate-900"
+                className="text-3xl font-bold text-slate-900"
               >
                 ${(totalSpend / 1000).toFixed(0)}K
               </motion.h3>
@@ -202,29 +197,21 @@ export function Customers() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.05 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl"
+              className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Building2 className="w-7 h-7 text-white" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Building2 className="w-6 h-6 text-white" />
                 </div>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: 'spring' }}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold"
-                >
-                  +15%
-                </motion.div>
               </div>
-              <p className="text-sm font-medium text-slate-600 mb-1">Total Customers</p>
+              <p className="text-xs font-medium text-slate-600 mb-1">Total Customers</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="text-4xl font-bold text-slate-900"
+                transition={{ delay: 0.35 }}
+                className="text-3xl font-bold text-slate-900"
               >
                 {totalCustomers}
               </motion.h3>
@@ -233,29 +220,21 @@ export function Customers() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.1 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl"
+              className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <UserCheck className="w-7 h-7 text-white" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <UserCheck className="w-6 h-6 text-white" />
                 </div>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: 'spring' }}
-                  className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold"
-                >
-                  Active
-                </motion.div>
               </div>
-              <p className="text-sm font-medium text-slate-600 mb-1">Active Customers</p>
+              <p className="text-xs font-medium text-slate-600 mb-1">Active Customers</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-4xl font-bold text-slate-900"
+                transition={{ delay: 0.4 }}
+                className="text-3xl font-bold text-slate-900"
               >
                 {activeCustomers}
               </motion.h3>
@@ -264,29 +243,21 @@ export function Customers() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.15 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xl"
+              className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <TrendingUp className="w-7 h-7 text-white" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <TrendingUp className="w-6 h-6 text-white" />
                 </div>
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5, type: 'spring' }}
-                  className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold"
-                >
-                  Avg
-                </motion.div>
               </div>
-              <p className="text-sm font-medium text-slate-600 mb-1">Avg Spend/Customer</p>
+              <p className="text-xs font-medium text-slate-600 mb-1">Avg Spend/Customer</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-4xl font-bold text-slate-900"
+                transition={{ delay: 0.45 }}
+                className="text-3xl font-bold text-slate-900"
               >
                 ${(avgSpend / 1000).toFixed(0)}K
               </motion.h3>
@@ -296,179 +267,234 @@ export function Customers() {
       </div>
 
       {/* Filters and Search */}
-      {/* ui-qa-fixer: UI-2026-009 - responsive padding */}
-      <div className="px-4 md:px-8 py-6 bg-slate-50/50 backdrop-blur-sm">
+      <div className="px-8 pb-0 shrink-0 overflow-visible relative z-20">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-              />
+          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg overflow-visible">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search customers by name, industry, or ID..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={fetchCustomers}
+                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className={`w-5 h-5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+              </motion.button>
             </div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-            >
-              <option value="all">Status: All</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Pending">Pending</option>
-            </select>
-            <select
-              value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
-              className="px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-            >
-              <option value="all">Industry: All</option>
-              <option value="Technology">Technology</option>
-              <option value="Accounting">Accounting</option>
-              <option value="Retail">Retail</option>
-              <option value="Healthcare">Healthcare</option>
-            </select>
-            <select
-              value={selectedSize}
-              onChange={(e) => setSelectedSize(e.target.value)}
-              className="px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-            >
-              <option value="all">Size: All</option>
-              <option value="1-100 (Small)">1-100 (Small)</option>
-              <option value="100-500 (Medium)">100-500 (Medium)</option>
-              <option value="500+ (Enterprise)">500+ (Enterprise)</option>
-            </select>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-2xl hover:shadow-xl transition-all shadow-lg"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </motion.button>
+
+            {/* Filters Row */}
+            <div className="flex items-center gap-3 mt-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                <Filter className="w-4 h-4" />
+                Filters
+                {activeFilters > 0 && (
+                  <span className="w-5 h-5 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilters}</span>
+                )}
+              </div>
+
+              <select
+                value={selectedStatus}
+                onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              >
+                <option value="all">Status: All</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              <select
+                value={selectedIndustry}
+                onChange={(e) => { setSelectedIndustry(e.target.value); setCurrentPage(1); }}
+                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              >
+                <option value="all">Industry: All</option>
+                <option value="Technology">Technology</option>
+                <option value="Accounting">Accounting</option>
+                <option value="Retail">Retail</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="E-commerce">E-commerce</option>
+              </select>
+
+              <select
+                value={selectedSize}
+                onChange={(e) => { setSelectedSize(e.target.value); setCurrentPage(1); }}
+                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              >
+                <option value="all">Size: All</option>
+                <option value="1-100 (Small)">1-100 (Small)</option>
+                <option value="100-500 (Medium)">100-500 (Medium)</option>
+                <option value="500+ (Enterprise)">500+ (Enterprise)</option>
+              </select>
+
+              {activeFilters > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setSelectedStatus('all'); setSelectedIndustry('all'); setSelectedSize('all'); setCurrentPage(1); }}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Clear
+                </motion.button>
+              )}
+
+              <div className="ml-auto">
+                <ColumnVisibilityDropdown
+                  columns={customerColumns}
+                  visibleColumns={columnVisibility}
+                  onChange={setColumnVisibility}
+                  accentColor="blue"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Table Container with Horizontal Scroll */}
-      {/* ui-qa-fixer: UI-2026-009 - responsive padding */}
-      <div className="flex-1 px-4 md:px-8 pb-8 overflow-hidden">
-        <div className="max-w-[1800px] mx-auto h-full">
-          <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col">
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full min-w-[1400px]">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50 border-b-2 border-slate-200">
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider whitespace-nowrap">
-                      Logo
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('name')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
-                      >
-                        Customer
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('industry')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
-                      >
-                        Industry
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider whitespace-nowrap">
-                      Size
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('status')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
-                      >
-                        Status
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider whitespace-nowrap">
-                      Resale Cert
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider whitespace-nowrap">
-                      Website
-                    </th>
-                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-700 tracking-wider">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleSort('spend')}
-                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
-                      >
-                        Spend
-                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
-                      </motion.button>
-                    </th>
-                    <th className="px-6 py-5 text-center text-xs font-bold text-slate-700 tracking-wider whitespace-nowrap">
-                      Actions
-                    </th>
+      {/* Scrollable Table Area */}
+      <div className="flex-1 overflow-y-auto px-8 pt-6 pb-8">
+        <div className="max-w-[1800px] mx-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    {isColVisible('logo') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Logo
+                      </th>
+                    )}
+                    {isColVisible('customer') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort('name')}
+                          className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                        >
+                          Customer
+                          <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </button>
+                      </th>
+                    )}
+                    {isColVisible('industry') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort('industry')}
+                          className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                        >
+                          Industry
+                          <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </button>
+                      </th>
+                    )}
+                    {isColVisible('size') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Size
+                      </th>
+                    )}
+                    {isColVisible('status') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort('status')}
+                          className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                        >
+                          Status
+                          <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </button>
+                      </th>
+                    )}
+                    {isColVisible('resaleCert') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Resale Cert
+                      </th>
+                    )}
+                    {isColVisible('website') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Website
+                      </th>
+                    )}
+                    {isColVisible('spend') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort('spend')}
+                          className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                        >
+                          Spend
+                          <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                        </button>
+                      </th>
+                    )}
+                    {isColVisible('actions') && (
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
-                <tbody className="bg-white">
-                  <AnimatePresence mode="popLayout">
-                    {paginatedCustomers.map((customer, index) => (
-                      <motion.tr
-                        key={customer.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="border-b border-slate-100 group"
-                      >
-                        <td className="px-6 py-5">
+                <tbody>
+                  {paginatedCustomers.map((customer, index) => (
+                    <motion.tr
+                      key={customer.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group"
+                    >
+                      {isColVisible('logo') && (
+                        <td className="px-4 py-4">
                           {customer.logo ? (
-                            <div className="h-12 w-20 rounded-xl bg-white border-2 border-slate-200 shadow-md flex items-center justify-center overflow-hidden p-1">
-                              <motion.img
-                                whileHover={{ scale: 1.05 }}
-                                src={customer.logo}
-                                alt={customer.name}
-                                className="max-h-full max-w-full object-contain"
-                              />
+                            <div className="w-14 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-slate-200 bg-white shrink-0">
+                              <img src={customer.logo} alt={customer.name} className="max-w-full max-h-full object-contain p-0.5" />
                             </div>
                           ) : (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              className="h-12 w-20 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border-2 border-slate-200 shadow-md"
-                            >
-                              <span className="text-white text-lg font-bold">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                              <span className="text-white text-sm font-bold">
                                 {customer.name.charAt(0).toUpperCase()}
                               </span>
-                            </motion.div>
+                            </div>
                           )}
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <p className="text-sm text-slate-900 group-hover:text-blue-600 transition-colors">{customer.name}</p>
+                      )}
+                      {isColVisible('customer') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="font-semibold text-slate-900">{customer.name}</span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                      )}
+                      {isColVisible('industry') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{customer.industry}</span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                      )}
+                      {isColVisible('size') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{customer.size}</span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <span className={`inline-flex px-3 py-1.5 rounded-lg text-xs font-medium border ${getStatusColor(customer.status)}`}>
+                      )}
+                      {isColVisible('status') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(customer.status)}`}>
                             {customer.status}
                           </span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                      )}
+                      {isColVisible('resaleCert') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{customer.resaleCert}</span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                      )}
+                      {isColVisible('website') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
                           {customer.website !== '—' ? (
                             <a
                               href={`https://${customer.website}`}
@@ -483,95 +509,93 @@ export function Customers() {
                             <span className="text-sm text-slate-700">—</span>
                           )}
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <span className="text-sm text-slate-900 font-medium">${(customer.spend ?? 0).toLocaleString()}</span>
+                      )}
+                      {isColVisible('spend') && (
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="text-sm text-slate-900 font-medium">${customer.spend.toLocaleString()}</span>
                         </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center justify-center gap-2">
+                      )}
+                      {isColVisible('actions') && (
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-1">
                             <motion.button
-                              whileHover={{ scale: 1.15, backgroundColor: 'rgb(219 234 254)' }}
+                              whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2.5 hover:bg-blue-50 rounded-xl transition-colors group/btn border-2 border-transparent hover:border-blue-200"
+                              className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                               onClick={() => setViewingCustomerId(customer.id)}
+                              title="View Details"
                             >
-                              <Eye className="w-5 h-5 text-slate-400 group-hover/btn:text-blue-600" />
+                              <Eye className="w-4 h-4" />
                             </motion.button>
                             <motion.button
-                              whileHover={{ scale: 1.15, backgroundColor: 'rgb(254 249 195)' }}
+                              whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2.5 hover:bg-yellow-50 rounded-xl transition-colors group/btn border-2 border-transparent hover:border-yellow-200"
+                              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                               onClick={() => {
                                 setCustomerToEdit(customer);
                                 setIsAddCustomerDrawerOpen(true);
                               }}
+                              title="Quick Edit"
                             >
-                              <Edit className="w-5 h-5 text-slate-400 group-hover/btn:text-yellow-600" />
+                              <Edit className="w-4 h-4" />
                             </motion.button>
                             <motion.button
-                              whileHover={{ scale: 1.15, backgroundColor: 'rgb(254 226 226)' }}
+                              whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2.5 hover:bg-red-50 rounded-xl transition-colors group/btn border-2 border-transparent hover:border-red-200"
+                              className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               onClick={() => {
                                 setCustomerToDelete(customer);
                                 setDeleteModalOpen(true);
                               }}
+                              title="Delete Customer"
                             >
-                              <Trash2 className="w-5 h-5 text-slate-400 group-hover/btn:text-red-600" />
+                              <Trash2 className="w-4 h-4" />
                             </motion.button>
                           </div>
                         </td>
-                      </motion.tr>
-                    ))}
-                  </AnimatePresence>
+                      )}
+                    </motion.tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Pagination */}
-      <div className="px-8 pb-8">
-        <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-bold text-slate-700">Rows per page:</label>
+            {/* Pagination - inside table card */}
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                Page {currentPage} of {Math.max(1, totalPages)} · Showing {filteredCustomers.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, filteredCustomers.length)} of {filteredCustomers.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Rows per page:</span>
                 <select
                   value={rowsPerPage}
                   onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                  className="px-5 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   <option value={10}>10</option>
-                  <option value={20}>20</option>
+                  <option value={25}>25</option>
                   <option value={50}>50</option>
-                  <option value={100}>100</option>
                 </select>
-                <span className="text-sm text-slate-600 font-medium">
-                  Page <span className="font-bold text-slate-900">{currentPage}</span> of <span className="font-bold text-slate-900">{totalPages}</span> • Showing <span className="font-bold text-slate-900">{startIndex + 1}</span> to <span className="font-bold text-slate-900">{Math.min(endIndex, filteredCustomers.length)}</span> of <span className="font-bold text-slate-900">{filteredCustomers.length}</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-6 py-3 bg-slate-100 border-2 border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Previous
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl text-sm font-bold hover:shadow-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </motion.button>
+                <div className="flex gap-1 ml-4">
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  >
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage >= Math.max(1, totalPages)}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  >
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -599,23 +623,8 @@ export function Customers() {
         onConfirm={handleDeleteCustomer}
         userName={customerToDelete?.name || ''}
       />
-
-      {/* Customer Detail View */}
-      {viewingCustomerId && (
-        <div className="fixed inset-0 z-50 bg-white">
-          <CustomerDetailView
-            customerId={viewingCustomerId}
-            onBack={() => setViewingCustomerId(null)}
-            onEdit={() => {
-              const customer = customers.find(c => c.id === viewingCustomerId);
-              if (customer) {
-                setCustomerToEdit(customer);
-                setIsAddCustomerDrawerOpen(true);
-              }
-            }}
-          />
-        </div>
-      )}
     </div>
+      )}
+    </>
   );
 }

@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, Calendar, Building2, User, DollarSign, Loader2 } from 'lucide-react';
+import { X, Save, Calendar, Building2, User, DollarSign } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 
 interface PurchaseOrder {
   id: string;
@@ -22,7 +21,7 @@ interface EditPurchaseOrderDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   order: PurchaseOrder | null;
-  onSave: (order: PurchaseOrder) => Promise<void>;
+  onSave: (order: PurchaseOrder) => void;
 }
 
 export function EditPurchaseOrderDrawer({
@@ -32,7 +31,6 @@ export function EditPurchaseOrderDrawer({
   onSave,
 }: EditPurchaseOrderDrawerProps) {
   const [formData, setFormData] = useState<PurchaseOrder | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (order) {
@@ -40,15 +38,9 @@ export function EditPurchaseOrderDrawer({
     }
   }, [order]);
 
-  const handleSave = async () => {
-    if (!formData) return;
-    setIsSaving(true);
-    try {
-      await onSave(formData);
-    } catch {
-      // error already toasted in parent
-    } finally {
-      setIsSaving(false);
+  const handleSave = () => {
+    if (formData) {
+      onSave(formData);
     }
   };
 
@@ -76,7 +68,7 @@ export function EditPurchaseOrderDrawer({
             className="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-500 px-8 py-6 overflow-hidden">
+            <div className="relative bg-slate-800 px-8 py-6 overflow-hidden">
               <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-400/20 rounded-full blur-2xl" />
               
@@ -101,7 +93,7 @@ export function EditPurchaseOrderDrawer({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-8 drawer-scroll">
               <div className="space-y-6">
                 {/* PO Number - Read Only */}
                 <div>
@@ -266,20 +258,10 @@ export function EditPurchaseOrderDrawer({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Save Changes
-                    </>
-                  )}
+                  <Save className="w-4 h-4" />
+                  Save Changes
                 </motion.button>
               </div>
             </div>

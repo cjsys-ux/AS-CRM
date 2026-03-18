@@ -1,8 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Globe, Phone, FileCheck, File, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 
 
 interface AddCustomerDrawerProps {
@@ -63,8 +62,6 @@ const PAYMENT_TERMS = [
 
 export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: AddCustomerDrawerProps) {
   const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [certFile, setCertFile] = useState<File | null>(null);
   const [uploadedCertFile, setUploadedCertFile] = useState<{name: string; size: string} | null>(null);
   const [showIndustryDropdown, setShowIndustryDropdown] = useState(false);
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
@@ -101,7 +98,6 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
         resaleCert: customerData.resaleCert || '',
       });
       setUploadedLogo(customerData.logo || null);
-      setLogoFile(null);
     } else {
       // Reset for new customer
       setFormData({
@@ -117,14 +113,12 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
         resaleCert: '',
       });
       setUploadedLogo(null);
-      setLogoFile(null);
     }
   }, [customerData, isOpen]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
@@ -138,30 +132,8 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
   const handleCertUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCertFile(file);
       setUploadedCertFile({name: file.name, size: file.size.toString()});
       setFormData({ ...formData, resaleCert: file.name });
-    }
-  };
-
-  const uploadFileToS3 = async (file: File, entityType: string, entityId: string): Promise<string | null> => {
-    try {
-      const presignRes = await fetch('/api/files/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, entityType, entityId }),
-      });
-      if (!presignRes.ok) return null;
-      const { uploadUrl, key } = await presignRes.json();
-      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-      await fetch('/api/files/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType, entityId, uploadedBy: 'User' }),
-      });
-      return key;
-    } catch {
-      return null;
     }
   };
 
@@ -185,89 +157,47 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
   };
 
   const handleSubmit = async () => {
+    // Validation
     if (!formData.name.trim()) {
       toast.error('Customer name is required');
       return;
     }
+
     setIsSaving(true);
+
     try {
-      let customerId = customerData?.id;
-      if (customerId) {
-        // Update
-        const res = await fetch('/api/customers/update', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: customerId,
-            name: formData.name,
-            logo: formData.logo || null,
-            industry: formData.industry,
-            size: formData.size,
-            status: formData.status,
-            paymentTerms: formData.paymentTerms,
-            website: formData.website,
-            phone: formData.phone,
-            resaleCert: formData.hasResaleCert,
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to update customer');
-      } else {
-        // Create
-        const res = await fetch('/api/customers/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            logo: formData.logo || null,
-            industry: formData.industry,
-            size: formData.size,
-            status: formData.status,
-            paymentTerms: formData.paymentTerms,
-            website: formData.website,
-            phone: formData.phone,
-            resaleCert: formData.hasResaleCert,
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to create customer');
-        const data = await res.json();
-        customerId = data.customer?.id;
-      }
+      const customerPayload = {
+        name: formData.name,
+        logo: uploadedLogo || formData.logo || '',
+        industry: formData.industry || 'Not Specified',
+        size: formData.size || 'Not Specified',
+        status: formData.status,
+        paymentTerms: formData.paymentTerms,
+        website: formData.website || '—',
+        phone: formData.phone || '—',
+        resaleCert: formData.hasResaleCert ? (formData.resaleCert || 'Pending') : '—',
+        spend: 0,
+      };
 
-      // Upload logo if a new file was selected
-      if (customerId && logoFile) {
-        const logoKey = await uploadFileToS3(logoFile, 'customer-logo', customerId);
-        if (logoKey) {
-          await fetch('/api/customers/update', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: customerId, logoKey }),
-          });
+      toast.success(
+        customerData?.id ? 'Customer updated successfully' : 'Customer created successfully',
+        {
+          description: `${formData.name} has been ${customerData?.id ? 'updated' : 'added'} to your database.`,
         }
-      }
-
-      // Upload cert if a new file was selected
-      if (customerId && certFile) {
-        const certKey = await uploadFileToS3(certFile, 'customer-cert', customerId);
-        if (certKey) {
-          await fetch('/api/customers/update', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: customerId, certKey }),
-          });
-        }
-      }
-
-      toast.success(customerData?.id ? 'Customer updated successfully' : 'Customer created successfully');
+      );
       onSuccess?.();
       onClose();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save customer');
+    } catch (error) {
+      console.error('Error saving customer:', error);
+      toast.error('Failed to save customer', {
+        description: error instanceof Error ? error.message : 'Please try again',
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
-  return createPortal(
+  return (
     <AnimatePresence>
       {isOpen && (
         <>
@@ -289,7 +219,7 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
             className="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-[61] overflow-y-auto"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-8 py-6 shadow-lg z-10">
+            <div className="sticky top-0 bg-slate-800 px-8 py-6 shadow-lg z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <motion.div
@@ -329,9 +259,9 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
                   Logo
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="h-16 w-28 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center overflow-hidden border-2 border-slate-200 p-1">
+                  <div className="w-28 h-20 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-slate-300">
                     {uploadedLogo || formData.logo ? (
-                      <img src={uploadedLogo || formData.logo} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      <img src={uploadedLogo || formData.logo} alt="Logo" className="max-w-full max-h-full object-contain p-1" />
                     ) : (
                       <Building2 className="w-8 h-8 text-slate-400" />
                     )}
@@ -670,7 +600,6 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
           </motion.div>
         </>
       )}
-    </AnimatePresence>,
-    document.body
+    </AnimatePresence>
   );
 }

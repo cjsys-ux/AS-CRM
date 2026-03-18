@@ -99,12 +99,12 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
             className="fixed right-0 top-0 h-full w-full max-w-5xl bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 via-purple-500 to-fuchsia-500 px-6 py-5 flex items-center justify-between flex-shrink-0">
+            <div className="bg-gradient-to-r from-teal-700 via-teal-600 to-cyan-600 px-6 py-5 flex items-center justify-between flex-shrink-0">
               <div>
                 <h2 className="text-2xl font-bold text-white">
                   {template ? 'Edit Email Template' : 'Create Email Template'}
                 </h2>
-                <p className="text-sm text-purple-100 mt-1">
+                <p className="text-sm text-teal-100 mt-1">
                   Design beautiful, responsive email templates
                 </p>
               </div>
@@ -131,7 +131,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                         placeholder="e.g., Welcome Email"
                       />
                     </div>
@@ -143,7 +143,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                         <select
                           value={formData.category}
                           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all appearance-none bg-white cursor-pointer"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all appearance-none bg-white cursor-pointer"
                         >
                           {categories.map((cat) => (
                             <option key={cat} value={cat}>{cat}</option>
@@ -162,7 +162,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                         type="text"
                         value={formData.subject}
                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                         placeholder="e.g., Welcome to {{companyName}}"
                       />
                       <p className="text-xs text-slate-500 mt-1.5">Use {'{{'} variableName {'}}'} for dynamic content</p>
@@ -175,7 +175,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         rows={3}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none"
                         placeholder="Describe when this template is used..."
                       />
                     </div>
@@ -192,7 +192,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                           whileHover={{ scale: 1.02, x: 4 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => insertVariable(variable)}
-                          className="w-full px-3 py-2 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg text-left text-sm font-mono text-slate-700 hover:text-purple-700 transition-all"
+                          className="w-full px-3 py-2 bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-lg text-left text-sm font-mono text-slate-700 hover:text-teal-700 transition-all"
                         >
                           {'{{' + variable + '}}'}
                         </motion.button>
@@ -209,7 +209,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                       onClick={() => setViewMode('code')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                         viewMode === 'code'
-                          ? 'bg-white text-purple-600 shadow-sm'
+                          ? 'bg-white text-teal-700 shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -220,7 +220,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                       onClick={() => setViewMode('preview')}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                         viewMode === 'preview'
-                          ? 'bg-white text-purple-600 shadow-sm'
+                          ? 'bg-white text-teal-700 shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
@@ -237,7 +237,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                         id="html-content"
                         value={formData.htmlContent}
                         onChange={(e) => setFormData({ ...formData, htmlContent: e.target.value })}
-                        className="w-full h-[600px] px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none font-mono text-sm bg-slate-900 text-green-400"
+                        className="w-full h-[600px] px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none font-mono text-sm bg-slate-900 text-green-400"
                         placeholder="Enter your HTML template here..."
                       />
                     </div>
@@ -283,7 +283,7 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
-                className="flex-1 px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 transition-all shadow-lg flex items-center justify-center gap-2"
               >
                 <Save className="w-5 h-5" />
                 Save Template
@@ -312,7 +312,7 @@ function getDefaultTemplate(templateName: string): string {
         <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(to right, #9333ea, #a855f7); padding: 40px; text-align: center;">
+            <td style="background: linear-gradient(to right, #0f766e, #0d9488); padding: 40px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 32px;">Welcome to ActivateSwag!</h1>
             </td>
           </tr>
@@ -332,7 +332,7 @@ function getDefaultTemplate(templateName: string): string {
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                 <tr>
                   <td align="center">
-                    <a href="{{activationLink}}" style="display: inline-block; background: linear-gradient(to right, #9333ea, #a855f7); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Create Password</a>
+                    <a href="{{activationLink}}" style="display: inline-block; background: linear-gradient(to right, #0f766e, #0d9488); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Create Password</a>
                   </td>
                 </tr>
               </table>

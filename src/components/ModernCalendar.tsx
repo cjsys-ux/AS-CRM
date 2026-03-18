@@ -8,9 +8,10 @@ interface ModernCalendarProps {
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
   label?: string;
+  autoClose?: boolean;
 }
 
-export function ModernCalendar({ isOpen, onClose, selectedDate, onSelectDate, label = 'Select Date' }: ModernCalendarProps) {
+export function ModernCalendar({ isOpen, onClose, selectedDate, onSelectDate, label = 'Select Date', autoClose = true }: ModernCalendarProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     if (selectedDate) {
       return new Date(selectedDate);
@@ -58,7 +59,10 @@ export function ModernCalendar({ isOpen, onClose, selectedDate, onSelectDate, la
     const selectedDateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     const formattedDate = selectedDateObj.toISOString().split('T')[0];
     onSelectDate(formattedDate);
-    onClose();
+    // Only auto-close if autoClose is true - parent can control closing via onSelectDate
+    if (autoClose) {
+      onClose();
+    }
   };
 
   const isSelectedDate = (day: number) => {

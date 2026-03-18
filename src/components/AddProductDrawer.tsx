@@ -34,9 +34,7 @@ interface AddProductDrawerProps {
 export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: AddProductDrawerProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
@@ -62,113 +60,76 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     image: productData?.image || '',
   });
 
-  // Available customers from Customers module
-  const availableCustomers = [
-    { id: 'CUST-001', name: 'Amazon', logo: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=100' },
-    { id: 'CUST-002', name: 'Test', logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100' },
-    { id: 'CUST-003', name: 'TechCorp Inc', logo: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=100' },
-    { id: 'CUST-004', name: 'Global Retail Co', logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100' },
-    { id: 'CUST-005', name: 'Healthcare Plus', logo: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=100' },
-  ];
+  // Fetch customers from the Customers module (backend)
+  const [availableCustomers, setAvailableCustomers] = useState<{ id: string; name: string; logo: string }[]>([]);
+  const [availableVendors, setAvailableVendors] = useState<{ id: string; name: string; type: string; logo: string }[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [loadingVendors, setLoadingVendors] = useState(false);
 
-  // Available vendors from Vendors module
-  const availableVendors = [
-    { id: 'VEND-001', name: 'Ergodyne', type: 'Distributor', logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100' },
-    { id: 'VEND-002', name: 'SC Promo', type: 'Product Manufacturer', logo: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=100' },
-    { id: 'VEND-003', name: 'TEST', type: 'Distributor', logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100' },
-  ];
+  // Fetch users from Settings/User Management for Project Manager dropdown
+  const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string; role: string }[]>([]);
 
-  // Update form when productData changes (for edit mode)
   useEffect(() => {
-    if (productData) {
+    if (!isOpen) return;
+    setAvailableCustomers([]);
+    setAvailableVendors([]);
+    setAvailableUsers([]);
+  }, [isOpen]);
+
+  // Sync form data when productData changes (e.g., editing a different product)
+  useEffect(() => {
+    if (isOpen) {
       setFormData({
-        productName: productData.name || '',
-        clientName: productData.client || '',
-        vendor: productData.vendor || '',
-        description: productData.description || '',
-        competitorName: productData.competitorName || '',
-        competitorLink: productData.competitorLink || '',
-        competitorPrice: productData.competitorPrice || '',
-        yearlyQty: productData.yearlyQty?.toString() || '',
-        targetPrice: productData.pricePerUnit?.toString() || '',
-        itemType: productData.type || 'Deploy',
-        dueDate: productData.deployment || '',
-        priority: productData.priority || 'Medium',
-        projectManager: productData.projectManager || '',
-        internalSKU: productData.internalSKU || '',
-        targetMargin: productData.targetMargin || '',
-        status: productData.status || 'New Product',
-        image: productData.image || '',
+        productName: productData?.name || '',
+        clientName: productData?.client || '',
+        vendor: productData?.vendor || '',
+        description: productData?.description || '',
+        competitorName: productData?.competitorName || '',
+        competitorLink: productData?.competitorLink || '',
+        competitorPrice: productData?.competitorPrice || '',
+        yearlyQty: productData?.yearlyQty?.toString() || '',
+        targetPrice: productData?.pricePerUnit?.toString() || '',
+        itemType: productData?.type || 'Deploy',
+        dueDate: productData?.deployment || '',
+        priority: productData?.priority || 'Medium',
+        projectManager: productData?.projectManager || '',
+        internalSKU: productData?.internalSKU || '',
+        targetMargin: productData?.targetMargin || '',
+        status: productData?.status || 'New Product',
+        image: productData?.image || '',
       });
-      setUploadedImage(productData.image || null);
-    } else {
-      // Reset to empty for new product
-      setFormData({
-        productName: '',
-        clientName: '',
-        vendor: '',
-        description: '',
-        competitorName: '',
-        competitorLink: '',
-        competitorPrice: '',
-        yearlyQty: '',
-        targetPrice: '',
-        itemType: 'Deploy',
-        dueDate: '',
-        priority: 'Medium',
-        projectManager: '',
-        internalSKU: '',
-        targetMargin: '',
-        status: 'New Product',
-        image: '',
-      });
-      setUploadedImage(null);
-      setUploadedImageKey(null);
+      setUploadedImage(productData?.image || null);
     }
-  }, [productData, isOpen]);
+  }, [isOpen, productData]);
+
+  // Filter dropdowns based on typed text
+  const filteredCustomers = availableCustomers.filter(c =>
+    c.name.toLowerCase().includes(formData.clientName.toLowerCase())
+  );
+  const filteredVendors = availableVendors.filter(v =>
+    v.name.toLowerCase().includes(formData.vendor.toLowerCase())
+  );
 
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
     setIsProcessingImage(true);
-
+    
     try {
-      // Show a local preview immediately
-      setUploadedImage(URL.createObjectURL(file));
-
-      // Get a presigned S3 URL
-      const presignRes = await fetch('/api/files/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          entityType: 'project',
-          entityId: productData?.id ?? 'new',
-        }),
-      });
-
-      if (!presignRes.ok) {
-        throw new Error('Failed to get upload URL.');
-      }
-
-      const { uploadUrl, key } = await presignRes.json();
-
-      // Upload the file directly to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload image to storage.');
-      }
-
-      setUploadedImageKey(key);
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        setUploadedImage(base64String);
+        setFormData({ ...formData, image: base64String });
+        
+        setIsProcessingImage(false);
+      };
+      
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading image:', error);
-    } finally {
       setIsProcessingImage(false);
     }
   };
@@ -196,13 +157,12 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitError(null);
-
+    
     const yearlyQty = parseInt(parseFormattedNumber(formData.yearlyQty)) || 0;
     const pricePerUnit = parseFloat(formData.targetPrice) || 0;
     const totalValue = yearlyQty * pricePerUnit;
 
-    const payload = {
+    const product = {
       name: formData.productName,
       client: formData.clientName,
       vendor: formData.vendor,
@@ -220,51 +180,14 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       projectManager: formData.projectManager,
       internalSKU: formData.internalSKU,
       targetMargin: formData.targetMargin,
-      ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
+      image: formData.image,
     };
 
     try {
-      const isEdit = Boolean(productData?.id);
-      const url = isEdit ? '/api/projects/update' : '/api/projects/create';
-      const method = isEdit ? 'PATCH' : 'POST';
-      const body = isEdit ? { id: productData!.id, ...payload } : payload;
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to save product.');
-      }
-
       onSuccess?.();
       onClose();
-      setFormData({
-        productName: '',
-        clientName: '',
-        vendor: '',
-        description: '',
-        competitorName: '',
-        competitorLink: '',
-        competitorPrice: '',
-        yearlyQty: '',
-        targetPrice: '',
-        itemType: 'Deploy',
-        dueDate: '',
-        priority: 'Medium',
-        projectManager: '',
-        internalSKU: '',
-        targetMargin: '',
-        status: 'New Product',
-        image: '',
-      });
-      setUploadedImage(null);
-      setUploadedImageKey(null);
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to save product.');
+    } catch (error) {
+      console.error('Error saving product:', error);
     }
   };
 
@@ -287,65 +210,55 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 35, stiffness: 350 }}
-            className="fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-xl bg-slate-50 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 px-8 py-8 flex items-center justify-between shadow-xl">
-              <div className="flex items-center gap-5">
+            <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 px-6 py-5 flex items-center justify-between shadow-xl shrink-0">
+              <div className="flex items-center gap-4">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.2, type: 'spring' }}
-                  className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl"
+                  className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl"
                 >
-                  <Package className="w-8 h-8 text-white" />
+                  <Package className="w-6 h-6 text-white" />
                 </motion.div>
                 <div>
-                  <motion.h2
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-3xl font-black text-white mb-1"
-                  >
+                  <h2 className="text-xl font-black text-white">
                     {productData?.id ? 'Edit Product' : 'Add New Product'}
-                  </motion.h2>
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-teal-50 font-medium"
-                  >
+                  </h2>
+                  <p className="text-teal-100 text-sm">
                     Submit a new product to the supply chain pipeline
-                  </motion.p>
+                  </p>
                 </div>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-3 hover:bg-white/20 rounded-2xl transition-all"
+                className="p-2 hover:bg-white/20 rounded-xl transition-all"
               >
-                <X className="w-7 h-7 text-white" />
+                <X className="w-6 h-6 text-white" />
               </motion.button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 drawer-scroll">
               {/* Product Image */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <ImageIcon className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
+                    <ImageIcon className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Product Image</h3>
+                  <h3 className="text-base font-bold text-slate-900">Product Image</h3>
                 </div>
 
-                <div className="flex items-start gap-6">
+                <div className="flex items-start gap-5">
                   {/* Image Preview */}
                   <input
                     type="file"
@@ -357,7 +270,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                   <label htmlFor="image-upload">
                     <motion.div
                       whileHover={{ scale: 1.02 }}
-                      className="w-40 h-40 border-3 border-dashed border-slate-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden"
+                      className="w-28 h-28 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 cursor-pointer overflow-hidden shrink-0"
                     >
                       {uploadedImage || formData.image ? (
                         <img 
@@ -370,50 +283,50 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-2"
+                            className="w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full mx-auto mb-1"
                           />
-                          <p className="text-xs text-slate-500 font-medium">Processing...</p>
+                          <p className="text-[10px] text-slate-400">Processing...</p>
                         </div>
                       ) : (
                         <div className="text-center">
-                          <Upload className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                          <p className="text-xs text-slate-500 font-medium">Click to upload</p>
+                          <Upload className="w-8 h-8 text-slate-300 mx-auto mb-1" />
+                          <p className="text-[10px] text-slate-400 font-medium">Click to upload</p>
                         </div>
                       )}
                     </motion.div>
                   </label>
 
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-3">
                     <motion.button
                       type="button"
                       onClick={() => document.getElementById('image-upload')?.click()}
-                      whileHover={{ scale: 1.02, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={isProcessingImage}
-                      className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl font-bold text-white transition-all mb-6 shadow-xl w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-white text-sm transition-all shadow-lg w-full justify-center disabled:opacity-50"
                     >
-                      <Upload className="w-5 h-5" />
-                      {isProcessingImage ? 'Processing Image...' : 'Upload Product Image'}
+                      <Upload className="w-4 h-4" />
+                      {isProcessingImage ? 'Processing...' : 'Upload Product Image'}
                     </motion.button>
 
-                    <div className="p-5 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border-2 border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-slate-900 text-sm mb-1">Remove White Background</p>
-                          <p className="text-xs text-slate-600">Automatically make white backgrounds transparent</p>
+                          <p className="font-semibold text-slate-900 text-xs">Remove White Background</p>
+                          <p className="text-[11px] text-slate-500">Auto-remove white backgrounds</p>
                         </div>
                         <motion.button
                           type="button"
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setRemoveBackground(!removeBackground)}
-                          className={`relative w-14 h-7 rounded-full transition-all ${
-                            removeBackground ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg' : 'bg-slate-300'
+                          className={`relative w-11 h-6 rounded-full transition-all ${
+                            removeBackground ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-slate-300'
                           }`}
                         >
                           <motion.div
-                            animate={{ x: removeBackground ? 28 : 2 }}
+                            animate={{ x: removeBackground ? 22 : 2 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-md"
                           />
                         </motion.button>
                       </div>
@@ -424,21 +337,21 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
               {/* Basic Information */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                transition={{ delay: 0.15 }}
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <FileText className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow">
+                    <FileText className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Basic Information</h3>
+                  <h3 className="text-base font-bold text-slate-900">Basic Information</h3>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Product Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -446,22 +359,22 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Enter product name"
                       value={formData.productName}
                       onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Client Name <span className="text-red-500">*</span>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                        Customer <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder="Select client..."
+                          placeholder="Select customer..."
                           value={formData.clientName}
                           onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                           onFocus={() => setShowClientDropdown(true)}
                           onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
                         />
@@ -471,29 +384,43 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto"
                             >
-                              {availableCustomers.map((customer, index) => (
-                                <motion.div
-                                  key={customer.id}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                                  onMouseDown={() => {
-                                    setFormData({ ...formData, clientName: customer.name });
-                                    setShowClientDropdown(false);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <img src={customer.logo} alt={customer.name} className="w-8 h-8 rounded-full object-cover border-2 border-slate-200" />
-                                    <div>
-                                      <span className="text-sm font-bold text-slate-900">{customer.name}</span>
-                                      <p className="text-xs text-slate-500">{customer.id}</p>
+                              {loadingCustomers ? (
+                                <div className="px-4 py-3 text-center text-sm text-slate-400">Loading customers...</div>
+                              ) : filteredCustomers.length === 0 ? (
+                                <div className="px-4 py-3 text-center text-sm text-slate-400">No customers found</div>
+                              ) : (
+                                filteredCustomers.map((customer, index) => (
+                                  <motion.div
+                                    key={customer.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.03 }}
+                                    className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
+                                    onMouseDown={() => {
+                                      setFormData({ ...formData, clientName: customer.name });
+                                      setShowClientDropdown(false);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      {customer.logo ? (
+                                        <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                                          <img src={customer.logo} alt={customer.name} className="w-full h-full object-contain p-0.5" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+                                          <span className="text-white text-xs font-bold">{customer.name?.charAt(0) || '?'}</span>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <span className="text-sm font-bold text-slate-900">{customer.name}</span>
+                                        <p className="text-xs text-slate-400">{customer.id}</p>
+                                      </div>
                                     </div>
-                                  </div>
-                                </motion.div>
-                              ))}
+                                  </motion.div>
+                                ))
+                              )}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -501,7 +428,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
                         Vendor
                       </label>
                       <div className="relative">
@@ -510,7 +437,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           placeholder="Select vendor..."
                           value={formData.vendor}
                           onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                           onFocus={() => setShowVendorDropdown(true)}
                           onBlur={() => setTimeout(() => setShowVendorDropdown(false), 200)}
                         />
@@ -520,32 +447,48 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto"
                             >
-                              {availableVendors.map((vendor, index) => (
-                                <motion.div
-                                  key={vendor.id}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 border-b border-slate-100 last:border-b-0 transition-all"
-                                  onMouseDown={() => {
-                                    setFormData({ ...formData, vendor: vendor.name });
-                                    setShowVendorDropdown(false);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <img src={vendor.logo} alt={vendor.name} className="w-8 h-8 rounded-full object-cover border-2 border-slate-200" />
-                                    <div className="flex-1">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm font-bold text-slate-900">{vendor.name}</span>
-                                        <span className="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-semibold">{vendor.type}</span>
+                              {loadingVendors ? (
+                                <div className="px-4 py-3 text-center text-sm text-slate-400">Loading vendors...</div>
+                              ) : filteredVendors.length === 0 ? (
+                                <div className="px-4 py-3 text-center text-sm text-slate-400">No vendors found</div>
+                              ) : (
+                                filteredVendors.map((vendor, index) => (
+                                  <motion.div
+                                    key={vendor.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.03 }}
+                                    className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 border-b border-slate-100 last:border-b-0 transition-all"
+                                    onMouseDown={() => {
+                                      setFormData({ ...formData, vendor: vendor.name });
+                                      setShowVendorDropdown(false);
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      {vendor.logo ? (
+                                        <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                                          <img src={vendor.logo} alt={vendor.name} className="w-full h-full object-contain p-0.5" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center">
+                                          <span className="text-white text-xs font-bold">{vendor.name?.charAt(0) || '?'}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <span className="text-sm font-bold text-slate-900">{vendor.name}</span>
+                                          {vendor.type && (
+                                            <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap">{vendor.type}</span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-slate-400">{vendor.id}</p>
                                       </div>
-                                      <p className="text-xs text-slate-500">{vendor.id}</p>
                                     </div>
-                                  </div>
-                                </motion.div>
-                              ))}
+                                  </motion.div>
+                                ))
+                              )}
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -554,15 +497,15 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Product Description <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       placeholder="Product details and requirements"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={4}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none font-medium"
+                      rows={3}
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none font-medium"
                     />
                   </div>
                 </div>
@@ -570,60 +513,54 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
               {/* Competitor Analysis */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow">
+                    <TrendingUp className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Competitor Analysis</h3>
+                  <h3 className="text-base font-bold text-slate-900">Competitor Analysis</h3>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Competitor Name
-                    </label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Competitor Name</label>
                     <input
                       type="text"
                       placeholder="Enter competitor name"
                       value={formData.competitorName}
                       onChange={(e) => setFormData({ ...formData, competitorName: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Competitor Link
-                    </label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Competitor Link</label>
                     <div className="relative">
-                      <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
-                        type="url"
+                        type="text"
                         placeholder="competitor.com/product"
                         value={formData.competitorLink}
                         onChange={(e) => setFormData({ ...formData, competitorLink: e.target.value })}
-                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Competitor Price
-                    </label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Competitor Price</label>
                     <div className="relative">
-                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-lg">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
                       <input
                         type="text"
                         placeholder="9.99"
                         value={formData.competitorPrice}
                         onChange={(e) => setFormData({ ...formData, competitorPrice: e.target.value })}
-                        className="w-full pl-10 pr-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full pl-9 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -632,52 +569,52 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
               {/* Pricing & Quantity */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                transition={{ delay: 0.25 }}
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <DollarSign className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
+                    <DollarSign className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Pricing & Quantity</h3>
+                  <h3 className="text-base font-bold text-slate-900">Pricing & Quantity</h3>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Estimated Yearly Quantity <span className="text-red-500">*</span>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                        Est. Yearly Qty <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         placeholder="10,000"
                         value={formatNumberWithCommas(formData.yearlyQty)}
                         onChange={(e) => setFormData({ ...formData, yearlyQty: parseFormattedNumber(e.target.value) })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Target Price Per Unit <span className="text-red-500">*</span>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                        Target Price/Unit <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-lg">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
                         <input
                           type="text"
                           placeholder="9.99"
                           value={formData.targetPrice}
                           onChange={(e) => setFormData({ ...formData, targetPrice: e.target.value })}
-                          className="w-full pl-10 pr-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full pl-9 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="relative">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Item Type <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -685,7 +622,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Select item type..."
                       value={formData.itemType}
                       onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       onFocus={() => setShowItemTypeDropdown(true)}
                       onBlur={() => setTimeout(() => setShowItemTypeDropdown(false), 200)}
                     />
@@ -695,47 +632,23 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                          className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                         >
-                          <motion.div
-                            key="Deployment"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.05 }}
-                            className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                            onMouseDown={() => {
-                              setFormData({ ...formData, itemType: 'Deployment' });
-                              setShowItemTypeDropdown(false);
-                            }}
-                          >
-                            <span className="text-sm font-bold text-slate-900">Deployment</span>
-                          </motion.div>
-                          <motion.div
-                            key="Inventory"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                            onMouseDown={() => {
-                              setFormData({ ...formData, itemType: 'Inventory' });
-                              setShowItemTypeDropdown(false);
-                            }}
-                          >
-                            <span className="text-sm font-bold text-slate-900">Inventory</span>
-                          </motion.div>
-                          <motion.div
-                            key="Both"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.15 }}
-                            className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                            onMouseDown={() => {
-                              setFormData({ ...formData, itemType: 'Both' });
-                              setShowItemTypeDropdown(false);
-                            }}
-                          >
-                            <span className="text-sm font-bold text-slate-900">Both</span>
-                          </motion.div>
+                          {['Deployment', 'Inventory', 'Both'].map((type, i) => (
+                            <motion.div
+                              key={type}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.03 }}
+                              className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
+                              onMouseDown={() => {
+                                setFormData({ ...formData, itemType: type });
+                                setShowItemTypeDropdown(false);
+                              }}
+                            >
+                              <span className="text-sm font-bold text-slate-900">{type}</span>
+                            </motion.div>
+                          ))}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -745,41 +658,38 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
               {/* Project Details */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Calendar className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow">
+                    <Calendar className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Project Details</h3>
+                  <h3 className="text-base font-bold text-slate-900">Project Details</h3>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Due Date
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Due Date</label>
                       <CustomCalendar
                         value={formData.dueDate}
                         onChange={(date) => setFormData({ ...formData, dueDate: date })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        title="Select Due Date"
                       />
                     </div>
 
                     <div className="relative">
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Priority
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Priority</label>
                       <input
                         type="text"
                         placeholder="Select priority..."
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                         onFocus={() => setShowPriorityDropdown(true)}
                         onBlur={() => setTimeout(() => setShowPriorityDropdown(false), 200)}
                       />
@@ -789,47 +699,23 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                            className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                           >
-                            <motion.div
-                              key="Low"
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.05 }}
-                              className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                              onMouseDown={() => {
-                                setFormData({ ...formData, priority: 'Low' });
-                                setShowPriorityDropdown(false);
-                              }}
-                            >
-                              <span className="text-sm font-bold text-slate-900">Low</span>
-                            </motion.div>
-                            <motion.div
-                              key="Medium"
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.1 }}
-                              className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                              onMouseDown={() => {
-                                setFormData({ ...formData, priority: 'Medium' });
-                                setShowPriorityDropdown(false);
-                              }}
-                            >
-                              <span className="text-sm font-bold text-slate-900">Medium</span>
-                            </motion.div>
-                            <motion.div
-                              key="High"
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.15 }}
-                              className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                              onMouseDown={() => {
-                                setFormData({ ...formData, priority: 'High' });
-                                setShowPriorityDropdown(false);
-                              }}
-                            >
-                              <span className="text-sm font-bold text-slate-900">High</span>
-                            </motion.div>
+                            {['Low', 'Medium', 'High'].map((p, i) => (
+                              <motion.div
+                                key={p}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.03 }}
+                                className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
+                                onMouseDown={() => {
+                                  setFormData({ ...formData, priority: p });
+                                  setShowPriorityDropdown(false);
+                                }}
+                              >
+                                <span className="text-sm font-bold text-slate-900">{p}</span>
+                              </motion.div>
+                            ))}
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -837,15 +723,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                   </div>
 
                   <div className="relative">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
-                      Assigned Project Manager
-                    </label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Assigned Project Manager</label>
                     <input
                       type="text"
                       placeholder="Select project manager..."
                       value={formData.projectManager}
                       onChange={(e) => setFormData({ ...formData, projectManager: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       onFocus={() => setShowProjectManagerDropdown(true)}
                       onBlur={() => setTimeout(() => setShowProjectManagerDropdown(false), 200)}
                     />
@@ -855,47 +739,30 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                          className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                         >
-                          <motion.div
-                            key="John Doe"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.05 }}
-                            className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                            onMouseDown={() => {
-                              setFormData({ ...formData, projectManager: 'John Doe' });
-                              setShowProjectManagerDropdown(false);
-                            }}
-                          >
-                            <span className="text-sm font-bold text-slate-900">John Doe</span>
-                          </motion.div>
-                          <motion.div
-                            key="Jane Smith"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.1 }}
-                            className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                            onMouseDown={() => {
-                              setFormData({ ...formData, projectManager: 'Jane Smith' });
-                              setShowProjectManagerDropdown(false);
-                            }}
-                          >
-                            <span className="text-sm font-bold text-slate-900">Jane Smith</span>
-                          </motion.div>
-                          <motion.div
-                            key="Mike Johnson"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.15 }}
-                            className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
-                            onMouseDown={() => {
-                              setFormData({ ...formData, projectManager: 'Mike Johnson' });
-                              setShowProjectManagerDropdown(false);
-                            }}
-                          >
-                            <span className="text-sm font-bold text-slate-900">Mike Johnson</span>
-                          </motion.div>
+                          {availableUsers.length === 0 ? (
+                            <div className="px-4 py-3 text-center text-sm text-slate-400">No users found</div>
+                          ) : (
+                            availableUsers.map((user, i) => (
+                              <motion.div
+                                key={user.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.03 }}
+                                className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
+                                onMouseDown={() => {
+                                  setFormData({ ...formData, projectManager: user.name });
+                                  setShowProjectManagerDropdown(false);
+                                }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-bold text-slate-900">{user.name}</span>
+                                  {user.role && <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full font-medium">{user.role}</span>}
+                                </div>
+                              </motion.div>
+                            ))
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -905,43 +772,39 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
               {/* Internal Information */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                transition={{ delay: 0.35 }}
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Tag className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center shadow">
+                    <Tag className="w-4 h-4 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Internal Information</h3>
+                  <h3 className="text-base font-bold text-slate-900">Internal Information</h3>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Internal SKU
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Internal SKU</label>
                       <input
                         type="text"
-                        placeholder="Enter internal SKU or product code"
+                        placeholder="SKU or product code"
                         value={formData.internalSKU}
                         onChange={(e) => setFormData({ ...formData, internalSKU: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Target Margin (%)
-                      </label>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Target Margin (%)</label>
                       <input
                         type="text"
                         placeholder="e.g., 35"
                         value={formData.targetMargin}
                         onChange={(e) => setFormData({ ...formData, targetMargin: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -949,31 +812,26 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
               </motion.div>
             </div>
 
-            {/* Footer Actions */}
-            <div className="border-t-2 border-slate-200 p-8 bg-white shadow-2xl">
-              {submitError && (
-                <p className="text-red-600 text-sm font-medium mb-4">{submitError}</p>
-              )}
-              <div className="flex items-center justify-between">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onClose}
-                  className="px-10 py-4 bg-slate-100 text-slate-700 font-black rounded-2xl hover:bg-slate-200 transition-all text-lg border-2 border-slate-200"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSubmit}
-                  disabled={isProcessingImage}
-                  className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-black rounded-2xl hover:from-slate-800 hover:to-slate-700 transition-all shadow-2xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Package className="w-6 h-6" />
-                  {productData?.id ? 'Save Changes' : 'Add Product'}
-                </motion.button>
-              </div>
+            {/* Fixed Footer Buttons */}
+            <div className="shrink-0 px-6 py-4 bg-white border-t border-slate-200 flex gap-3">
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={onClose}
+                className="flex-1 px-6 py-3.5 bg-slate-100 border border-slate-300 hover:bg-slate-200 rounded-xl font-bold text-slate-700 transition-all"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={handleSubmit}
+                className="flex-1 px-6 py-3.5 bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Package className="w-4 h-4" />
+                {productData?.id ? 'Save Changes' : 'Add Product'}
+              </motion.button>
             </div>
           </motion.div>
         </>

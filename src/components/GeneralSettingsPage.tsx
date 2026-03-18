@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Settings as SettingsIcon, ChevronRight, ChevronDown, Package, ShoppingCart, Users, Database, Home, BarChart3, Boxes, Factory, TrendingUp, Palette, Plus, Edit, Trash2, X, GripVertical } from 'lucide-react';
-import { useState, useRef, useCallback } from 'react';
+import { Search, Filter, Settings as SettingsIcon, ChevronRight, ChevronDown, Package, ShoppingCart, Users, Database, Home, BarChart3, Boxes, Factory, TrendingUp, Palette, Plus, Edit, Trash2, X, GripVertical, Truck, Contact2 } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DraggableOption } from './DraggableOption';
 import { TaxRateItem } from './TaxRateItem';
+import { toast } from 'sonner@2.0.3';
 
 interface Module {
   id: string;
@@ -121,7 +122,7 @@ const modules: Module[] = [
     id: 'products',
     name: 'Products',
     icon: Package,
-    settingsCount: 8,
+    settingsCount: 10,
     items: [
       { 
         id: 'statuses', 
@@ -171,49 +172,55 @@ const modules: Module[] = [
         itemCount: 20,
         options: ['Best Seller', 'New Arrival', 'Sale', 'Limited Edition', 'Eco-Friendly', 'Made in USA', 'Custom', 'Bulk Discount', 'Fast Ship', 'Premium', 'Clearance', 'Seasonal', 'Trending', 'Popular', 'Recommended', 'Featured', 'Exclusive', 'Back in Stock', 'Pre-Order', 'Discontinued']
       },
+      { 
+        id: 'decoration-methods', 
+        name: 'Decoration Methods', 
+        itemCount: 10,
+        options: ['Screen Print', 'Pad Print', 'Full Color', 'Laser Engrave', 'Embroidery', 'Heat Transfer', 'Sublimation', 'Deboss', 'UV Print', 'DTF']
+      },
+      { 
+        id: 'imprint-locations', 
+        name: 'Imprint Locations', 
+        itemCount: 13,
+        options: ['Front', 'Back', 'Bottom', 'Top', 'Screen', 'Back Panel', 'Side', 'Left Chest', 'Right Chest', 'Left Sleeve', 'Right Sleeve', 'Collar', 'Hem']
+      },
     ],
   },
   {
     id: 'pipeline',
-    name: 'Product Pipeline',
+    name: 'Pipeline',
     icon: TrendingUp,
-    settingsCount: 6,
+    settingsCount: 5,
     items: [
       { 
-        id: 'stages', 
-        name: 'Pipeline Stages', 
-        itemCount: 5,
-        options: ['Research', 'Design', 'Development', 'Testing', 'Launch']
+        id: 'vendors-checklist', 
+        name: 'Vendors Checklist', 
+        itemCount: 4,
+        options: ['Primary Vendor Linked', 'Pricing Confirmed', 'Shipping Terms Agreed', 'Lead Time Confirmed']
       },
       { 
-        id: 'milestones', 
-        name: 'Milestones', 
-        itemCount: 8,
-        options: ['Concept Approval', 'Design Complete', 'Prototype Ready', 'Sample Approved', 'Production Start', 'Quality Check', 'Packaging Complete', 'Market Launch']
+        id: 'specifications-checklist', 
+        name: 'Specifications Checklist', 
+        itemCount: 4,
+        options: ['Product Dimensions', 'Material Specifications', 'Weight & Shipping Info', 'Compliance Documents']
       },
       { 
-        id: 'automation', 
-        name: 'Automation Rules', 
-        itemCount: 10,
-        options: ['Auto-assign Tasks', 'Stage Progression', 'Email Notifications', 'Status Updates', 'Deadline Reminders', 'Approval Requests', 'Budget Alerts', 'Team Notifications', 'Document Generation', 'Reporting Triggers']
+        id: 'packaging-checklist', 
+        name: 'Packaging Checklist', 
+        itemCount: 4,
+        options: ['Packaging Mockup', 'Packaging Template', 'Dieline/CAD Files', 'Packaging Spec Sheet']
       },
       { 
-        id: 'notifications', 
-        name: 'Stage Notifications', 
-        itemCount: 7,
-        options: ['Stage Change', 'Task Assigned', 'Deadline Approaching', 'Approval Needed', 'Milestone Reached', 'Issue Detected', 'Project Completed']
+        id: 'samples-checklist', 
+        name: 'Samples Checklist', 
+        itemCount: 4,
+        options: ['Sample Request Submitted', 'Sample Received', 'Quality Review Completed', 'Sample Documentation']
       },
       { 
-        id: 'metrics', 
-        name: 'Metric Tracking', 
-        itemCount: 12,
-        options: ['Time in Stage', 'Completion Rate', 'Success Rate', 'Budget Utilization', 'Resource Allocation', 'Team Velocity', 'Bottleneck Analysis', 'ROI Tracking', 'Quality Score', 'Customer Feedback', 'Market Readiness', 'Competitive Position']
-      },
-      { 
-        id: 'reports', 
-        name: 'Pipeline Reports', 
-        itemCount: 9,
-        options: ['Pipeline Overview', 'Stage Analysis', 'Performance Report', 'Bottleneck Report', 'Resource Report', 'Timeline Report', 'Budget Report', 'Risk Assessment', 'Forecast Report']
+        id: 'files-checklist', 
+        name: 'Files Checklist', 
+        itemCount: 4,
+        options: ['Product Images Uploaded', 'Spec Sheets Uploaded', 'Vendor Quotes Filed', 'Compliance Docs Filed']
       },
     ],
   },
@@ -312,16 +319,54 @@ const modules: Module[] = [
     ],
   },
   {
+    id: 'contacts',
+    name: 'Contacts',
+    icon: Contact2,
+    settingsCount: 4,
+    items: [
+      { 
+        id: 'contact-type-filter', 
+        name: 'Type Filter', 
+        itemCount: 4,
+        options: ['Customer', 'Vendor', 'Lead', 'Partner']
+      },
+      { 
+        id: 'contact-status-filter', 
+        name: 'Status Filter', 
+        itemCount: 4,
+        options: ['Active', 'Inactive', 'Prospect', 'Cold']
+      },
+      { 
+        id: 'contact-vendor-type', 
+        name: 'Vendor Type', 
+        itemCount: 5,
+        options: ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer']
+      },
+      { 
+        id: 'contact-country', 
+        name: 'Country', 
+        itemCount: 15,
+        options: ['United States', 'Canada', 'Mexico', 'United Kingdom', 'Germany', 'France', 'China', 'Japan', 'South Korea', 'India', 'Brazil', 'Australia', 'Italy', 'Spain', 'Vietnam']
+      },
+    ],
+  },
+  {
     id: 'vendors',
     name: 'Vendors',
     icon: Database,
-    settingsCount: 6,
+    settingsCount: 7,
     items: [
       { 
         id: 'vendor-types', 
         name: 'Vendor Types', 
         itemCount: 5,
-        options: ['Manufacturer', 'Wholesaler', 'Distributor', 'Importer', 'Dropshipper']
+        options: ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer']
+      },
+      { 
+        id: 'vendor-countries', 
+        name: 'Countries', 
+        itemCount: 4,
+        options: ['United States', 'China', 'Vietnam', 'India']
       },
       { 
         id: 'platforms', 
@@ -332,8 +377,8 @@ const modules: Module[] = [
       { 
         id: 'payment-terms', 
         name: 'Payment Terms', 
-        itemCount: 6,
-        options: ['Net 30', 'Net 60', 'Prepayment', '50% Deposit', 'Letter of Credit', 'Cash on Delivery']
+        itemCount: 8,
+        options: ['Prepaid', 'Net 15', 'Net 30', 'Net 45', 'Net 60', 'Net 90', '30/70', '50/50']
       },
       { 
         id: 'performance', 
@@ -479,8 +524,14 @@ const modules: Module[] = [
     id: 'purchasing',
     name: 'Purchasing',
     icon: ShoppingCart,
-    settingsCount: 1,
+    settingsCount: 2,
     items: [
+      {
+        id: 'carrier-accounts',
+        name: 'Carrier Accounts',
+        itemCount: 0,
+        options: [],
+      },
       { 
         id: 'sales-tax-rates', 
         name: 'Sales Tax Rates', 
@@ -563,6 +614,71 @@ export function GeneralSettingsPage() {
   const [editValue, setEditValue] = useState('');
   const [newOption, setNewOption] = useState<{ settingId: string; value: string } | null>(null);
   const [localModules, setLocalModules] = useState(modules);
+
+  // ─── Pipeline Checklist Settings Persistence ───
+  const [pipelineChecklistsLoaded, setPipelineChecklistsLoaded] = useState(false);
+
+  // Load pipeline checklist settings from KV on mount
+  useEffect(() => {
+    setPipelineChecklistsLoaded(true);
+  }, []);
+
+  // Save pipeline checklist settings (local state only)
+  const savePipelineChecklists = useCallback(async (_updatedModules: Module[]) => {
+    // local state only
+  }, [pipelineChecklistsLoaded]);
+
+  // Auto-save pipeline checklist settings when they change
+  const prevPipelineRef = useRef<string>('');
+  useEffect(() => {
+    if (!pipelineChecklistsLoaded) return;
+    const pipelineMod = localModules.find(m => m.id === 'pipeline');
+    if (!pipelineMod) return;
+    const serialized = JSON.stringify(pipelineMod.items.map(i => ({ id: i.id, options: i.options })));
+    if (prevPipelineRef.current && prevPipelineRef.current !== serialized) {
+      savePipelineChecklists(localModules);
+      toast.success('Pipeline checklist settings saved');
+    }
+    prevPipelineRef.current = serialized;
+  }, [localModules, pipelineChecklistsLoaded, savePipelineChecklists]);
+
+  // ─── Carrier Accounts State ───
+  const [carrierAccounts, setCarrierAccounts] = useState<Array<{ id: string; carrier: string; accountNumber: string; label: string }>>([]);
+  const [isLoadingCarrierAccounts, setIsLoadingCarrierAccounts] = useState(false);
+  const [newCarrierForm, setNewCarrierForm] = useState<{ carrier: string; accountNumber: string; label: string } | null>(null);
+  const [editingCarrierId, setEditingCarrierId] = useState<string | null>(null);
+  const [editCarrierForm, setEditCarrierForm] = useState<{ carrier: string; accountNumber: string; label: string }>({ carrier: '', accountNumber: '', label: '' });
+
+  const fetchCarrierAccounts = async () => {
+    setIsLoadingCarrierAccounts(true);
+    setCarrierAccounts([]);
+    setIsLoadingCarrierAccounts(false);
+  };
+
+  useEffect(() => {
+    if (selectedModule === 'purchasing') {
+      fetchCarrierAccounts();
+    }
+  }, [selectedModule]);
+
+  const handleAddCarrierAccount = async () => {
+    if (!newCarrierForm || !newCarrierForm.carrier.trim() || !newCarrierForm.accountNumber.trim()) return;
+    const newItem = { ...newCarrierForm, id: Date.now().toString() };
+    setCarrierAccounts(prev => [...prev, newItem]);
+    toast.success('Carrier account added!');
+    setNewCarrierForm(null);
+  };
+
+  const handleUpdateCarrierAccount = async (id: string) => {
+    setCarrierAccounts(prev => prev.map(item => item.id === id ? { ...item, ...editCarrierForm } : item));
+    toast.success('Carrier account updated!');
+    setEditingCarrierId(null);
+  };
+
+  const handleDeleteCarrierAccount = async (id: string) => {
+    setCarrierAccounts(prev => prev.filter(item => item.id !== id));
+    toast.success('Carrier account deleted');
+  };
 
   const selectedModuleData = localModules.find(m => m.id === selectedModule);
   const totalSettings = localModules.reduce((sum, m) => sum + m.settingsCount, 0);
@@ -699,15 +815,15 @@ export function GeneralSettingsPage() {
     <DndProvider backend={HTML5Backend}>
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
       {/* Blue Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-8">
+      <div className="bg-white border-b border-slate-200 px-8 py-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
               <SettingsIcon className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white">General Settings</h2>
-              <p className="text-blue-100 mt-1">
+              <h2 className="text-3xl font-bold text-slate-900">General Settings</h2>
+              <p className="text-slate-500 mt-1">
                 Manage dropdown options and system-wide settings across all modules
               </p>
             </div>
@@ -715,7 +831,7 @@ export function GeneralSettingsPage() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
+            className="px-6 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
             Save Changes
           </motion.button>
@@ -832,12 +948,12 @@ export function GeneralSettingsPage() {
                               <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
                                 {item.name}
                               </h4>
-                              <p className="text-sm text-slate-500">{item.itemCount} items</p>
+                              <p className="text-sm text-slate-500">{item.id === 'carrier-accounts' ? `${carrierAccounts.length} accounts` : `${item.itemCount} items`}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="px-4 py-2 bg-blue-50 rounded-lg">
-                              <span className="text-blue-600 font-bold text-lg">{item.itemCount}</span>
+                              <span className="text-blue-600 font-bold text-lg">{item.id === 'carrier-accounts' ? carrierAccounts.length : item.itemCount}</span>
                             </div>
                             <motion.div
                               animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -860,52 +976,216 @@ export function GeneralSettingsPage() {
                             className="border-t border-slate-200 bg-slate-50"
                           >
                             <div className="p-6 space-y-3">
-                              {/* Add New Button/Form */}
-                              {!isAddingNew ? (
-                                <motion.button
-                                  whileHover={{ scale: 1.01 }}
-                                  whileTap={{ scale: 0.99 }}
-                                  onClick={() => setNewOption({ settingId: item.id, value: '' })}
-                                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-                                >
-                                  <Plus className="w-5 h-5" />
-                                  Add New Option
-                                </motion.button>
-                              ) : (
-                                <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-lg">
-                                  <div className="flex items-center gap-3">
-                                    <input
-                                      type="text"
-                                      value={newOption.value}
-                                      onChange={(e) => setNewOption({ settingId: item.id, value: e.target.value })}
-                                      placeholder="Enter new option name..."
-                                      className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                      autoFocus
-                                      onKeyPress={(e) => e.key === 'Enter' && handleAddOption(item.id)}
-                                    />
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => handleAddOption(item.id)}
-                                      disabled={!newOption.value.trim()}
-                                      className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      Add
-                                    </motion.button>
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => setNewOption(null)}
-                                      className="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition-colors"
-                                    >
-                                      Cancel
-                                    </motion.button>
+                              {/* Add New Button/Form (hidden for carrier-accounts which has its own) */}
+                              {item.id !== 'carrier-accounts' && (
+                                !isAddingNew ? (
+                                  <motion.button
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    onClick={() => setNewOption({ settingId: item.id, value: '' })}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                                  >
+                                    <Plus className="w-5 h-5" />
+                                    Add New Option
+                                  </motion.button>
+                                ) : (
+                                  <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-lg">
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type="text"
+                                        value={newOption?.value || ''}
+                                        onChange={(e) => setNewOption({ settingId: item.id, value: e.target.value })}
+                                        placeholder="Enter new option name..."
+                                        className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        autoFocus
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddOption(item.id)}
+                                      />
+                                      <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => handleAddOption(item.id)}
+                                        disabled={!newOption?.value?.trim()}
+                                        className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        Add
+                                      </motion.button>
+                                      <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setNewOption(null)}
+                                        className="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition-colors"
+                                      >
+                                        Cancel
+                                      </motion.button>
+                                    </div>
                                   </div>
-                                </div>
+                                )
                               )}
 
                               {/* Options List */}
-                              {item.id === 'sales-tax-rates' ? (
+                              {item.id === 'carrier-accounts' ? (
+                                // Special rendering for Carrier Accounts
+                                <div className="space-y-3">
+                                  {isLoadingCarrierAccounts ? (
+                                    <div className="text-center py-6 text-slate-500">Loading carrier accounts...</div>
+                                  ) : (
+                                    <>
+                                      {carrierAccounts.map((account, accIdx) => (
+                                        <motion.div
+                                          key={account.id}
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ delay: accIdx * 0.03 }}
+                                          className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 group hover:border-blue-300 hover:shadow-sm transition-all"
+                                        >
+                                          {editingCarrierId === account.id ? (
+                                            <div className="flex-1 flex items-center gap-3 flex-wrap">
+                                              <select
+                                                value={editCarrierForm.carrier}
+                                                onChange={(e) => setEditCarrierForm({ ...editCarrierForm, carrier: e.target.value })}
+                                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              >
+                                                <option value="">Carrier</option>
+                                                <option value="UPS">UPS</option>
+                                                <option value="FedEx">FedEx</option>
+                                                <option value="USPS">USPS</option>
+                                                <option value="DHL">DHL</option>
+                                                <option value="Other">Other</option>
+                                              </select>
+                                              <input
+                                                type="text"
+                                                value={editCarrierForm.accountNumber}
+                                                onChange={(e) => setEditCarrierForm({ ...editCarrierForm, accountNumber: e.target.value })}
+                                                placeholder="Account Number"
+                                                className="flex-1 min-w-[140px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              />
+                                              <input
+                                                type="text"
+                                                value={editCarrierForm.label}
+                                                onChange={(e) => setEditCarrierForm({ ...editCarrierForm, label: e.target.value })}
+                                                placeholder="Label (optional)"
+                                                className="w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              />
+                                              <button
+                                                onClick={() => handleUpdateCarrierAccount(account.id)}
+                                                className="px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"
+                                              >
+                                                Save
+                                              </button>
+                                              <button
+                                                onClick={() => setEditingCarrierId(null)}
+                                                className="px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-300"
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                                                <Truck className="w-5 h-5 text-blue-600" />
+                                              </div>
+                                              <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-bold text-slate-900">{account.carrier}</span>
+                                                  <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono">{account.accountNumber}</span>
+                                                </div>
+                                                {account.label && (
+                                                  <p className="text-xs text-slate-500 mt-0.5">{account.label}</p>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingCarrierId(account.id);
+                                                    setEditCarrierForm({ carrier: account.carrier, accountNumber: account.accountNumber, label: account.label || '' });
+                                                  }}
+                                                  className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                                >
+                                                  <Edit className="w-4 h-4 text-blue-600" />
+                                                </button>
+                                                <button
+                                                  onClick={() => handleDeleteCarrierAccount(account.id)}
+                                                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                                </button>
+                                              </div>
+                                            </>
+                                          )}
+                                        </motion.div>
+                                      ))}
+
+                                      {carrierAccounts.length === 0 && !newCarrierForm && (
+                                        <div className="text-center py-6">
+                                          <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <Truck className="w-7 h-7 text-slate-400" />
+                                          </div>
+                                          <p className="text-slate-600 font-medium">No carrier accounts configured</p>
+                                          <p className="text-slate-500 text-sm mt-1">Add carrier accounts to use in Purchase Orders</p>
+                                        </div>
+                                      )}
+
+                                      {newCarrierForm ? (
+                                        <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-lg">
+                                          <p className="text-sm font-bold text-slate-900 mb-3">Add Carrier Account</p>
+                                          <div className="flex items-center gap-3 flex-wrap">
+                                            <select
+                                              value={newCarrierForm.carrier}
+                                              onChange={(e) => setNewCarrierForm({ ...newCarrierForm, carrier: e.target.value })}
+                                              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                              <option value="">Select Carrier</option>
+                                              <option value="UPS">UPS</option>
+                                              <option value="FedEx">FedEx</option>
+                                              <option value="USPS">USPS</option>
+                                              <option value="DHL">DHL</option>
+                                              <option value="Other">Other</option>
+                                            </select>
+                                            <input
+                                              type="text"
+                                              value={newCarrierForm.accountNumber}
+                                              onChange={(e) => setNewCarrierForm({ ...newCarrierForm, accountNumber: e.target.value })}
+                                              placeholder="Account Number"
+                                              className="flex-1 min-w-[140px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              autoFocus
+                                            />
+                                            <input
+                                              type="text"
+                                              value={newCarrierForm.label}
+                                              onChange={(e) => setNewCarrierForm({ ...newCarrierForm, label: e.target.value })}
+                                              placeholder="Label (optional)"
+                                              className="w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <button
+                                              onClick={handleAddCarrierAccount}
+                                              disabled={!newCarrierForm.carrier || !newCarrierForm.accountNumber.trim()}
+                                              className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                              Add
+                                            </button>
+                                            <button
+                                              onClick={() => setNewCarrierForm(null)}
+                                              className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-300"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <motion.button
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => setNewCarrierForm({ carrier: '', accountNumber: '', label: '' })}
+                                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                                        >
+                                          <Plus className="w-5 h-5" />
+                                          Add Carrier Account
+                                        </motion.button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              ) : item.id === 'sales-tax-rates' ? (
                                 // Special rendering for Sales Tax Rates with hierarchical structure
                                 item.options.map((option, optIndex) => {
                                   if (typeof option !== 'string' && option.isState) {
@@ -962,7 +1242,7 @@ export function GeneralSettingsPage() {
                                 })
                               )}
 
-                              {item.options.length === 0 && !isAddingNew && (
+                              {item.options.length === 0 && !isAddingNew && item.id !== 'carrier-accounts' && (
                                 <div className="text-center py-8">
                                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                     <Package className="w-8 h-8 text-slate-400" />

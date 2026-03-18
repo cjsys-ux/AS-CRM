@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, Trash2, User, Paperclip, X, Download, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 
@@ -46,71 +45,25 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
   };
 
   const fetchMessages = async () => {
-    try {
-      const res = await fetch(`/api/pipeline/chat/list?productId=${encodeURIComponent(productId)}`);
-      if (!res.ok) throw new Error('Failed to fetch messages');
-      const data = await res.json();
-      setMessages(data.messages ?? []);
-    } catch {
-      setMessages([]);
-    }
+    setMessages([]);
   };
 
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && !attachedFile) || isSending) return;
-
     setIsSending(true);
     try {
-      let attachmentKey: string | undefined;
-      let attachmentName: string | undefined;
-      let attachmentType: string | undefined;
-      let attachmentSize: string | undefined;
-
-      if (attachedFile) {
-        // Presign → PUT → complete
-        const presignRes = await fetch('/api/files/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: attachedFile.name,
-            fileType: attachedFile.type,
-            entityType: 'pipeline-chat',
-            entityId: productId,
-          }),
-        });
-        if (presignRes.ok) {
-          const { uploadUrl, key } = await presignRes.json();
-          await fetch(uploadUrl, { method: 'PUT', body: attachedFile, headers: { 'Content-Type': attachedFile.type } });
-          attachmentKey = key;
-          attachmentName = attachedFile.name;
-          attachmentType = attachedFile.type;
-          attachmentSize = attachedFile.size > 1024 * 1024
-            ? `${(attachedFile.size / (1024 * 1024)).toFixed(1)} MB`
-            : `${(attachedFile.size / 1024).toFixed(0)} KB`;
-        }
-      }
-
-      const res = await fetch('/api/pipeline/chat/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId,
-          message: newMessage.trim() || '',
-          user: 'You',
-          attachmentKey,
-          attachmentName,
-          attachmentType,
-          attachmentSize,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Failed to send message');
-      const data = await res.json();
-      setMessages((prev) => [...prev, data.message]);
+      const newMsg: ChatMessage = {
+        id: Date.now().toString(),
+        message: newMessage || 'Shared a file',
+        user: 'You',
+        timestamp: new Date().toISOString(),
+        isCurrentUser: true,
+      };
+      setMessages(prev => [...prev, newMsg]);
       setNewMessage('');
       setAttachedFile(null);
-    } catch {
-      toast.error('Failed to send message');
+    } catch (error) {
+      console.error('Error sending message:', error);
     } finally {
       setIsSending(false);
     }
@@ -132,21 +85,15 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
     if (!messageToDelete) return;
 
     setIsDeleting(true);
+
     try {
-      const res = await fetch('/api/pipeline/chat/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: messageToDelete.id }),
-      });
-      if (!res.ok) throw new Error('Failed to delete message');
-      setMessages((prev) => prev.filter((m) => m.id !== messageToDelete.id));
-      toast.success('Message deleted');
-    } catch {
-      toast.error('Failed to delete message');
-    } finally {
-      setIsDeleting(false);
+      setMessages(prev => prev.filter(m => m.id !== messageToDelete.id));
       setDeleteModalOpen(false);
       setMessageToDelete(null);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 

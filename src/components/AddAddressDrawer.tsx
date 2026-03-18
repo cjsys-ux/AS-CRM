@@ -89,7 +89,7 @@ export function AddAddressDrawer({ isOpen, onClose, onSuccess, addressData, cont
             className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 px-8 py-6 flex items-center justify-between">
+            <div className="bg-slate-800 px-8 py-6 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                   <MapPin className="w-6 h-6 text-white" />
@@ -112,7 +112,7 @@ export function AddAddressDrawer({ isOpen, onClose, onSuccess, addressData, cont
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 py-8">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 py-8 drawer-scroll">
               <div className="space-y-6">
                 {/* Address Type */}
                 <div>

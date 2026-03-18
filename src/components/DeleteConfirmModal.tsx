@@ -1,15 +1,28 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Loader2 } from 'lucide-react';
 
 interface DeleteConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  itemName: string;
-  itemType: string;
+  itemName?: string;
+  itemType?: string;
+  title?: string;
+  message?: string;
+  confirmLabel?: string;
+  isDeleting?: boolean;
 }
 
-export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, itemType }: DeleteConfirmModalProps) {
+export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, itemType, title, message, confirmLabel, isDeleting }: DeleteConfirmModalProps) {
+  const displayTitle = title || 'Confirm Deletion';
+  const displayMessage = message || (
+    <>
+      Are you sure you want to delete the {itemType}{' '}
+      <span className="font-semibold text-slate-900">"{itemName}"</span>?
+    </>
+  );
+  const displayConfirmLabel = confirmLabel || `Delete ${itemType || 'Item'}`;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -39,7 +52,7 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, itemT
                       <AlertTriangle className="w-6 h-6 text-red-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900">Confirm Deletion</h3>
+                      <h3 className="text-lg font-bold text-slate-900">{displayTitle}</h3>
                       <p className="text-sm text-slate-600">This action cannot be undone</p>
                     </div>
                   </div>
@@ -55,8 +68,7 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, itemT
               {/* Content */}
               <div className="px-6 py-5">
                 <p className="text-slate-700 leading-relaxed">
-                  Are you sure you want to delete the {itemType}{' '}
-                  <span className="font-semibold text-slate-900">"{itemName}"</span>?
+                  {displayMessage}
                 </p>
                 <p className="text-sm text-slate-500 mt-2">
                   This will permanently remove all associated data and cannot be recovered.
@@ -67,19 +79,27 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, itemName, itemT
               <div className="bg-slate-50 px-6 py-4 flex items-center gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    onConfirm();
-                    onClose();
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                  onClick={onConfirm}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <AlertTriangle className="w-4 h-4" />
-                  Delete {itemType}
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-4 h-4" />
+                      {displayConfirmLabel}
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>

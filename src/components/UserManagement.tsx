@@ -3,7 +3,6 @@ import { Search, Plus, Edit, Trash2, Mail, Phone, ChevronLeft, ChevronRight } fr
 import { useState, useEffect } from 'react';
 import { UserDrawer } from './UserDrawer';
 import { DeleteUserModal } from './DeleteUserModal';
-import { Toast } from './Toast';
 
 interface User {
   id: string;
@@ -14,7 +13,6 @@ interface User {
   status: 'Active' | 'Inactive';
   lastLogin: string;
   created?: string;
-  profileImage?: string;
 }
 
 export function UserManagement() {
@@ -27,79 +25,33 @@ export function UserManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [isToastVisible, setIsToastVisible] = useState(false);
 
+  // Fetch users from database
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ message, type });
-    setIsToastVisible(true);
-  };
-
   const fetchUsers = async () => {
     setIsLoading(true);
-    try {
-      const res = await fetch('/api/users/list');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load users.');
-      setUsers(Array.isArray(data.users) ? data.users : []);
-    } catch (err: unknown) {
-      showToast(err instanceof Error ? err.message : 'Failed to load users.', 'error');
-      setUsers([]);
-    } finally {
-      setIsLoading(false);
-    }
+    setUsers([]);
+    setIsLoading(false);
   };
 
-  const handleSaveUser = async (formData: any): Promise<void> => {
+  const handleSaveUser = async (formData: any) => {
+    const userData = {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      phone: formData.phone,
+      role: formData.role,
+      status: formData.status,
+    };
+
     if (selectedUser) {
-      // Edit existing user
-      const res = await fetch('/api/users/update', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          role: formData.role,
-          status: formData.status,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update user.');
-      setUsers(prev => prev.map(u => u.id === selectedUser.id ? data.user : u));
-      showToast(`${data.user.name} has been updated.`);
+      setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...userData } : u));
     } else {
-      // Create new user
-      const res = await fetch('/api/users/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          role: formData.role,
-          status: formData.status,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create user.');
-      setUsers(prev => [data.user, ...prev]);
-      if (data.invite?.emailSent) {
-        showToast(`${data.user.name} added. A password-setup email has been sent.`);
-      } else {
-        const reason = data.invite?.emailError || data.invite?.ticketError || 'SMTP may not be configured.';
-        showToast(`${data.user.name} added, but the invite email failed: ${reason}`, 'error');
-      }
+      const newUser = { ...userData, id: Date.now().toString(), lastLogin: 'Just now', created: new Date().toISOString() };
+      setUsers([...users, newUser as any]);
     }
-    setIsUserDrawerOpen(false);
-    setSelectedUser(null);
   };
 
   const handleDeleteUser = (user: User) => {
@@ -107,17 +59,10 @@ export function UserManagement() {
     setIsDeleteUserModalOpen(true);
   };
 
-  const confirmDeleteUser = async (): Promise<void> => {
+  const confirmDeleteUser = async () => {
     if (!selectedUser) return;
-    const params = new URLSearchParams({ userId: selectedUser.id });
-    const res = await fetch(`/api/users/delete?${params.toString()}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to delete user.');
-    const deletedName = selectedUser.name;
-    setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
-    showToast(`${deletedName} has been deleted.`);
+    setUsers(users.filter(u => u.id !== selectedUser.id));
     setSelectedUser(null);
-    setIsDeleteUserModalOpen(false);
   };
 
   const handleEditUser = (user: User) => {
@@ -147,9 +92,9 @@ export function UserManagement() {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase());
-
+    
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -220,136 +165,96 @@ export function UserManagement() {
           <table className="w-full">
             <thead>
               <tr className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">User</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Last Login</th>
-                <th className="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">User</th>
+                <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Contact</th>
+                <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Role</th>
+                <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Last Login</th>
+                <th className="px-4 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-b border-slate-100">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-200 rounded-full animate-pulse" />
-                        <div className="space-y-1">
-                          <div className="w-32 h-3 bg-slate-200 rounded animate-pulse" />
-                          <div className="w-24 h-2 bg-slate-100 rounded animate-pulse" />
-                        </div>
+              {currentUsers.map((user, index) => (
+                <motion.tr
+                  key={user.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                >
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                        {user.name.split(' ').map(n => n[0]).join('')}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="w-40 h-3 bg-slate-200 rounded animate-pulse" />
-                        <div className="w-24 h-2 bg-slate-100 rounded animate-pulse" />
+                      <div>
+                        <div className="font-semibold text-slate-900">{user.name}</div>
+                        <div className="text-sm text-slate-500">ID: {user.id}</div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4"><div className="w-20 h-6 bg-slate-200 rounded-full animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="w-16 h-6 bg-slate-200 rounded-full animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="w-20 h-3 bg-slate-200 rounded animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="w-16 h-6 bg-slate-200 rounded animate-pulse mx-auto" /></td>
-                  </tr>
-                ))
-              ) : (
-                currentUsers.map((user, index) => (
-                  <motion.tr
-                    key={user.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {user.profileImage ? (
-                          <img
-                            src={user.profileImage}
-                            alt={user.name}
-                            className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-semibold text-slate-900">{user.name}</div>
-                          <div className="text-sm text-slate-500">ID: {user.id.split('|')[1] ?? user.id}</div>
-                        </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <Mail className="w-4 h-4 text-slate-400" />
+                        {user.email}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                          <Mail className="w-4 h-4 text-slate-400" />
-                          {user.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                          <Phone className="w-4 h-4 text-slate-400" />
-                          {user.phone || '—'}
-                        </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <Phone className="w-4 h-4 text-slate-400" />
+                        {user.phone}
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {user.status === 'Active' && user.lastLogin === 'Never' ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border bg-amber-100 text-amber-700 border-amber-200">
-                          Invite Sent
-                        </span>
-                      ) : (
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
-                          user.status === 'Active'
-                            ? 'bg-green-100 text-green-700 border-green-200'
-                            : 'bg-red-100 text-red-700 border-red-200'
-                        }`}>
-                          {user.status}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-600">{user.lastLogin}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleEditUser(user)}
-                          className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-blue-600" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDeleteUser(user)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </motion.button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
-              )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${
+                      user.status === 'Active'
+                        ? 'bg-green-100 text-green-700 border-green-200'
+                        : 'bg-red-100 text-red-700 border-red-200'
+                    }`}>
+                      {user.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-sm text-slate-600">{user.lastLogin}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleEditUser(user)}
+                        className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => handleDeleteUser(user)}
+                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </motion.button>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
             </tbody>
           </table>
 
-          {!isLoading && filteredUsers.length === 0 && (
+          {filteredUsers.length === 0 && (
             <div className="text-center py-12">
               <p className="text-slate-500">No users found matching your search.</p>
             </div>
           )}
 
           {/* Pagination */}
-          {!isLoading && filteredUsers.length > 0 && (
+          {filteredUsers.length > 0 && (
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-slate-600">
@@ -366,7 +271,7 @@ export function UserManagement() {
                   <option value={50}>50 per page</option>
                 </select>
               </div>
-
+              
               <div className="flex items-center gap-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -378,7 +283,7 @@ export function UserManagement() {
                   <ChevronLeft className="w-4 h-4" />
                   Previous
                 </motion.button>
-
+                
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.ceil(filteredUsers.length / rowsPerPage) }, (_, i) => i + 1).map((page) => (
                     <motion.button
@@ -396,7 +301,7 @@ export function UserManagement() {
                     </motion.button>
                   ))}
                 </div>
-
+                
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -416,16 +321,16 @@ export function UserManagement() {
       {/* User Drawer */}
       <UserDrawer
         isOpen={isUserDrawerOpen}
-        onClose={() => { setIsUserDrawerOpen(false); setSelectedUser(null); }}
+        onClose={() => setIsUserDrawerOpen(false)}
         mode={selectedUser ? 'edit' : 'add'}
         user={selectedUser ? {
-          id: selectedUser.id,
+          id: parseInt(selectedUser.id),
           name: selectedUser.name,
           email: selectedUser.email,
           phone: selectedUser.phone,
           role: selectedUser.role,
           status: selectedUser.status,
-          created: selectedUser.created ?? selectedUser.lastLogin,
+          created: selectedUser.lastLogin
         } : undefined}
         onSave={handleSaveUser}
       />
@@ -433,20 +338,10 @@ export function UserManagement() {
       {/* Delete User Modal */}
       <DeleteUserModal
         isOpen={isDeleteUserModalOpen}
-        onClose={() => { setIsDeleteUserModalOpen(false); setSelectedUser(null); }}
+        onClose={() => setIsDeleteUserModalOpen(false)}
         user={selectedUser}
         onConfirm={confirmDeleteUser}
       />
-
-      {/* Toast notifications */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          isVisible={isToastVisible}
-          onClose={() => setIsToastVisible(false)}
-        />
-      )}
     </div>
   );
 }

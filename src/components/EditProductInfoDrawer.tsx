@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, ChevronDown, FileImage, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { vendors, clients, statuses, productTypes, projectManagers } from '../utils/mockData';
+import { statuses, productTypes } from '../utils/mockData';
+
 
 interface EditProductInfoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  productId?: string;
   productInfo: {
     name: string;
     client: string;
@@ -16,123 +16,49 @@ interface EditProductInfoDrawerProps {
     internalSKU: string;
     projectManager: string;
     image: string;
+    competitorName?: string;
+    competitorLink?: string;
+    competitorPrice?: string;
+    artTemplate?: string;
+    artTemplateName?: string;
   };
   onSave: (updatedInfo: any) => void;
 }
 
-export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave }: EditProductInfoDrawerProps) {
+export function EditProductInfoDrawer({ isOpen, onClose, productInfo, onSave }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
   const [imagePreview, setImagePreview] = useState(productInfo.image);
-  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
-  const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
+  const [dbVendors, setDbVendors] = useState<any[]>([]);
+  const [dbClients, setDbClients] = useState<any[]>([]);
 
-  // Sync form state every time the drawer opens so stale data doesn't persist
   useEffect(() => {
-    if (isOpen) {
-      setFormData(productInfo);
-      setImagePreview(productInfo.image);
-      setUploadedImageKey(null);
-      setResolvedImageUrl(null);
-      setSaveError(null);
-    }
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!isOpen) return;
+    setProjectManagers([]);
+    setDbVendors([]);
+    setDbClients([]);
+  }, [isOpen]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Sync formData when productInfo changes
+  useEffect(() => {
+    setFormData(productInfo);
+    setImagePreview(productInfo.image);
+  }, [productInfo]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingImage(true);
-    setSaveError(null);
-    // Show local blob preview immediately while upload is in progress
-    setImagePreview(URL.createObjectURL(file));
-
-    try {
-      // Convert file to base64 and upload via server-side API to avoid S3 CORS issues
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Strip the data URL prefix (e.g. "data:image/jpeg;base64,")
-          resolve(result.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const uploadRes = await fetch('/api/files/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          entityType: 'project',
-          entityId: productId ?? 'unknown',
-          fileData: base64,
-        }),
-      });
-
-      if (!uploadRes.ok) {
-        const data = await uploadRes.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to upload image.');
-      }
-
-      const { key, fileUrl } = await uploadRes.json();
-      setUploadedImageKey(key);
-      setResolvedImageUrl(fileUrl);
-      setImagePreview(fileUrl);
-    } catch (err) {
-      console.error('Image upload error:', err);
-      setSaveError('Image upload failed. Other changes can still be saved.');
-    } finally {
-      setIsUploadingImage(false);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+        setFormData({ ...formData, image: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleSave = async () => {
-    setSaveError(null);
-
-    if (productId) {
-      try {
-        const payload: Record<string, unknown> = {
-          id: productId,
-          name: formData.name,
-          client: formData.client,
-          vendor: formData.vendor,
-          status: formData.status,
-          type: formData.type,
-          internalSKU: formData.internalSKU,
-          projectManager: formData.projectManager,
-        };
-
-        if (uploadedImageKey) {
-          payload.imageKey = uploadedImageKey;
-        }
-
-        const res = await fetch('/api/projects/update', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Failed to save changes.');
-        }
-      } catch (err) {
-        setSaveError(err instanceof Error ? err.message : 'Failed to save changes.');
-        return;
-      }
-    }
-
-    // Pass the resolved S3 proxy URL (or the existing image) back to the parent so the UI updates immediately
-    const imageUrl = resolvedImageUrl ?? formData.image;
-    onSave({
-      ...formData,
-      image: imageUrl,
-      ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
-    });
+  const handleSave = () => {
+    onSave(formData);
     onClose();
   };
 
@@ -172,7 +98,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 drawer-scroll">
               <div className="space-y-6">
                 {/* Image Upload */}
                 <div>
@@ -232,7 +158,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                       className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-white cursor-pointer"
                     >
                       <option value="">Select a client</option>
-                      {clients.map((client) => (
+                      {dbClients.map((client) => (
                         <option key={client.id} value={client.name}>{client.name}</option>
                       ))}
                     </select>
@@ -251,7 +177,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                       className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none bg-white cursor-pointer"
                     >
                       <option value="">Select a vendor</option>
-                      {vendors.map((vendor) => (
+                      {dbVendors.map((vendor) => (
                         <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
                       ))}
                     </select>
@@ -322,33 +248,84 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                     <ChevronDown className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 </div>
+
+                {/* Art Template Section */}
+                <div className="border-t border-slate-200 pt-6">
+                  <h3 className="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wider">Art Template</h3>
+                  <p className="text-xs text-slate-500 mb-4">Upload a design template that will be pushed to Design Lab for this product.</p>
+                  
+                  {formData.artTemplate ? (
+                    <div className="space-y-3">
+                      <div className="w-full h-36 bg-slate-50 rounded-xl overflow-hidden border-2 border-indigo-200 flex items-center justify-center">
+                        {(formData.artTemplate.startsWith('data:image') || formData.artTemplate.startsWith('http')) ? (
+                          <img src={formData.artTemplate} alt="Art template" className="w-full h-full object-contain" />
+                        ) : (
+                          <FileImage className="w-10 h-10 text-indigo-300" />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileImage className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                          <span className="text-sm font-medium text-slate-700 truncate">{formData.artTemplateName || 'Template file'}</span>
+                        </div>
+                        <button
+                          onClick={() => setFormData({ ...formData, artTemplate: '', artTemplateName: '' })}
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="block">
+                      <input
+                        type="file"
+                        accept="image/*,.ai,.eps,.pdf,.svg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setFormData({ ...formData, artTemplate: reader.result as string, artTemplateName: file.name });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="cursor-pointer border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all"
+                      >
+                        <FileImage className="w-8 h-8 text-indigo-400 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-slate-700">Upload Art Template</p>
+                        <p className="text-xs text-slate-500 mt-1">PNG, JPG, AI, EPS, PDF, SVG</p>
+                      </motion.div>
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex-shrink-0">
-              {saveError && (
-                <p className="text-red-600 text-sm font-medium mb-3">{saveError}</p>
-              )}
-              <div className="flex gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onClose}
-                  className="flex-1 px-6 py-3 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSave}
-                  disabled={isUploadingImage}
-                  className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUploadingImage ? 'Uploading...' : 'Save Changes'}
-                </motion.button>
-              </div>
+            <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex gap-3 flex-shrink-0">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onClose}
+                className="flex-1 px-6 py-3 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleSave}
+                className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg"
+              >
+                Save Changes
+              </motion.button>
             </div>
           </motion.div>
         </>

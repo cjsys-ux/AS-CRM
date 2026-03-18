@@ -1,14 +1,19 @@
 import { motion, AnimatePresence } from 'motion/react';
+import { DatePicker } from './DatePicker';
 import { X, Truck, Package, MapPin, DollarSign, Weight, FileText, Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
 import { DynamicPackageDetails } from './DynamicPackageDetails';
+import { toast } from 'sonner@2.0.3';
+import { QuantityStepper } from './QuantityStepper';
+
 
 interface AddShipmentDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
+export function AddShipmentDrawer({ isOpen, onClose, onSave }: AddShipmentDrawerProps) {
   const [formData, setFormData] = useState({
     trackingNumber: '',
     orderId: '',
@@ -99,11 +104,45 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('New Shipment:', formData);
-    alert('Shipment created successfully!');
-    onClose();
+    try {
+      const shipmentPayload = {
+        masterTracking: formData.trackingNumber,
+        poNumber: formData.referenceNumber || '',
+        orderNumber: formData.orderId,
+        orderLabel: formData.orderId,
+        customer: formData.customer,
+        quantity: parseInt(formData.items) || 0,
+        itemName: formData.customer + ' Shipment',
+        project: formData.customer,
+        carrier: formData.carrier,
+        serviceLevel: formData.serviceType,
+        status: formData.status,
+        shipDate: formData.shipDate,
+        estDelivery: formData.estimatedDelivery,
+        hasIssue: false,
+        weight: formData.weight || '',
+        dimensions: formData.dimensions || '',
+        packageType: formData.packageType,
+        declaredValue: formData.declaredValue,
+        shippingCost: formData.shippingCost,
+        insuranceAmount: formData.insuranceAmount,
+        originAddress: formData.origin,
+        destinationAddress: formData.destinationAddress,
+        destinationCity: formData.destinationCity,
+        destinationState: formData.destinationState,
+        destinationZip: formData.destinationZip,
+        referenceNumber: formData.referenceNumber,
+        specialInstructions: formData.specialInstructions,
+      };
+      toast.success('Shipment created successfully!');
+      onSave?.();
+      onClose();
+    } catch (error) {
+      console.error('Error creating shipment:', error);
+      toast.error(`Error creating shipment: ${error}`);
+    }
   };
 
   return (
@@ -147,7 +186,7 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
             </div>
 
             {/* Form Content */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto bg-slate-50">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto bg-slate-50 drawer-scroll">
               <div className="p-6 space-y-4">
                 {/* Basic Information */}
                 <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -207,13 +246,11 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                           Number of Items <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="number"
-                          value={formData.items}
-                          onChange={(e) => setFormData({ ...formData, items: e.target.value })}
-                          placeholder="5"
-                          required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        <QuantityStepper
+                          value={parseInt(formData.items) || 0}
+                          onChange={(val) => setFormData({ ...formData, items: String(val) })}
+                          min={1}
+                          wide
                         />
                       </div>
                       <div>
@@ -407,10 +444,9 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                           Ship Date <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={formData.shipDate}
-                          onChange={(e) => setFormData({ ...formData, shipDate: e.target.value })}
+                          onChange={(date) => setFormData({ ...formData, shipDate: date })}
                           required
                           className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
@@ -419,10 +455,9 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                           Est. Delivery <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={formData.estimatedDelivery}
-                          onChange={(e) => setFormData({ ...formData, estimatedDelivery: e.target.value })}
+                          onChange={(date) => setFormData({ ...formData, estimatedDelivery: date })}
                           required
                           className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />

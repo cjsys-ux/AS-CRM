@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
+import { DatePicker } from './DatePicker';
 import { X, User, Upload, Mail, Phone, Building2, MapPin, FileText, Tag, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -158,15 +159,9 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       reader.onloadend = async () => {
         const base64String = reader.result as string;
         
-        if (removeBackground) {
-          // Use original image since background removal requires server
-          setUploadedImage(base64String);
-          setFormData({ ...formData, profileImage: base64String });
-        } else {
-          // Use original image
-          setUploadedImage(base64String);
-          setFormData({ ...formData, profileImage: base64String });
-        }
+        // Use image directly (background removal not available in local mode)
+        setUploadedImage(base64String);
+        setFormData({ ...formData, profileImage: base64String });
         
         setIsProcessingImage(false);
       };
@@ -210,7 +205,6 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       setShowCompanyDropdown(false);
       return;
     }
-
     setCompanies([]);
     setShowCompanyDropdown(false);
   };
@@ -255,34 +249,13 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       profileImage: formData.profileImage,
     };
 
-    setIsSaving(true);
     try {
+      setIsSaving(true);
       onSuccess?.();
       onClose();
-      // Reset form
-      setFormData({
-        image: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        company: '',
-        jobTitle: '',
-        department: '',
-        contactType: 'Other',
-        tags: [],
-        addressLine1: '',
-        addressLine2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        notes: '',
-      });
-      setUploadedImage(null);
-      setCompanySearch('');
-      setIsSaving(false);
     } catch (error) {
       console.error('Error saving contact:', error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -309,7 +282,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
             className="fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-50 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-8 py-8 flex items-center justify-between shadow-xl">
+            <div className="bg-slate-800 px-8 py-8 flex items-center justify-between shadow-xl">
               <div className="flex items-center gap-5">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
@@ -349,7 +322,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 drawer-scroll">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Profile Image */}
                 <motion.div
@@ -890,11 +863,9 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                       <label className="block text-sm font-bold text-slate-700 mb-2">
                         Last Contacted
                       </label>
-                      <input
-                        type="date"
-                        value={formData.lastContacted}
-                        onChange={(e) => setFormData({ ...formData, lastContacted: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      <DatePicker
+                        value={formData.lastContacted || ''}
+                        onChange={(date) => setFormData({ ...formData, lastContacted: date })}
                       />
                       <p className="text-xs text-slate-500 mt-2">When did you last contact this person?</p>
                     </div>

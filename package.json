@@ -54,13 +54,16 @@
             "recharts": "^2.15.2",
             "sonner": "^2.0.3",
             "tailwind-merge": "*",
-            "vaul": "^1.1.2"
+            "vaul": "^1.1.2",
+            "html2canvas": "*",
+            "jspdf": "*"
       },
       "devDependencies": {
             "@types/node": "^20.10.0",
             "@types/nodemailer": "^7.0.11",
             "@vercel/node": "^5.1.8",
             "@vitejs/plugin-react-swc": "^3.10.2",
+            "pdfmake": "^0.3.5",
             "typescript": "^5.7.3",
             "vite": "6.3.5"
       },

@@ -139,6 +139,49 @@ await fetch('/api/files/complete', { method: 'POST', body: JSON.stringify({ key,
 - Vendor/Customer modules use `logoKey` (S3 key stored in MongoDB, URL derived via `getPublicS3Url`)
 - No global state management (no Redux/Zustand) — all state is local React useState
 
+## Contacts Module Implementation
+
+**Collection**: `contacts`
+
+**Schema fields**:
+- `name`, `email`, `phone`, `company`, `position`, `type`, `country`, `status`
+- `lastContact` (date, set to `new Date()` on create)
+- `createdBy` (user sub from auth context)
+- `createdAt`, `updatedAt`
+
+**API endpoints**: `api/contacts/create`, `list`, `update`, `delete`
+
+**File uploads**: stored in S3, referenced via `uploads` collection with `entityType='contact-file'`
+- Upload wired inline in `ContactDetailView` (not using `FilesTab.tsx` — detail view has its own custom Documents panel)
+- File list fetched via `GET /api/files/list?entityType=contact-file&entityId=<id>`
+- File delete via `DELETE /api/files/delete`
+- 50 MB per-file size limit enforced client-side before presign
+
+**Key observation**: The `FilesTab.tsx` component is NOT used in `ContactDetailView` — the Documents panel is bespoke. For future modules with a custom file panel, implement the presign→S3→complete flow inline rather than swapping in FilesTab.
+
+**Note on commits**: When staging files and committing, the commit may appear to "fail" with exit 1 if there are no remaining unstaged changes after the commit succeeds. Check `git log` to confirm — the commit may have already landed.
+
+## Orders Module Implementation
+
+**Collection**: `orders`
+
+**Schema fields**:
+- `orderNumber` (auto-generated: `ORD-YYYYMMDD-XXXX`)
+- `customer`, `email` (required)
+- `status` (enum: Pending | Processing | Shipped | Delivered | Cancelled)
+- `paymentStatus` (enum: Pending | Paid | Refunded)
+- `items` (number), `total` (string), `shipping` (string), `date` (string)
+- `notes` (string, optional)
+- `createdBy`, `createdAt`, `updatedAt`
+
+**API endpoints**: `api/orders/create`, `list`, `update`, `delete`
+
+**No file uploads**: The Orders module UI has no file input fields — no S3 wiring was needed.
+
+**Frontend**: `CreateOrderDrawer.tsx` is a self-contained drawer for create and edit. `OrdersPage.tsx` holds list state, fetches on mount, and manages drawer + delete modal state.
+
+**Key pattern**: When a module page is the single view (no detail view), the edit flow reuses the same create drawer with `order` prop set.
+
 ## Git Branching
 
 - Never push to `main`

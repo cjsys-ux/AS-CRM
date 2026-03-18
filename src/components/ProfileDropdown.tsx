@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, User, Settings, LogOut } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { UserProfile } from '../App';
 
 interface ProfileDropdownProps {
@@ -10,11 +10,6 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [imageError, setImageError] = useState(false);
-
-  useEffect(() => setImageError(false), [userProfile.profileImage]);
-
-  const initials = `${userProfile.firstName.charAt(0)}${userProfile.lastName.charAt(0)}`.toUpperCase();
 
   const menuItems = [
     {
@@ -50,22 +45,14 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
       {/* Profile button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ backgroundColor: 'rgba(241, 245, 249, 1)' }}
         whileTap={{ scale: 0.98 }}
-        className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors"
+        className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-slate-100"
       >
-        {userProfile.profileImage && !imageError ? (
-          <img
-            src={userProfile.profileImage}
-            alt="User avatar"
-            onError={() => setImageError(true)}
-            className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200"
-          />
-        ) : (
-          <div className="w-9 h-9 rounded-full ring-2 ring-slate-200 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-            <span className="text-xs font-bold text-white">{initials}</span>
-          </div>
-        )}
+        <img
+          src={userProfile.profileImage}
+          alt="User avatar"
+          className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200"
+        />
         <div className="text-left">
           <p className="text-sm font-semibold text-slate-900">{userProfile.firstName} {userProfile.lastName}</p>
           <p className="text-xs text-slate-500">{userProfile.email}</p>
@@ -103,18 +90,11 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
               <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 px-6 py-5">
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    {userProfile.profileImage && !imageError ? (
-                      <img
-                        src={userProfile.profileImage}
-                        alt="User avatar"
-                        onError={() => setImageError(true)}
-                        className="w-14 h-14 rounded-full object-cover ring-4 ring-white/10"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full ring-4 ring-white/10 bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                        <span className="text-xl font-bold text-white">{initials}</span>
-                      </div>
-                    )}
+                    <img
+                      src={userProfile.profileImage}
+                      alt="User avatar"
+                      className="w-14 h-14 rounded-full object-cover ring-4 ring-white/10"
+                    />
                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -144,8 +124,7 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
                       onClick={() => handleMenuClick(item.action)}
                     >
                       <motion.div
-                        whileHover={{ backgroundColor: 'rgba(241, 245, 249, 1)' }}
-                        className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors"
+                        className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors hover:bg-slate-100"
                       >
                         <div className={`p-2.5 rounded-xl ${item.color}`}>
                           <Icon className="w-5 h-5" />

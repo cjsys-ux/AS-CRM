@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { X, MapPin, Plus, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface ShipToAddress {
   name: string;
@@ -9,22 +9,43 @@ interface ShipToAddress {
   state: string;
   zip: string;
   country: string;
+  contact?: string;
 }
 
 interface ShipToEditorProps {
   isOpen: boolean;
   onClose: () => void;
-  currentAddress: ShipToAddress;
+  currentAddress?: ShipToAddress;
   onSave: (address: ShipToAddress) => void;
+  mode?: 'edit' | 'add';
 }
 
-export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipToEditorProps) {
-  const [address, setAddress] = useState<ShipToAddress>(currentAddress);
+const blankAddress: ShipToAddress = {
+  name: '',
+  address: '',
+  city: '',
+  state: '',
+  zip: '',
+  country: 'United States',
+  contact: '',
+};
+
+export function ShipToEditor({ isOpen, onClose, currentAddress, onSave, mode = 'edit' }: ShipToEditorProps) {
+  const [address, setAddress] = useState<ShipToAddress>(currentAddress || blankAddress);
+
+  // Reset form when opening
+  useEffect(() => {
+    if (isOpen) {
+      setAddress(mode === 'add' ? { ...blankAddress } : (currentAddress || { ...blankAddress }));
+    }
+  }, [isOpen, mode, currentAddress]);
 
   const handleSave = () => {
     onSave(address);
     onClose();
   };
+
+  const isValid = address.name.trim() && address.address.trim() && address.city.trim() && address.state.trim() && address.zip.trim();
 
   if (!isOpen) return null;
 
@@ -49,9 +70,11 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-white" />
+                  {mode === 'add' ? <Plus className="w-5 h-5 text-white" /> : <Edit className="w-5 h-5 text-white" />}
                 </div>
-                <h3 className="text-xl font-bold text-white">Edit Shipping Address</h3>
+                <h3 className="text-xl font-bold text-white">
+                  {mode === 'add' ? 'Add Shipping Address' : 'Edit Shipping Address'}
+                </h3>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
@@ -69,7 +92,7 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
             {/* Name */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Location Name
+                Location Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -83,7 +106,7 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
             {/* Address */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Street Address
+                Street Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -98,7 +121,7 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  City
+                  City <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -110,7 +133,7 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  State
+                  State <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -127,7 +150,7 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  ZIP Code
+                  ZIP Code <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -150,6 +173,20 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
                 />
               </div>
             </div>
+
+            {/* Contact */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Contact Person <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={address.contact || ''}
+                onChange={(e) => setAddress({ ...address, contact: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+                placeholder="e.g., John Smith"
+              />
+            </div>
           </div>
 
           {/* Footer */}
@@ -166,9 +203,14 @@ export function ShipToEditor({ isOpen, onClose, currentAddress, onSave }: ShipTo
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSave}
-              className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              disabled={!isValid}
+              className={`px-6 py-3 font-semibold rounded-xl shadow-lg transition-all ${
+                isValid
+                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:shadow-xl'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+              }`}
             >
-              Save Address
+              {mode === 'add' ? 'Add Address' : 'Save Address'}
             </motion.button>
           </div>
         </motion.div>

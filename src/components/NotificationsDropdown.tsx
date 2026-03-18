@@ -79,9 +79,9 @@ export function NotificationsDropdown() {
                     <p className="text-sm text-blue-100 mt-0.5">{unreadCount} unread</p>
                   </div>
                   <motion.button
-                    whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                    whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg text-sm font-medium text-white border border-white/20"
+                    className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg text-sm font-medium text-white border border-white/20 hover:bg-white/20"
                   >
                     Mark all read
                   </motion.button>
@@ -115,8 +115,7 @@ export function NotificationsDropdown() {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      whileHover={{ backgroundColor: 'rgba(241, 245, 249, 0.5)' }}
-                      className="px-6 py-4 border-b border-slate-100 last:border-0 cursor-pointer transition-colors"
+                      className="px-6 py-4 border-b border-slate-100 last:border-0 cursor-pointer transition-colors hover:bg-slate-50/50"
                     >
                       <div className="flex gap-3">
                         <div className="flex-shrink-0 pt-1">
@@ -141,8 +140,8 @@ export function NotificationsDropdown() {
 
               {/* Footer */}
               <motion.button
-                whileHover={{ backgroundColor: 'rgba(241, 245, 249, 1)' }}
-                className="w-full py-3 text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors border-t border-slate-100"
+                whileHover={{ scale: 1.01 }}
+                className="w-full py-3 text-center text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors border-t border-slate-100 hover:bg-slate-50"
               >
                 View all notifications
               </motion.button>

@@ -22,6 +22,8 @@ import { AnalyticsModule } from './components/AnalyticsModule';
 import { PurchasingModule } from './components/PurchasingModule';
 import { EmailTemplatesModule } from './components/EmailTemplatesModule';
 import { AmazonDistributionModule } from './components/AmazonDistributionModule';
+import { WMSModule } from './components/WMSModule';
+import { SalesLeadModule } from './components/SalesLeadModule';
 import { OfficePage } from './components/OfficePage';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
@@ -119,7 +121,7 @@ export default function App() {
       case 'pending-orders':
       case 'in-progress-orders':
       case 'completed-orders':
-        return <OrdersPage />;
+        return <OrdersPage onNavigate={handleNavigate} />;
       case 'shipments':
         return <ShipmentsModule />;
       case 'contacts':
@@ -128,12 +130,22 @@ export default function App() {
         return <ProductDatabaseModule />;
       case 'analytics':
         return <AnalyticsModule />;
+      case 'sales-leads':
+        return <SalesLeadModule />;
       case 'purchasing':
-        return <PurchasingModule />;
+        return <PurchasingModule onNavigate={handleNavigate} />;
       case 'email-templates':
         return <EmailTemplatesModule />;
       case 'amazon-distribution':
         return <AmazonDistributionModule />;
+      case 'wms':
+      case 'wms-overview':
+      case 'wms-warehouses':
+      case 'wms-inventory':
+      case 'wms-receiving':
+      case 'wms-picking':
+      case 'wms-shipping':
+        return <WMSModule key={currentPage} initialTab={currentPage.replace('wms-', '').replace('wms', 'overview')} onNavigate={handleNavigate} />;
       case 'office':
         return <OfficePage />;
       default:

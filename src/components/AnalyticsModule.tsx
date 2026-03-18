@@ -10,6 +10,7 @@ import {
   Pie,
   AreaChart,
   Area,
+  ComposedChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -108,40 +109,38 @@ export function AnalyticsModule() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
       {/* Header Section */}
-      {/* ui-qa-fixer: UI-2026-012 - responsive padding prevents horizontal overflow on mobile */}
-      <div className="bg-gradient-to-r from-violet-500 via-purple-600 to-indigo-600 px-4 md:px-8 py-8 shadow-lg">
+      <div className="bg-white border-b border-slate-200 px-8 py-8">
         <div className="max-w-[1800px] mx-auto">
-          {/* ui-qa-fixer: UI-2026-012 - flex-wrap allows controls to stack on mobile */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+              <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
                 <BarChart3 className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">Analytics Dashboard</h1>
-                <p className="text-violet-100 text-sm">Performance Metrics & Business Insights</p>
+                <h1 className="text-3xl font-bold text-slate-900 mb-1">Analytics Dashboard</h1>
+                <p className="text-slate-500 text-sm">Performance Metrics & Business Insights</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2">
-                <Calendar className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2">
+                <Calendar className="w-5 h-5 text-slate-500" />
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="bg-transparent text-white text-sm font-medium focus:outline-none cursor-pointer"
+                  className="bg-transparent text-slate-700 text-sm font-medium focus:outline-none cursor-pointer"
                 >
-                  <option value="7D" className="text-slate-900">Last 7 Days</option>
-                  <option value="1M" className="text-slate-900">Last Month</option>
-                  <option value="3M" className="text-slate-900">Last 3 Months</option>
-                  <option value="6M" className="text-slate-900">Last 6 Months</option>
-                  <option value="12M" className="text-slate-900">Last 12 Months</option>
-                  <option value="YTD" className="text-slate-900">Year to Date</option>
+                  <option value="7D">Last 7 Days</option>
+                  <option value="1M">Last Month</option>
+                  <option value="3M">Last 3 Months</option>
+                  <option value="6M">Last 6 Months</option>
+                  <option value="12M">Last 12 Months</option>
+                  <option value="YTD">Year to Date</option>
                 </select>
               </div>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-5 py-3 bg-white text-violet-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
               >
                 <Download className="w-5 h-5" />
                 Export Report
@@ -152,8 +151,7 @@ export function AnalyticsModule() {
       </div>
 
       {/* KPI Cards */}
-      {/* ui-qa-fixer: UI-2026-012 - responsive padding */}
-      <div className="px-4 md:px-8 -mt-6 mb-6">
+      <div className="px-8 mt-6 mb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <motion.div
@@ -239,8 +237,7 @@ export function AnalyticsModule() {
       </div>
 
       {/* Charts Section */}
-      {/* ui-qa-fixer: UI-2026-012 - responsive padding */}
-      <div className="flex-1 px-4 md:px-8 pb-8 overflow-auto">
+      <div className="flex-1 px-8 pb-8 overflow-auto">
         <div className="max-w-[1800px] mx-auto space-y-6">
           {/* Revenue & Orders Chart */}
           <motion.div
@@ -266,7 +263,7 @@ export function AnalyticsModule() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={revenueData}>
+              <ComposedChart data={revenueData}>
                 <defs>
                   <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
@@ -277,15 +274,15 @@ export function AnalyticsModule() {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" stroke="#8b5cf6" fill="url(#revenueGradient)" />
-                <Area type="monotone" dataKey="profit" stroke="#10b981" fill="url(#profitGradient)" />
-                <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', r: 4 }} />
-                <Line type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} />
-              </LineChart>
+                <CartesianGrid key="ana-rev-grid" strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis key="ana-rev-x" dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
+                <YAxis key="ana-rev-y" stroke="#64748b" style={{ fontSize: '12px' }} />
+                <Tooltip key="ana-rev-tip" content={<CustomTooltip />} />
+                <Area key="ana-rev-fill" type="monotone" dataKey="revenue" name="Revenue Fill" stroke="transparent" fill="url(#revenueGradient)" legendType="none" />
+                <Area key="ana-profit-fill" type="monotone" dataKey="profit" name="Profit Fill" stroke="transparent" fill="url(#profitGradient)" legendType="none" />
+                <Line key="ana-rev-line" type="monotone" dataKey="revenue" name="Revenue" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', r: 4 }} />
+                <Line key="ana-profit-line" type="monotone" dataKey="profit" name="Profit" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </motion.div>
 
@@ -309,11 +306,11 @@ export function AnalyticsModule() {
                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="category" stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="sales" fill="url(#categoryBar)" radius={[8, 8, 0, 0]} />
+                  <CartesianGrid key="ana-cat-grid" strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis key="ana-cat-x" dataKey="category" stroke="#64748b" style={{ fontSize: '12px' }} />
+                  <YAxis key="ana-cat-y" stroke="#64748b" style={{ fontSize: '12px' }} />
+                  <Tooltip key="ana-cat-tip" content={<CustomTooltip />} />
+                  <Bar key="ana-cat-bar" dataKey="sales" fill="url(#categoryBar)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </motion.div>
@@ -336,11 +333,11 @@ export function AnalyticsModule() {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis type="number" stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <YAxis dataKey="product" type="category" stroke="#64748b" style={{ fontSize: '12px' }} width={120} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="revenue" fill="url(#productBar)" radius={[0, 8, 8, 0]} />
+                  <CartesianGrid key="ana-prod-grid" strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis key="ana-prod-x" type="number" stroke="#64748b" style={{ fontSize: '12px' }} />
+                  <YAxis key="ana-prod-y" dataKey="product" type="category" stroke="#64748b" style={{ fontSize: '12px' }} width={120} />
+                  <Tooltip key="ana-prod-tip" content={<CustomTooltip />} />
+                  <Bar key="ana-prod-bar" dataKey="revenue" fill="url(#productBar)" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </motion.div>
@@ -412,11 +409,12 @@ export function AnalyticsModule() {
                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
-                  <Tooltip content={<CustomTooltip />} />
+                  <CartesianGrid key="ana-cust-grid" strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis key="ana-cust-x" dataKey="month" stroke="#64748b" style={{ fontSize: '12px' }} />
+                  <YAxis key="ana-cust-y" stroke="#64748b" style={{ fontSize: '12px' }} />
+                  <Tooltip key="ana-cust-tip" content={<CustomTooltip />} />
                   <Area
+                    key="ana-cust-area"
                     type="monotone"
                     dataKey="customers"
                     stroke="#8b5cf6"
@@ -447,11 +445,11 @@ export function AnalyticsModule() {
                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="region" stroke="#64748b" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#64748b" style={{ fontSize: '12px' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="revenue" fill="url(#regionalBar)" radius={[8, 8, 0, 0]} />
+                <CartesianGrid key="ana-reg-grid" strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis key="ana-reg-x" dataKey="region" stroke="#64748b" style={{ fontSize: '12px' }} />
+                <YAxis key="ana-reg-y" stroke="#64748b" style={{ fontSize: '12px' }} />
+                <Tooltip key="ana-reg-tip" content={<CustomTooltip />} />
+                <Bar key="ana-reg-bar" dataKey="revenue" fill="url(#regionalBar)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>

@@ -1,0 +1,391 @@
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Trash2, Save, DollarSign, Clock, Ship, Package, Truck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner@2.0.3';
+
+interface PricingTier {
+  quantity: number;
+  fobPrice: number;
+  ddpPrice: number;
+  ddpMethod: string;
+  leadTime: number;
+}
+
+interface Vendor {
+  id: string;
+  name: string;
+  country: string;
+  contact?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  type: string;
+  platform: string;
+  priority: string;
+  moq: number;
+  pricingTiers?: PricingTier[];
+  supportsDropShipping?: boolean;
+}
+
+interface VendorPricingPanelProps {
+  vendor: Vendor;
+  productId: string;
+  onVendorUpdated: (vendor: Vendor) => void;
+}
+
+const DDP_METHODS = ['Air', 'Sea', 'Express', 'Rail', 'Truck'];
+
+export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: VendorPricingPanelProps) {
+  const [isDropship, setIsDropship] = useState(vendor.supportsDropShipping === true);
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>(
+    vendor.pricingTiers || []
+  );
+  const [moq, setMoq] = useState(vendor.moq || 0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Sync when vendor changes
+  useEffect(() => {
+    setPricingTiers(vendor.pricingTiers || []);
+    setMoq(vendor.moq || 0);
+    setIsDropship(vendor.supportsDropShipping === true);
+    setHasChanges(false);
+  }, [vendor.id]);
+
+  const addTier = () => {
+    const lastTier = pricingTiers[pricingTiers.length - 1];
+    const newTier: PricingTier = {
+      quantity: lastTier ? lastTier.quantity + 500 : moq || 100,
+      fobPrice: lastTier ? lastTier.fobPrice : 0,
+      ddpPrice: lastTier ? lastTier.ddpPrice : 0,
+      ddpMethod: lastTier ? lastTier.ddpMethod : 'Sea',
+      leadTime: lastTier ? lastTier.leadTime : isDropship ? 2 : 30,
+    };
+    setPricingTiers([...pricingTiers, newTier]);
+    setHasChanges(true);
+  };
+
+  const removeTier = (index: number) => {
+    setPricingTiers(pricingTiers.filter((_, i) => i !== index));
+    setHasChanges(true);
+  };
+
+  const updateTier = (index: number, field: keyof PricingTier, value: string | number) => {
+    const updated = pricingTiers.map((tier, i) => {
+      if (i !== index) return tier;
+      return { ...tier, [field]: typeof tier[field] === 'number' ? Number(value) : value };
+    });
+    setPricingTiers(updated);
+    setHasChanges(true);
+  };
+
+  const savePricing = async () => {
+    setIsSaving(true);
+    toast.success('Pricing saved successfully');
+    onVendorUpdated({ ...vendor, pricingTiers, moq, supportsDropShipping: isDropship });
+    setHasChanges(false);
+    setIsSaving(false);
+  };
+
+  const bestFob = pricingTiers.length > 0
+    ? Math.min(...pricingTiers.map(t => t.fobPrice))
+    : null;
+  const bestLeadTime = pricingTiers.length > 0
+    ? Math.min(...pricingTiers.map(t => t.leadTime))
+    : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden flex flex-col h-full"
+    >
+      {/* Header */}
+      <div className={`px-6 py-4 flex-shrink-0 ${isDropship ? 'bg-gradient-to-r from-emerald-600 to-teal-600' : 'bg-gradient-to-r from-purple-600 to-indigo-600'}`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-white">{vendor.name}</h3>
+              {isDropship && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30">
+                  <Truck className="w-3 h-3" />
+                  Dropship
+                </span>
+              )}
+            </div>
+            <p className={`text-sm ${isDropship ? 'text-emerald-200' : 'text-purple-200'}`}>{vendor.country} &middot; {vendor.type}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasChanges && (
+              <motion.button
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={savePricing}
+                disabled={isSaving}
+                className={`flex items-center gap-2 px-4 py-2 bg-white font-semibold rounded-xl text-sm shadow-lg transition-all disabled:opacity-50 ${isDropship ? 'text-emerald-700 hover:bg-emerald-50' : 'text-purple-700 hover:bg-purple-50'}`}
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </motion.button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5 overflow-y-auto flex-1">
+        {/* Dropship Info Banner */}
+        {isDropship && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Truck className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-emerald-800">Dropship Vendor</p>
+              <p className="text-[11px] text-emerald-600 mt-0.5">Ships directly from US warehouse. No duties/DDP required. Pricing reflects direct-ship cost.</p>
+            </div>
+          </div>
+        )}
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            <Package className="w-5 h-5 text-purple-600 mx-auto mb-1" />
+            <div className="text-xs text-slate-500 mb-1">MOQ</div>
+            <input
+              type="number"
+              value={moq}
+              onChange={(e) => {
+                setMoq(Number(e.target.value));
+                setHasChanges(true);
+              }}
+              className="w-full text-center text-sm font-bold text-slate-900 bg-white border border-slate-200 hover:border-purple-300 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 rounded-lg px-2 py-1.5 cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              placeholder="Set MOQ"
+            />
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
+            <div className="text-xs text-slate-500 mb-1">{isDropship ? 'Best Price' : 'Best FOB'}</div>
+            <div className="text-sm font-bold text-slate-900">
+              {bestFob !== null ? `$${bestFob.toFixed(2)}` : '\u2014'}
+            </div>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            {isDropship ? (
+              <Truck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+            ) : (
+              <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+            )}
+            <div className="text-xs text-slate-500 mb-1">{isDropship ? 'Dropship Days' : 'Lead Time'}</div>
+            <div className="text-sm font-bold text-slate-900">
+              {bestLeadTime !== null ? `${bestLeadTime} days` : '\u2014'}
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        {vendor.contact && (vendor.contact.name || vendor.contact.email || vendor.contact.phone) && (
+          <div className="bg-slate-50 rounded-xl p-4">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contact</h4>
+            <div className="space-y-1.5">
+              {vendor.contact.name && (
+                <div className="flex items-center gap-2 text-sm text-slate-700">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="font-medium">{vendor.contact.name}</span>
+                </div>
+              )}
+              {vendor.contact.email && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {vendor.contact.email}
+                </div>
+              )}
+              {vendor.contact.phone && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {vendor.contact.phone}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Pricing Table (editable, scrollable) */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-bold text-slate-900">Pricing Tiers</h4>
+            <div className="flex items-center gap-3">
+              {/* Dropship Toggle */}
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-400'}`}>Dropship</span>
+                <button
+                  onClick={() => {
+                    setIsDropship(!isDropship);
+                    setHasChanges(true);
+                  }}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                    isDropship
+                      ? 'bg-emerald-500 focus:ring-emerald-300'
+                      : 'bg-slate-300 focus:ring-slate-300'
+                  }`}
+                >
+                  <motion.span
+                    layout
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm ${
+                      isDropship ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="w-px h-5 bg-slate-200" />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={addTier}
+                className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold rounded-lg text-xs transition-colors ${isDropship ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Tier
+              </motion.button>
+            </div>
+          </div>
+
+          {isDropship && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg mb-3">
+              <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-xs text-emerald-700">
+                <span className="font-semibold">Dropship vendor</span> — DDP and Ship Method columns are hidden since items ship directly from the vendor. Lead times shown as Dropship Days.
+              </p>
+            </div>
+          )}
+
+          {pricingTiers.length === 0 ? (
+            <div className="bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 p-8 text-center">
+              <DollarSign className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-medium text-slate-500 mb-1">No Pricing Tiers</p>
+              <p className="text-xs text-slate-400 mb-3">Add quantity-based pricing tiers for this vendor</p>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={addTier}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 text-white font-medium rounded-lg text-sm transition-colors ${isDropship ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+              >
+                <Plus className="w-4 h-4" />
+                Add First Tier
+              </motion.button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="overflow-y-auto max-h-[340px]">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[25%]' : 'w-[15%]'}`}>Qty</th>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[17%]'}`}>
+                        {isDropship ? 'Price ($)' : 'FOB ($)'}
+                      </th>
+                      {!isDropship && (
+                        <>
+                          <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[17%]">DDP ($)</th>
+                          <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[20%]">Ship</th>
+                        </>
+                      )}
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-emerald-600' : 'w-[15%] text-slate-500'}`}>
+                        {isDropship ? 'Dropship Days' : 'Days'}
+                      </th>
+                      <th className="px-2 py-2.5 w-[36px]"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <AnimatePresence>
+                      {pricingTiers.map((tier, index) => (
+                        <motion.tr
+                          key={index}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="border-b border-slate-100 last:border-0 group hover:bg-slate-50/50"
+                        >
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="number"
+                              value={tier.quantity}
+                              onChange={(e) => updateTier(index, 'quantity', e.target.value)}
+                              className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 rounded-md text-sm font-semibold text-slate-900 focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={tier.fobPrice}
+                              onChange={(e) => updateTier(index, 'fobPrice', e.target.value)}
+                              className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 rounded-md text-sm text-green-600 font-medium focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </td>
+                          {!isDropship && (
+                            <>
+                              <td className="px-3 py-1.5">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={tier.ddpPrice}
+                                  onChange={(e) => updateTier(index, 'ddpPrice', e.target.value)}
+                                  className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 rounded-md text-sm text-blue-600 font-medium focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                              </td>
+                              <td className="px-3 py-1.5">
+                                <select
+                                  value={tier.ddpMethod}
+                                  onChange={(e) => updateTier(index, 'ddpMethod', e.target.value)}
+                                  className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all text-center cursor-pointer"
+                                >
+                                  {DDP_METHODS.map(m => (
+                                    <option key={m} value={m}>{m}</option>
+                                  ))}
+                                </select>
+                              </td>
+                            </>
+                          )}
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="number"
+                              value={tier.leadTime}
+                              onChange={(e) => updateTier(index, 'leadTime', e.target.value)}
+                              className={`w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100 rounded-md text-sm font-medium focus:outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}
+                              placeholder={isDropship ? 'e.g. 2' : ''}
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => removeTier(index)}
+                              className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </motion.button>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
