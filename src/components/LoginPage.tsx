@@ -1,10 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, Mail, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 
-export function LoginPage() {
-  const { login } = useAuth();
+interface LoginPageProps {
+  onLogin?: () => void;
+}
+
+export function LoginPage({ onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -21,7 +23,14 @@ export function LoginPage() {
     setError('');
     setIsLoading(true);
     try {
-      await login(email, password, rememberMe);
+      // Simple login - just validate that fields are filled
+      if (email && password) {
+        // Simulate a brief delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 500));
+        onLogin?.();
+      } else {
+        setError('Please enter both email and password.');
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {
