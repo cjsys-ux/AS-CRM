@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Cpu, Warehouse, Target } from 'lucide-react';
+import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Warehouse, Target } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface SubItem {
@@ -95,9 +95,6 @@ const operationsItems: MenuItem[] = [
   },
 ];
 
-const intelligenceItems: MenuItem[] = [
-  { icon: Cpu, label: 'SENTRY Office', id: 'office' },
-];
 
 interface SidebarProps {
   onNavigate?: (page: string) => void;
@@ -369,11 +366,6 @@ export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMen
           <div className="mt-3 mb-2">
             <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Operations</h2>
             {operationsItems.map((item, index) => renderMenuItem(item, index))}
-          </div>
-
-          <div className="mt-3 mb-2">
-            <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Intelligence</h2>
-            {intelligenceItems.map((item, index) => renderMenuItem(item, index))}
           </div>
         </div>
       </div>

@@ -23,7 +23,6 @@ import { EmailTemplatesModule } from './components/EmailTemplatesModule';
 import { AmazonDistributionModule } from './components/AmazonDistributionModule';
 import { WMSModule } from './components/WMSModule';
 import { SalesLeadModule } from './components/SalesLeadModule';
-import { OfficePage } from './components/OfficePage';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 
@@ -143,8 +142,6 @@ export default function App() {
       case 'wms-picking':
       case 'wms-shipping':
         return <WMSModule key={currentPage} initialTab={currentPage.replace('wms-', '').replace('wms', 'overview')} onNavigate={handleNavigate} />;
-      case 'office':
-        return <OfficePage />;
       default:
         return <Dashboard />;
     }
