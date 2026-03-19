@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { FileText, Download, Trash2, Upload, File, Image as ImageIcon, FileSpreadsheet, Video, Music, Archive, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 
@@ -12,6 +13,8 @@ interface FileItem {
   uploadedBy: string;
   uploadedDate: string;
   category: string;
+  fileUrl?: string;
+  key?: string;
 }
 
 interface FilesTabProps {
@@ -79,7 +82,36 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
   }, [productId]);
 
   const fetchFiles = async () => {
-    setFiles([]);
+    try {
+      const res = await fetch(`/api/files/list?entityType=pipeline-file&entityId=${encodeURIComponent(productId)}`);
+      if (!res.ok) throw new Error('Failed to fetch files');
+      const data = await res.json();
+      const mapped: FileItem[] = (data.uploads ?? []).map((u: any) => {
+        const ext = (u.fileName ?? '').split('.').pop()?.toLowerCase() ?? '';
+        const category = u.fileType?.startsWith('image/') ? 'Images'
+          : ext === 'pdf' ? 'Specifications'
+          : ['xlsx', 'csv', 'xls'].includes(ext) ? 'Specifications'
+          : 'General';
+        const sizeBytes = typeof u.size === 'number' ? u.size : 0;
+        const sizeStr = sizeBytes > 1024 * 1024
+          ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
+          : `${(sizeBytes / 1024).toFixed(0)} KB`;
+        return {
+          id: u.id ?? u._id,
+          name: u.fileName ?? 'Unknown',
+          type: ext || (u.fileType ?? 'file'),
+          size: sizeStr,
+          uploadedBy: u.uploadedBy ?? 'User',
+          uploadedDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '',
+          category: u.category ?? category,
+          fileUrl: u.fileUrl ?? '',
+          key: u.key ?? '',
+        };
+      });
+      setFiles(mapped);
+    } catch {
+      setFiles([]);
+    }
   };
 
   const filteredFiles = selectedCategory === 'all' 
@@ -90,13 +122,44 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
 
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
     if (!uploadedFiles || uploadedFiles.length === 0) return;
-    
+
     setIsUploading(true);
-    
     try {
+      for (const file of Array.from(uploadedFiles)) {
+        const presignRes = await fetch('/api/files/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+            entityType: 'pipeline-file',
+            entityId: productId,
+          }),
+        });
+        if (!presignRes.ok) throw new Error('Failed to get upload URL');
+        const { uploadUrl, key } = await presignRes.json();
+
+        await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+
+        await fetch('/api/files/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            fileName: file.name,
+            fileType: file.type,
+            size: file.size,
+            entityType: 'pipeline-file',
+            entityId: productId,
+            uploadedBy: 'User',
+          }),
+        });
+      }
+      toast.success(`${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded`);
       if (onActivityDetected) onActivityDetected();
-    } catch (error) {
-      console.error('Error uploading files:', error);
+      await fetchFiles();
+    } catch {
+      toast.error('Upload failed');
     } finally {
       setIsUploading(false);
     }
@@ -109,18 +172,24 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
 
   const handleDeleteConfirm = async () => {
     if (!fileToDelete) return;
-    
+
     setIsDeleting(true);
-    
     try {
-      setFiles(prev => prev.filter(f => f.id !== fileToDelete.id));
-      setDeleteModalOpen(false);
-      setFileToDelete(null);
+      const res = await fetch('/api/files/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: fileToDelete.id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete file');
+      toast.success('File deleted');
       if (onActivityDetected) onActivityDetected();
-    } catch (error) {
-      console.error('Error deleting file:', error);
+      await fetchFiles();
+    } catch {
+      toast.error('Failed to delete file');
     } finally {
       setIsDeleting(false);
+      setDeleteModalOpen(false);
+      setFileToDelete(null);
     }
   };
 
@@ -306,7 +375,7 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
                         <motion.button
                           whileHover={{ scale: 1.15 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => console.log('Download:', file.id)}
+                          onClick={() => { if (file.fileUrl) window.open(file.fileUrl, '_blank'); }}
                           className="p-2.5 hover:bg-blue-50 rounded-xl transition-colors group/btn border-2 border-transparent hover:border-blue-200"
                         >
                           <Download className="w-5 h-5 text-slate-400 group-hover/btn:text-blue-600" />

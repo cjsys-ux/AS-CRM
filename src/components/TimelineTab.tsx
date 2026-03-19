@@ -103,8 +103,16 @@ export function TimelineTab({ productId = 'PRD-001' }: TimelineTabProps) {
 
   const fetchTimeline = async () => {
     setIsLoading(true);
-    setTimeline([]);
-    setIsLoading(false);
+    try {
+      const res = await fetch(`/api/pipeline/timeline/list?productId=${encodeURIComponent(productId)}`);
+      if (!res.ok) throw new Error('Failed to fetch timeline');
+      const data = await res.json();
+      setTimeline(data.timeline ?? []);
+    } catch {
+      setTimeline([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

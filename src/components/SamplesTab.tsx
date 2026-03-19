@@ -67,8 +67,16 @@ export function SamplesTab({ productId, refreshKey, onChecklistChanged, onActivi
 
   const fetchSamples = useCallback(async () => {
     setSamplesLoading(true);
-    setSamples([]);
-    setSamplesLoading(false);
+    try {
+      const res = await fetch(`/api/pipeline/samples/list?productId=${encodeURIComponent(productId ?? '')}`);
+      if (!res.ok) throw new Error('Failed to fetch samples');
+      const data = await res.json();
+      setSamples(data.samples ?? []);
+    } catch {
+      setSamples([]);
+    } finally {
+      setSamplesLoading(false);
+    }
   }, [productId]);
 
   useEffect(() => {
