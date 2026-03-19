@@ -25,7 +25,6 @@ const menuData: MenuItem[] = [
     subItems: [
       { label: 'Pipeline', id: 'pipeline' },
       { label: 'Product Database', id: 'product-database' },
-      { label: 'Inventory', id: 'inventory' },
     ],
   },
   {

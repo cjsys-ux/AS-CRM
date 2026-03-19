@@ -6,7 +6,6 @@ import { TopBar } from './components/TopBar';
 import { ProductPipeline } from './components/ProductPipeline';
 import { Customers } from './components/Customers';
 import { VendorsPage } from './components/VendorsPage';
-import { InventoryModule } from './components/InventoryModule';
 import { ProductionModule } from './components/ProductionModule';
 import { DesignLabModule } from './components/DesignLabModule';
 import { OrdersPage } from './components/OrdersPage';
@@ -109,8 +108,6 @@ export default function App() {
         return <Customers />;
       case 'vendors':
         return <VendorsPage />;
-      case 'inventory':
-        return <InventoryModule />;
       case 'production':
       case 'manufacturing':
         return <ProductionModule />;
