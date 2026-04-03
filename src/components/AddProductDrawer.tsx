@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Package, Upload, FileText, TrendingUp, DollarSign, Calendar, Tag, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CustomCalendar } from './CustomCalendar';
 
 
@@ -37,6 +37,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
   const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const uploadAbortRef = useRef<AbortController | null>(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
@@ -80,6 +81,15 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
   // Update form when productData changes (for edit mode)
   useEffect(() => {
+    // Cancel any in-flight image upload and reset its state so the submit
+    // button is never stuck in a disabled state across drawer open/close cycles.
+    if (uploadAbortRef.current) {
+      uploadAbortRef.current.abort();
+      uploadAbortRef.current = null;
+    }
+    setIsProcessingImage(false);
+    setSubmitError(null);
+
     if (productData) {
       setFormData({
         productName: productData.name || '',
@@ -134,6 +144,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     setSubmitError(null);
 
     const controller = new AbortController();
+    uploadAbortRef.current = controller;
     const timeout = setTimeout(() => controller.abort(), 30_000);
 
     try {
@@ -180,6 +191,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       console.error('Error uploading image:', error);
     } finally {
       clearTimeout(timeout);
+      uploadAbortRef.current = null;
       setIsProcessingImage(false);
     }
   };
