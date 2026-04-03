@@ -124,10 +124,6 @@
     @apply border-border outline-ring/50;
   }
 
-  html, body, #root {
-    height: 100%;
-  }
-
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
@@ -186,4 +182,230 @@
 
 html {
   font-size: var(--font-size);
+}
+
+/* ========================================
+   Custom Scrollbar — ActivateSwag Branding
+   ======================================== */
+
+/* CSS Scrollbar spec (Firefox, modern browsers) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 transparent;
+}
+
+/* Webkit scrollbar (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #06b6d4 0%, #3b82f6 100%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #22d3ee 0%, #60a5fa 100%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* ========================================
+   Hide native number input spinners
+   ======================================== */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Sidebar-specific scrollbar — blends into the dark sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.5);
+}
+
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+/* Drawer / modal scrollbar — slightly more prominent */
+.drawer-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.drawer-scroll::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+  border-radius: 9999px;
+  margin: 8px 0;
+}
+
+.drawer-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+  border-radius: 9999px;
+}
+
+.drawer-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.drawer-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 transparent;
+}
+
+/* Dropdown / popover scrollbar — ultra-slim */
+.dropdown-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dropdown-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dropdown-scroll::-webkit-scrollbar-thumb:hover {
+  background: #06b6d4;
+}
+
+.dropdown-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Table container scrollbar — horizontal + vertical */
+.table-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+  border-radius: 9999px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #06b6d4 0%, #3b82f6 100%);
+}
+
+.table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #64748b #f1f5f9;
+}
+
+/* ========================================
+   Custom Checkbox — ActivateSwag Branding
+   ======================================== */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+input[type="checkbox"]:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.08);
+}
+
+input[type="checkbox"]:focus-visible {
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
+}
+
+input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+  border-color: #0e7490;
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 9px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-0.5px, -0.5px);
+}
+
+input[type="checkbox"]:checked:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+  border-color: #0891b2;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+input[type="checkbox"]:indeterminate {
+  background: linear-gradient(135deg, #0e7490 0%, #0891b2 100%);
+  border-color: #0e7490;
+}
+
+input[type="checkbox"]:indeterminate::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 2px;
+  background-color: #ffffff;
+  border-radius: 1px;
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

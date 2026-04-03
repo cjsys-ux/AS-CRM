@@ -22,6 +22,9 @@ import { AnalyticsModule } from './components/AnalyticsModule';
 import { PurchasingModule } from './components/PurchasingModule';
 import { EmailTemplatesModule } from './components/EmailTemplatesModule';
 import { AmazonDistributionModule } from './components/AmazonDistributionModule';
+import { WMSModule } from './components/WMSModule';
+import { SalesLeadModule } from './components/SalesLeadModule';
+import { BillingModule } from './components/BillingModule';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 
@@ -127,12 +130,30 @@ export default function App() {
         return <ProductDatabaseModule />;
       case 'analytics':
         return <AnalyticsModule />;
+      case 'sales-leads':
+        return <SalesLeadModule />;
       case 'purchasing':
         return <PurchasingModule />;
       case 'email-templates':
         return <EmailTemplatesModule />;
       case 'amazon-distribution':
         return <AmazonDistributionModule />;
+      case 'billing':
+        return <BillingModule />;
+      case 'wms':
+      case 'wms-overview':
+      case 'wms-warehouses':
+      case 'wms-inventory':
+      case 'wms-receiving':
+      case 'wms-picking':
+      case 'wms-shipping':
+        return (
+          <WMSModule
+            key={currentPage}
+            initialTab={currentPage.replace('wms-', '').replace('wms', 'overview')}
+            onNavigate={handleNavigate}
+          />
+        );
       default:
         return <Dashboard />;
     }

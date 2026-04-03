@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store } from 'lucide-react';
+import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Warehouse, Target, Receipt, ContactRound, Layers } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface SubItem {
@@ -17,14 +17,15 @@ interface MenuItem {
 const menuData: MenuItem[] = [
   { icon: Home, label: 'Dashboard', id: 'home' },
   { icon: BarChart3, label: 'Analytics', id: 'analytics' },
+  { icon: Target, label: 'Sales Leads', id: 'sales-leads' },
   {
-    icon: Package,
-    label: 'Products',
-    id: 'products',
+    icon: Users,
+    label: 'CRM',
+    id: 'crm',
     subItems: [
-      { label: 'Pipeline', id: 'pipeline' },
-      { label: 'Product Database', id: 'product-database' },
-      { label: 'Inventory', id: 'inventory' },
+      { label: 'Customers', id: 'customers' },
+      { label: 'Vendors', id: 'vendors' },
+      { label: 'Contacts', id: 'contacts' },
     ],
   },
   {
@@ -33,52 +34,52 @@ const menuData: MenuItem[] = [
     id: 'orders',
   },
   {
-    icon: Users,
-    label: 'Customers',
-    id: 'customers',
+    icon: Package,
+    label: 'Products',
+    id: 'products',
+    subItems: [
+      { label: 'Pipeline', id: 'pipeline' },
+      { label: 'Product Database', id: 'product-database' },
+    ],
   },
-];
-
-const databaseItems: MenuItem[] = [
-  { icon: Database, label: 'Vendors', id: 'vendors' },
-  { icon: FileText, label: 'Contacts', id: 'contacts' },
-];
-
-const operationsItems: MenuItem[] = [
-  { 
-    icon: ShoppingCart, 
-    label: 'Orders', 
-    id: 'orders'
+  {
+    icon: Layers,
+    label: 'Order Flow',
+    id: 'order-flow',
+    subItems: [
+      { label: 'Design Lab', id: 'design-lab' },
+      { label: 'Purchasing', id: 'purchasing' },
+      { label: 'Production', id: 'production' },
+      { label: 'Shipments', id: 'shipments' },
+    ],
   },
-  { 
-    icon: Package, 
-    label: 'Design Lab', 
-    id: 'design-lab'
+  {
+    icon: Warehouse,
+    label: 'Warehouse',
+    id: 'wms',
+    subItems: [
+      { label: 'Overview', id: 'wms-overview' },
+      { label: 'Warehouses', id: 'wms-warehouses' },
+      { label: 'Inventory', id: 'wms-inventory' },
+      { label: 'Receiving', id: 'wms-receiving' },
+      { label: 'Picking', id: 'wms-picking' },
+      { label: 'Shipping', id: 'wms-shipping' },
+    ],
   },
-  { 
-    icon: ShoppingCart, 
-    label: 'Purchasing', 
-    id: 'purchasing'
+  {
+    icon: Store,
+    label: 'Amazon Distribution',
+    id: 'amazon-distribution',
   },
-  { 
-    icon: Truck, 
-    label: 'Shipments', 
-    id: 'shipments'
+  {
+    icon: Receipt,
+    label: 'Billing',
+    id: 'billing',
   },
-  { 
-    icon: Mail, 
-    label: 'Email Templates', 
-    id: 'email-templates'
-  },
-  { 
-    icon: Factory, 
-    label: 'Production', 
-    id: 'production'
-  },
-  { 
-    icon: Store, 
-    label: 'Amazon Distribution', 
-    id: 'amazon-distribution'
+  {
+    icon: Mail,
+    label: 'Email Templates',
+    id: 'email-templates',
   },
 ];
 
@@ -338,20 +339,10 @@ export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMen
         </div>
 
         {/* Menu */}
-        <div className="flex-1 overflow-y-auto min-h-0 sidebar-scroll px-3 py-4 space-y-0.5">
+        <div className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-0.5 sidebar-scroll">
           <div className="mb-2">
             <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Main</h2>
             {menuData.map((item, index) => renderMenuItem(item, index))}
-          </div>
-          
-          <div className="mt-3 mb-2">
-            <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Database</h2>
-            {databaseItems.map((item, index) => renderMenuItem(item, index))}
-          </div>
-          
-          <div className="mt-3 mb-2">
-            <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1.5">Operations</h2>
-            {operationsItems.map((item, index) => renderMenuItem(item, index))}
           </div>
         </div>
       </div>
