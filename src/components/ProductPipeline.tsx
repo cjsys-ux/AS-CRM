@@ -405,7 +405,7 @@ export function ProductPipeline() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setIsDrawerOpen(true)}
+              onClick={() => { setEditingProduct(null); setIsDrawerOpen(true); }}
               className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -807,7 +807,7 @@ export function ProductPipeline() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => setIsDrawerOpen(true)}
+                          onClick={() => { setEditingProduct(null); setIsDrawerOpen(true); }}
                           className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                           type="button"
                         >
