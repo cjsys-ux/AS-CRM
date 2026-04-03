@@ -420,7 +420,7 @@ const handleOpenColumnPicker = () => {
             <motion.button
               whileHover={{ scale: 1.05, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsDrawerOpen(true)}
+              onClick={() => { setEditingProduct(null); setIsDrawerOpen(true); }}
               className="flex items-center gap-2 px-8 py-4 bg-white text-green-600 font-bold rounded-2xl shadow-2xl hover:shadow-green-500/20 transition-all"
             >
               <Plus className="w-5 h-5" />
@@ -818,7 +818,7 @@ const handleOpenColumnPicker = () => {
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => setIsDrawerOpen(true)}
+                                onClick={() => { setEditingProduct(null); setIsDrawerOpen(true); }}
                                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                               >
                                 <Plus className="w-5 h-5" />

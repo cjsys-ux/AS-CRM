@@ -131,6 +131,10 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     if (!file) return;
 
     setIsProcessingImage(true);
+    setSubmitError(null);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
 
     try {
       // Show a local preview immediately
@@ -146,6 +150,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
           entityType: 'project',
           entityId: productData?.id ?? 'new',
         }),
+        signal: controller.signal,
       });
 
       if (!presignRes.ok) {
@@ -159,6 +164,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
         method: 'PUT',
         headers: { 'Content-Type': file.type },
         body: file,
+        signal: controller.signal,
       });
 
       if (!uploadRes.ok) {
@@ -167,8 +173,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
       setUploadedImageKey(key);
     } catch (error) {
+      const message = error instanceof Error && error.name === 'AbortError'
+        ? 'Image upload timed out. You can still save the product without an image.'
+        : 'Image upload failed. You can still save the product without an image.';
+      setSubmitError(message);
       console.error('Error uploading image:', error);
     } finally {
+      clearTimeout(timeout);
       setIsProcessingImage(false);
     }
   };
@@ -194,9 +205,14 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     return value.replace(/,/g, '');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
     setSubmitError(null);
+
+    if (!formData.productName.trim()) {
+      setSubmitError('Product name is required.');
+      return;
+    }
 
     const yearlyQty = parseInt(parseFormattedNumber(formData.yearlyQty)) || 0;
     const pricePerUnit = parseFloat(formData.targetPrice) || 0;
