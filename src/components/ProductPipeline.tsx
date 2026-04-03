@@ -11,7 +11,8 @@ import { getProjectBadgeStaticClasses } from './projectNumberUtils';
 import { toast } from 'sonner';
 import { ColumnVisibilityDropdown, ColumnDef } from './ColumnVisibilityDropdown';
 
-const COLUMN_STORAGE_KEY = 'pipeline-column-visibility';
+/** Bumped so older localStorage layouts (e.g. legacy column picker) do not hide the new table. */
+const COLUMN_STORAGE_KEY = 'as-crm-pipeline-columns-v2';
 
 const PIPELINE_COLUMNS: ColumnDef[] = [
   { key: 'checkbox', label: 'Select' },
@@ -34,10 +35,16 @@ const PIPELINE_COLUMNS: ColumnDef[] = [
 
 function loadColumnVisibility(): Record<string, boolean> {
   const base = Object.fromEntries(PIPELINE_COLUMNS.map(c => [c.key, true])) as Record<string, boolean>;
-  try {
-    const s = localStorage.getItem(COLUMN_STORAGE_KEY);
-    if (s) Object.assign(base, JSON.parse(s));
-  } catch { /* ignore */ }
+  const tryKeys = [COLUMN_STORAGE_KEY, 'pipeline-column-visibility'];
+  for (const key of tryKeys) {
+    try {
+      const s = localStorage.getItem(key);
+      if (s) {
+        Object.assign(base, JSON.parse(s));
+        break;
+      }
+    } catch { /* ignore */ }
+  }
   return base;
 }
 
@@ -387,7 +394,7 @@ export function ProductPipeline() {
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
+              <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center shadow-md ring-1 ring-slate-900/10">
                 <Package className="w-7 h-7 text-white" />
               </div>
               <div>
@@ -508,7 +515,7 @@ export function ProductPipeline() {
               className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                   <Package className="w-6 h-6 text-white" />
                 </div>
               </div>

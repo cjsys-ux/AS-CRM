@@ -104,7 +104,7 @@ export default function App() {
       case 'settings':
         return <SettingsPage />;
       case 'pipeline':
-        return <ProductPipeline />;
+        return <ProductPipeline key="product-pipeline" />;
       case 'customers':
         return <Customers />;
       case 'vendors':

@@ -57,6 +57,8 @@
     server: {
       port: 3000,
       open: true,
+      // Avoid stale module graph when switching branches (dev only)
+      headers: { 'Cache-Control': 'no-store' },
       // Proxy /api/* to the Vercel dev server so API routes work with `npm run dev`
       // Start Vercel dev separately on port 3100: `vercel dev --listen 3100`
       proxy: {
