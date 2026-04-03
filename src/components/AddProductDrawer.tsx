@@ -132,12 +132,19 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
     setIsProcessingImage(true);
 
-    try {
-      // Show a local preview immediately
-      setUploadedImage(URL.createObjectURL(file));
+    // Show a local preview immediately
+    setUploadedImage(URL.createObjectURL(file));
 
-      // Get a presigned S3 URL
-      const presignRes = await fetch('/api/files/presign', {
+    try {
+      // Convert to base64 and upload via server-side API to avoid S3 CORS issues
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const uploadRes = await fetch('/api/files/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -145,27 +152,19 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
           fileType: file.type,
           entityType: 'project',
           entityId: productData?.id ?? 'new',
+          fileData: base64,
         }),
       });
 
-      if (!presignRes.ok) {
-        throw new Error('Failed to get upload URL.');
-      }
-
-      const { uploadUrl, key } = await presignRes.json();
-
-      // Upload the file directly to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
       if (!uploadRes.ok) {
-        throw new Error('Failed to upload image to storage.');
+        const data = await uploadRes.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to upload image.');
       }
 
+      const { key, fileUrl } = await uploadRes.json();
       setUploadedImageKey(key);
+      // Replace blob URL with stable proxy URL so preview persists
+      setUploadedImage(fileUrl);
     } catch (error) {
       console.error('Error uploading image:', error);
     } finally {
