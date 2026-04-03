@@ -13,16 +13,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'id query parameter is required.' });
   }
 
-  let objectId: ObjectId;
+  // Build filter: try ObjectId first (24-char hex), fall back to the custom
+  // string `id` field used by documents like { id: "project-1769539090876" }.
+  let filter: Record<string, unknown>;
   try {
-    objectId = new ObjectId(id);
+    filter = { _id: new ObjectId(id) };
   } catch {
-    return res.status(400).json({ error: 'Invalid id format.' });
+    filter = { id };
   }
 
   try {
     const db = await getDb();
-    const result = await db.collection('projects').deleteOne({ _id: objectId });
+    const result = await db.collection('projects').deleteOne(filter);
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Project not found.' });

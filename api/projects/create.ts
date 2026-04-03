@@ -34,19 +34,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getDb();
 
+    // Generate a project ID and number matching the existing collection format
+    const timestamp = Date.now();
+    const projectId = `project-${timestamp}`;
+
+    // Derive a short numeric suffix for ADP-XXXXX (last 5 digits of timestamp)
+    const existingCount = await db.collection('projects').countDocuments();
+    const projectNumber = `ADP-${String(existingCount + 1).padStart(5, '0')}`;
+
+    // Map form field names to the MongoDB field names used by the collection
     const doc = {
-      name,
+      id: projectId,
+      projectNumber,
+      title: name,
       client: client ?? null,
       vendor: vendor ?? null,
       description: description ?? null,
       status: status ?? 'New Product',
-      type: type ?? null,
+      itemType: type ?? null,
       yearlyQty: typeof yearlyQty === 'number' ? yearlyQty : null,
-      pricePerUnit: typeof pricePerUnit === 'number' ? pricePerUnit : null,
+      pricePerUnit: pricePerUnit != null ? String(pricePerUnit) : null,
       totalValue: typeof totalValue === 'number' ? totalValue : null,
-      priority: priority ?? 'Medium',
-      deployment: deployment ?? null,
-      projectManager: projectManager ?? null,
+      priority: (priority ?? 'Medium').toLowerCase(),
+      dueDate: deployment ?? null,
+      assignedManager: projectManager ?? null,
       internalSKU: internalSKU ?? null,
       targetMargin: targetMargin ?? null,
       imageKey: imageKey ?? null,
@@ -54,14 +65,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       competitorLink: competitorLink ?? null,
       competitorPrice: competitorPrice ?? null,
       createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const result = await db.collection('projects').insertOne(doc);
 
     return res.status(201).json({
       project: {
-        id: result.insertedId.toString(),
         ...doc,
+        _id: result.insertedId.toString(),
       },
     });
   } catch (error) {

@@ -7,28 +7,40 @@ import { getS3Client, getS3Bucket } from '../_s3';
 type MongoProject = {
   _id?: ObjectId;
   id?: string;
+  // Name variants
   name?: string;
   productName?: string;
   title?: string;
+  // Client variants
   client?: string;
   customer?: string;
+  // Vendor variants
   vendor?: string;
   supplier?: string;
   description?: string;
   status?: string;
+  // Type variants
   type?: string;
+  itemType?: string;
   yearlyQty?: number | string;
   yearlyQuantity?: number | string;
   pricePerUnit?: number | string;
   unitPrice?: number | string;
   totalValue?: number | string;
   priority?: string;
+  // Deployment/due date variants
   deployment?: string;
+  dueDate?: string;
+  deploymentDate?: string;
+  // Project manager variants
   projectManager?: string;
+  assignedManager?: string;
   manager?: string;
+  // SKU variants
   internalSKU?: string;
   sku?: string;
   targetMargin?: string | number;
+  // Image variants
   image?: string;
   imageUrl?: string;
   imageKey?: string;
@@ -37,6 +49,14 @@ type MongoProject = {
   fileKey?: string;
   thumbnail?: string;
   productImage?: string;
+  // Project number
+  projectNumber?: string;
+  // Competitor fields
+  competitorName?: string;
+  competitorLink?: string;
+  competitorPrice?: string;
+  competitorDescription?: string;
+  competitorSku?: string;
 };
 
 type MongoUpload = {
@@ -71,6 +91,13 @@ function normalizeStatus(status?: string): string {
   if (value.includes('ready')) return 'Ready For Live';
   if (value === 'live') return 'Live';
   return status ?? 'New Product';
+}
+
+function normalizePriority(priority?: string): string {
+  const value = (priority ?? '').trim().toLowerCase();
+  if (value === 'high') return 'High';
+  if (value === 'low') return 'Low';
+  return 'Medium';
 }
 
 function getUploadImageUrl(upload: MongoUpload | undefined): string | null {
@@ -111,41 +138,37 @@ function resolveProjectImage(
   project: MongoProject,
   uploadByEntityId: Map<string, MongoUpload>,
   s3ImageByProjectId: Map<string, string>
-): { imageUrl: string; fromMongoImageField: boolean } {
+): string {
   // 1. Direct HTTP/HTTPS URL stored in image fields
   const directImage = project.image ?? project.imageUrl ?? project.thumbnail ?? project.productImage;
   if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
-    return { imageUrl: directImage, fromMongoImageField: true };
+    return directImage;
   }
 
   // 2. S3 key stored in project document → serve via proxy
   const s3ObjectKey = project.imageKey ?? project.s3Key ?? project.fileKey ?? project.key;
   if (s3ObjectKey) {
-    return { imageUrl: getProxyImageUrl(s3ObjectKey), fromMongoImageField: true };
+    return getProxyImageUrl(s3ObjectKey);
   }
 
   // 3. Non-http image field treated as bare S3 key → serve via proxy
-  if (directImage) {
-    return { imageUrl: getProxyImageUrl(directImage), fromMongoImageField: true };
+  if (directImage && !directImage.startsWith('data:')) {
+    return getProxyImageUrl(directImage);
   }
 
   const projectId = project.id ?? project._id?.toString();
 
   // 4. Uploads collection lookup by project ID
   const uploadImage = projectId ? getUploadImageUrl(uploadByEntityId.get(projectId)) : null;
-  if (uploadImage) {
-    return { imageUrl: uploadImage, fromMongoImageField: false };
-  }
+  if (uploadImage) return uploadImage;
 
   // 5. S3 listing fallback (covers images in S3 not linked in MongoDB)
   if (projectId) {
     const s3ListedImage = s3ImageByProjectId.get(projectId);
-    if (s3ListedImage) {
-      return { imageUrl: s3ListedImage, fromMongoImageField: false };
-    }
+    if (s3ListedImage) return s3ListedImage;
   }
 
-  return { imageUrl: defaultImage, fromMongoImageField: false };
+  return defaultImage;
 }
 
 function mapProject(
@@ -157,25 +180,28 @@ function mapProject(
   const pricePerUnit = toNumber(project.pricePerUnit ?? project.unitPrice, 0);
   const computedTotal = yearlyQty * pricePerUnit;
   const totalValue = toNumber(project.totalValue, computedTotal);
-  const resolvedImage = resolveProjectImage(project, uploadByEntityId, s3ImageByProjectId);
 
   return {
     id: project.id ?? project._id?.toString() ?? `project-${Math.random().toString(36).slice(2, 10)}`,
+    projectNumber: project.projectNumber ?? '',
     name: project.name ?? project.productName ?? project.title ?? 'Untitled Project',
     client: project.client ?? project.customer ?? 'Unknown Client',
-    vendor: project.vendor ?? project.supplier ?? 'N/A',
+    vendor: project.vendor ?? project.supplier ?? '',
     description: project.description ?? '',
     status: normalizeStatus(project.status),
-    type: project.type ?? 'Custom',
+    type: project.type ?? project.itemType ?? 'Custom',
     yearlyQty,
     pricePerUnit,
     totalValue,
-    priority: project.priority ?? 'Medium',
-    deployment: project.deployment ?? 'TBD',
-    projectManager: project.projectManager ?? project.manager ?? 'Unassigned',
+    priority: normalizePriority(project.priority),
+    deployment: project.deployment ?? project.dueDate ?? project.deploymentDate ?? '',
+    projectManager: project.projectManager ?? project.assignedManager ?? project.manager ?? '',
     internalSKU: project.internalSKU ?? project.sku ?? '',
     targetMargin: project.targetMargin ? String(project.targetMargin) : '',
-    image: resolvedImage.imageUrl,
+    image: resolveProjectImage(project, uploadByEntityId, s3ImageByProjectId),
+    competitorName: project.competitorName ?? '',
+    competitorLink: project.competitorLink ?? '',
+    competitorPrice: project.competitorPrice ?? '',
   };
 }
 
