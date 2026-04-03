@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -27,32 +27,70 @@ const getStatusColor = (status: string) => {
 
 export function StatusDropdown({ currentStatus, onStatusChange }: StatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const [openUpward, setOpenUpward] = useState(false);
+
+  const updatePosition = (forceUpward?: boolean) => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const up = forceUpward ?? openUpward;
+    if (up && menuRef.current) {
+      const menuHeight = menuRef.current.offsetHeight;
+      setDropdownPos({ top: rect.top - menuHeight - 8, left: rect.left });
+    } else {
+      setDropdownPos({ top: rect.bottom + 8, left: rect.left });
+    }
+  };
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (
-        buttonRef.current && !buttonRef.current.contains(target) &&
-        dropdownRef.current && !dropdownRef.current.contains(target)
+        (!buttonRef.current || !buttonRef.current.contains(target)) &&
+        (!menuRef.current || !menuRef.current.contains(target))
       ) {
         setIsOpen(false);
       }
     };
-
+    const handleScroll = () => updatePosition();
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isOpen, openUpward]);
 
-  const handleOpen = () => {
-    if (!isOpen && buttonRef.current) {
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 6, left: rect.left });
+      // Estimate menu height (~44px per item)
+      const estimatedMenuHeight = statuses.length * 44 + 16;
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      const shouldOpenUp = spaceBelow < estimatedMenuHeight;
+      setOpenUpward(shouldOpenUp);
+
+      if (shouldOpenUp) {
+        setDropdownPos({ top: rect.top - 8, left: rect.left });
+      } else {
+        setDropdownPos({ top: rect.bottom + 8, left: rect.left });
+      }
+
+      // Fine-tune after render with actual menu height
+      requestAnimationFrame(() => {
+        if (menuRef.current && buttonRef.current) {
+          const menuHeight = menuRef.current.offsetHeight;
+          if (shouldOpenUp) {
+            const btnRect = buttonRef.current.getBoundingClientRect();
+            setDropdownPos({ top: btnRect.top - menuHeight - 8, left: btnRect.left });
+          }
+        }
+      });
     }
-    setIsOpen(!isOpen);
-  };
+  }, [isOpen]);
 
   const handleStatusSelect = (status: string) => {
     onStatusChange(status);
@@ -65,7 +103,7 @@ export function StatusDropdown({ currentStatus, onStatusChange }: StatusDropdown
         ref={buttonRef}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={handleOpen}
+        onClick={() => setIsOpen(!isOpen)}
         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border ${getStatusColor(currentStatus)} transition-all cursor-pointer`}
       >
         {currentStatus}
@@ -73,32 +111,28 @@ export function StatusDropdown({ currentStatus, onStatusChange }: StatusDropdown
       </motion.button>
 
       {isOpen && createPortal(
-        <AnimatePresence>
-          <motion.div
-            ref={dropdownRef}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-            className="bg-white rounded-xl shadow-2xl border-2 border-slate-300 overflow-hidden w-fit"
-          >
-            {statuses.map((status) => (
-              <motion.button
-                key={status}
-                whileHover={{ backgroundColor: 'rgb(248 250 252)' }}
-                onClick={() => handleStatusSelect(status)}
-                disabled={status === currentStatus}
-                className={`block px-3 py-2.5 text-sm transition-colors whitespace-nowrap ${
-                  status === currentStatus ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-medium border ${getStatusColor(status)}`}>
-                  {status}
-                </span>
-              </motion.button>
-            ))}
-          </motion.div>
-        </AnimatePresence>,
+        <motion.div
+          ref={menuRef}
+          initial={{ opacity: 0, y: openUpward ? 10 : -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left }}
+          className="z-[9999] bg-white rounded-xl shadow-2xl border-2 border-slate-300 overflow-hidden w-fit"
+        >
+          {statuses.map((status) => (
+            <motion.button
+              key={status}
+              onClick={() => handleStatusSelect(status)}
+              disabled={status === currentStatus}
+              className={`block px-3 py-2.5 text-sm transition-colors whitespace-nowrap hover:bg-slate-50 ${
+                status === currentStatus ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-medium border ${getStatusColor(status)}`}>
+                {status}
+              </span>
+            </motion.button>
+          ))}
+        </motion.div>,
         document.body
       )}
     </div>
