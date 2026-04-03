@@ -25,6 +25,9 @@ interface ProductDetailsProps {
     internalSKU?: string;
     projectManager?: string;
     image: string;
+    competitorName?: string;
+    competitorLink?: string;
+    competitorPrice?: string;
   };
   onProductUpdate?: (updatedProduct: any) => void;
 }
