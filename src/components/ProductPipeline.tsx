@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Search, Filter, Edit, Trash2, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, RefreshCw, Columns2 } from 'lucide-react';
+import { Package, Plus, Search, Filter, Edit, Trash2, Calendar, TrendingUp, DollarSign, ShoppingCart, ArrowUpDown, X, Eye, RefreshCw, Columns3 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AddProductDrawer } from './AddProductDrawer';
 import { DeleteProductModal } from './DeleteProductModal';
@@ -623,7 +623,7 @@ const handleOpenColumnPicker = () => {
                   onClick={handleOpenColumnPicker}
                   className="flex items-center gap-2 px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-700 font-medium hover:bg-slate-100 transition-colors text-sm"
                 >
-                  <Columns2 className="w-4 h-4" />
+                  <Columns3 className="w-4 h-4" />
                   Columns
                 </motion.button>
               </div>
@@ -1089,7 +1089,13 @@ const handleOpenColumnPicker = () => {
         onApply={applyColumnChanges}
         pendingColumns={pendingColumns}
         onToggleColumn={togglePendingColumn}
-        onSelectAll={() => setPendingColumns(new Set(COLUMNS.map(c => c.id)))}
+        onSelectAll={() => {
+          if (pendingColumns.size === COLUMNS.length) {
+            setPendingColumns(new Set());
+          } else {
+            setPendingColumns(new Set(COLUMNS.map(c => c.id)));
+          }
+        }}
       />
     </div>
   );
