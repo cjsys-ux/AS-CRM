@@ -338,14 +338,14 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 transition={{ delay: 0.1 }}
                 className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <ImageIcon className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
+                    <ImageIcon className="w-4 h-4 text-white" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900">Product Image</h3>
                 </div>
 
-                <div className="flex items-start gap-6">
+                <div className="flex items-start gap-5">
                   {/* Image Preview */}
                   <input
                     type="file"
@@ -354,7 +354,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                     onChange={handleFileInputChange}
                     className="hidden"
                   />
-                  <label htmlFor="image-upload">
+                  <label htmlFor="image-upload" className="shrink-0">
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       className="w-28 h-28 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden"
@@ -370,50 +370,50 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full mx-auto mb-2"
+                            className="w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full mx-auto mb-1"
                           />
-                          <p className="text-xs text-slate-500 font-medium">Processing...</p>
+                          <p className="text-[10px] text-slate-400">Processing...</p>
                         </div>
                       ) : (
                         <div className="text-center">
-                          <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                          <p className="text-xs text-slate-500 font-medium">Click to upload</p>
+                          <Upload className="w-8 h-8 text-slate-300 mx-auto mb-1" />
+                          <p className="text-[10px] text-slate-400 font-medium">Click to upload</p>
                         </div>
                       )}
                     </motion.div>
                   </label>
 
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-3">
                     <motion.button
                       type="button"
                       onClick={() => document.getElementById('image-upload')?.click()}
-                      whileHover={{ scale: 1.02, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       disabled={isProcessingImage}
-                      className="flex items-center gap-3 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-white transition-all mb-4 shadow-md w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-white text-sm transition-all shadow-lg w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Upload className="w-5 h-5" />
-                      {isProcessingImage ? 'Processing Image...' : 'Upload Product Image'}
+                      <Upload className="w-4 h-4" />
+                      {isProcessingImage ? 'Processing...' : 'Upload Product Image'}
                     </motion.button>
 
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-slate-900 text-sm mb-1">Remove White Background</p>
-                          <p className="text-xs text-slate-600">Automatically make white backgrounds transparent</p>
+                          <p className="font-semibold text-slate-900 text-xs">Remove White Background</p>
+                          <p className="text-[11px] text-slate-500">Auto-remove white backgrounds</p>
                         </div>
                         <motion.button
                           type="button"
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setRemoveBackground(!removeBackground)}
                           className={`relative w-11 h-6 rounded-full transition-all ${
-                            removeBackground ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg' : 'bg-slate-300'
+                            removeBackground ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-slate-300'
                           }`}
                         >
                           <motion.div
                             animate={{ x: removeBackground ? 22 : 2 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            className="absolute top-[2px] w-[14px] h-[14px] bg-white rounded-full shadow-md"
+                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-md"
                           />
                         </motion.button>
                       </div>
@@ -429,16 +429,16 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 transition={{ delay: 0.2 }}
                 className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <FileText className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow">
+                    <FileText className="w-4 h-4 text-white" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900">Basic Information</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Product Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -452,13 +452,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
                         Customer <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder="Select client..."
+                          placeholder="Select customer..."
                           value={formData.clientName}
                           onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                           className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
@@ -471,25 +471,33 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto"
                             >
                               {availableCustomers.map((customer, index) => (
                                 <motion.div
                                   key={customer.id}
-                                  initial={{ opacity: 0, x: -20 }}
+                                  initial={{ opacity: 0, x: -10 }}
                                   animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
+                                  transition={{ delay: index * 0.03 }}
+                                  className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 border-b border-slate-100 last:border-b-0 transition-all"
                                   onMouseDown={() => {
                                     setFormData({ ...formData, clientName: customer.name });
                                     setShowClientDropdown(false);
                                   }}
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <img src={customer.logo} alt={customer.name} className="w-8 h-8 rounded-full object-cover border-2 border-slate-200" />
+                                  <div className="flex items-center gap-2.5">
+                                    {customer.logo ? (
+                                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                                        <img src={customer.logo} alt={customer.name} className="w-full h-full object-contain p-0.5" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+                                        <span className="text-white text-xs font-bold">{customer.name?.charAt(0) || '?'}</span>
+                                      </div>
+                                    )}
                                     <div>
                                       <span className="text-sm font-bold text-slate-900">{customer.name}</span>
-                                      <p className="text-xs text-slate-500">{customer.id}</p>
+                                      <p className="text-xs text-slate-400">{customer.id}</p>
                                     </div>
                                   </div>
                                 </motion.div>
@@ -501,7 +509,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
                         Vendor
                       </label>
                       <div className="relative">
@@ -520,28 +528,36 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden max-h-52 overflow-y-auto"
                             >
                               {availableVendors.map((vendor, index) => (
                                 <motion.div
                                   key={vendor.id}
-                                  initial={{ opacity: 0, x: -20 }}
+                                  initial={{ opacity: 0, x: -10 }}
                                   animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.05 }}
-                                  className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 border-b border-slate-100 last:border-b-0 transition-all"
+                                  transition={{ delay: index * 0.03 }}
+                                  className="px-4 py-2.5 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 border-b border-slate-100 last:border-b-0 transition-all"
                                   onMouseDown={() => {
                                     setFormData({ ...formData, vendor: vendor.name });
                                     setShowVendorDropdown(false);
                                   }}
                                 >
-                                  <div className="flex items-center gap-3">
-                                    <img src={vendor.logo} alt={vendor.name} className="w-8 h-8 rounded-full object-cover border-2 border-slate-200" />
+                                  <div className="flex items-center gap-2.5">
+                                    {vendor.logo ? (
+                                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                                        <img src={vendor.logo} alt={vendor.name} className="w-full h-full object-contain p-0.5" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+                                        <span className="text-white text-xs font-bold">{vendor.name?.charAt(0) || '?'}</span>
+                                      </div>
+                                    )}
                                     <div className="flex-1">
                                       <div className="flex items-center justify-between">
                                         <span className="text-sm font-bold text-slate-900">{vendor.name}</span>
-                                        <span className="text-xs px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-semibold">{vendor.type}</span>
+                                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">{vendor.type}</span>
                                       </div>
-                                      <p className="text-xs text-slate-500">{vendor.id}</p>
+                                      <p className="text-xs text-slate-400">{vendor.id}</p>
                                     </div>
                                   </div>
                                 </motion.div>
@@ -554,7 +570,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Product Description <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -575,16 +591,16 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 transition={{ delay: 0.3 }}
                 className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow">
+                    <TrendingUp className="w-4 h-4 text-white" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900">Competitor Analysis</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Competitor Name
                     </label>
                     <input
@@ -597,11 +613,11 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
                       Competitor Link
                     </label>
                     <div className="relative">
-                      <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="url"
                         placeholder="competitor.com/product"
