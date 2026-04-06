@@ -592,12 +592,14 @@ const handleOpenColumnPicker = () => {
                 value={selectedStatus === 'all' ? 'Status: All' : selectedStatus}
                 onChange={(v) => { setSelectedStatus(v === 'Status: All' ? 'all' : v); setCurrentPage(1); }}
                 options={['Status: All', 'New Product', 'In Progress', 'Ready For Live', 'Live']}
+                compact
               />
 
               <ModernDropdown
                 value={selectedType === 'all' ? 'Type: All' : selectedType}
                 onChange={(v) => { setSelectedType(v === 'Type: All' ? 'all' : v); setCurrentPage(1); }}
                 options={['Type: All', ...allTypes]}
+                compact
               />
 
               {activeFilters > 0 && (
