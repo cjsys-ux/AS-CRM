@@ -3,10 +3,12 @@ import { X, Columns2, Check } from 'lucide-react';
 
 export const COLUMNS = [
   { id: 'image',          label: 'Image' },
+  { id: 'projectNumber',  label: 'Project #' },
   { id: 'name',           label: 'Product Name' },
   { id: 'client',         label: 'Client' },
   { id: 'vendor',         label: 'Vendor' },
   { id: 'status',         label: 'Status' },
+  { id: 'progress',       label: 'Progress' },
   { id: 'type',           label: 'Type' },
   { id: 'internalSKU',    label: 'Internal SKU' },
   { id: 'projectManager', label: 'Project Manager' },
