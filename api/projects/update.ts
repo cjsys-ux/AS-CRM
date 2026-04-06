@@ -44,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getDb();
     const result = await db
-      .collection('projects')
+      .collection('product_pipelines')
       .updateOne(filter, { $set: setPayload });
 
     if (result.matchedCount === 0) {

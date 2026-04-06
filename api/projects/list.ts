@@ -187,7 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getDb();
     const projects = (await db
-      .collection<MongoProject>('projects')
+      .collection<MongoProject>('product_pipelines')
       .find({})
       .sort({ _id: -1 })
       .toArray()) as MongoProject[];
