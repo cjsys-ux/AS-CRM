@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Package, Upload, FileText, TrendingUp, DollarSign, Calendar, Tag, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { CustomCalendar } from './CustomCalendar';
+import { ModernCalendar } from './ModernCalendar';
 
 
 interface AddProductDrawerProps {
@@ -42,6 +42,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [showItemTypeDropdown, setShowItemTypeDropdown] = useState(false);
   const [showProjectManagerDropdown, setShowProjectManagerDropdown] = useState(false);
+  const [showDueDateCalendar, setShowDueDateCalendar] = useState(false);
   const [formData, setFormData] = useState({
     productName: productData?.name || '',
     clientName: productData?.client || '',
@@ -755,11 +756,17 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       <label className="block text-sm font-bold text-slate-700 mb-1.5">
                         Due Date
                       </label>
-                      <CustomCalendar
-                        value={formData.dueDate}
-                        onChange={(date) => setFormData({ ...formData, dueDate: date })}
-                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDueDateCalendar(true)}
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-left font-medium transition-all hover:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500"
+                      >
+                        <span className={formData.dueDate ? 'text-slate-900' : 'text-slate-400'}>
+                          {formData.dueDate
+                            ? new Date(formData.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : 'Select date...'}
+                        </span>
+                      </button>
                     </div>
 
                     <div className="relative">
@@ -916,6 +923,17 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
               </motion.button>
             </div>
           </motion.div>
+
+          <ModernCalendar
+            isOpen={showDueDateCalendar}
+            onClose={() => setShowDueDateCalendar(false)}
+            selectedDate={formData.dueDate || null}
+            onSelectDate={(date) => {
+              setFormData({ ...formData, dueDate: date });
+              setShowDueDateCalendar(false);
+            }}
+            label="Select Due Date"
+          />
         </>
       )}
     </AnimatePresence>
