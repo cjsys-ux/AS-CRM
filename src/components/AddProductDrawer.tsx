@@ -287,25 +287,25 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 35, stiffness: 350 }}
-            className="fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-xl bg-slate-50 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 px-8 py-8 flex items-center justify-between shadow-xl">
-              <div className="flex items-center gap-5">
+            <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shadow-xl">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.2, type: 'spring' }}
-                  className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl"
+                  className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0"
                 >
-                  <Package className="w-8 h-8 text-white" />
+                  <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </motion.div>
                 <div>
                   <motion.h2
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-3xl font-black text-white mb-1"
+                    className="text-lg sm:text-xl font-black text-white mb-0.5"
                   >
                     {productData?.id ? 'Edit Product' : 'Add New Product'}
                   </motion.h2>
@@ -313,7 +313,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="text-teal-50 font-medium"
+                    className="text-teal-100 text-sm"
                   >
                     Submit a new product to the supply chain pipeline
                   </motion.p>
@@ -323,26 +323,26 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-3 hover:bg-white/20 rounded-2xl transition-all"
+                className="p-2 hover:bg-white/20 rounded-xl transition-all"
               >
-                <X className="w-7 h-7 text-white" />
+                <X className="w-5 h-5 text-white" />
               </motion.button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
               {/* Product Image */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
                     <ImageIcon className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Product Image</h3>
+                  <h3 className="text-base font-bold text-slate-900">Product Image</h3>
                 </div>
 
                 <div className="flex items-start gap-6">
@@ -357,7 +357,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                   <label htmlFor="image-upload">
                     <motion.div
                       whileHover={{ scale: 1.02 }}
-                      className="w-40 h-40 border-3 border-dashed border-slate-300 rounded-3xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden"
+                      className="w-28 h-28 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 shadow-inner cursor-pointer overflow-hidden"
                     >
                       {uploadedImage || formData.image ? (
                         <img 
@@ -370,13 +370,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-2"
+                            className="w-8 h-8 border-3 border-green-500 border-t-transparent rounded-full mx-auto mb-2"
                           />
                           <p className="text-xs text-slate-500 font-medium">Processing...</p>
                         </div>
                       ) : (
                         <div className="text-center">
-                          <Upload className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                          <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                           <p className="text-xs text-slate-500 font-medium">Click to upload</p>
                         </div>
                       )}
@@ -390,13 +390,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       whileHover={{ scale: 1.02, boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                       whileTap={{ scale: 0.98 }}
                       disabled={isProcessingImage}
-                      className="flex items-center gap-3 px-6 py-4 bg-slate-900 hover:bg-slate-800 rounded-2xl font-bold text-white transition-all mb-6 shadow-xl w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-3 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-white transition-all mb-4 shadow-md w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Upload className="w-5 h-5" />
                       {isProcessingImage ? 'Processing Image...' : 'Upload Product Image'}
                     </motion.button>
 
-                    <div className="p-5 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border-2 border-slate-200">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-bold text-slate-900 text-sm mb-1">Remove White Background</p>
@@ -406,14 +406,14 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           type="button"
                           whileTap={{ scale: 0.95 }}
                           onClick={() => setRemoveBackground(!removeBackground)}
-                          className={`relative w-14 h-7 rounded-full transition-all ${
+                          className={`relative w-11 h-6 rounded-full transition-all ${
                             removeBackground ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg' : 'bg-slate-300'
                           }`}
                         >
                           <motion.div
-                            animate={{ x: removeBackground ? 28 : 2 }}
+                            animate={{ x: removeBackground ? 22 : 2 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                            className="absolute top-[2px] w-[14px] h-[14px] bg-white rounded-full shadow-md"
                           />
                         </motion.button>
                       </div>
@@ -427,16 +427,16 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                     <FileText className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Basic Information</h3>
+                  <h3 className="text-base font-bold text-slate-900">Basic Information</h3>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       Product Name <span className="text-red-500">*</span>
@@ -446,14 +446,14 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Enter product name"
                       value={formData.productName}
                       onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Client Name <span className="text-red-500">*</span>
+                        Customer <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -461,7 +461,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           placeholder="Select client..."
                           value={formData.clientName}
                           onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                           onFocus={() => setShowClientDropdown(true)}
                           onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
                         />
@@ -471,7 +471,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                             >
                               {availableCustomers.map((customer, index) => (
                                 <motion.div
@@ -510,7 +510,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           placeholder="Select vendor..."
                           value={formData.vendor}
                           onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                           onFocus={() => setShowVendorDropdown(true)}
                           onBlur={() => setTimeout(() => setShowVendorDropdown(false), 200)}
                         />
@@ -520,7 +520,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -10 }}
-                              className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                             >
                               {availableVendors.map((vendor, index) => (
                                 <motion.div
@@ -561,8 +561,8 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Product details and requirements"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={4}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none font-medium"
+                      rows={3}
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none font-medium"
                     />
                   </div>
                 </div>
@@ -573,16 +573,16 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                     <TrendingUp className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Competitor Analysis</h3>
+                  <h3 className="text-base font-bold text-slate-900">Competitor Analysis</h3>
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">
                       Competitor Name
@@ -592,7 +592,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Enter competitor name"
                       value={formData.competitorName}
                       onChange={(e) => setFormData({ ...formData, competitorName: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                     />
                   </div>
 
@@ -607,7 +607,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                         placeholder="competitor.com/product"
                         value={formData.competitorLink}
                         onChange={(e) => setFormData({ ...formData, competitorLink: e.target.value })}
-                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -617,13 +617,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       Competitor Price
                     </label>
                     <div className="relative">
-                      <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-lg">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-base">$</span>
                       <input
                         type="text"
                         placeholder="9.99"
                         value={formData.competitorPrice}
                         onChange={(e) => setFormData({ ...formData, competitorPrice: e.target.value })}
-                        className="w-full pl-10 pr-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full pl-8 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -635,17 +635,17 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
                     <DollarSign className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Pricing & Quantity</h3>
+                  <h3 className="text-base font-bold text-slate-900">Pricing & Quantity</h3>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">
                         Estimated Yearly Quantity <span className="text-red-500">*</span>
@@ -655,7 +655,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                         placeholder="10,000"
                         value={formatNumberWithCommas(formData.yearlyQty)}
                         onChange={(e) => setFormData({ ...formData, yearlyQty: parseFormattedNumber(e.target.value) })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
 
@@ -664,13 +664,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                         Target Price Per Unit <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
-                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-lg">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-base">$</span>
                         <input
                           type="text"
                           placeholder="9.99"
                           value={formData.targetPrice}
                           onChange={(e) => setFormData({ ...formData, targetPrice: e.target.value })}
-                          className="w-full pl-10 pr-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full pl-8 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                         />
                       </div>
                     </div>
@@ -685,7 +685,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Select item type..."
                       value={formData.itemType}
                       onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       onFocus={() => setShowItemTypeDropdown(true)}
                       onBlur={() => setTimeout(() => setShowItemTypeDropdown(false), 200)}
                     />
@@ -695,7 +695,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                          className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                         >
                           <motion.div
                             key="Deployment"
@@ -748,17 +748,17 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
                     <Calendar className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Project Details</h3>
+                  <h3 className="text-base font-bold text-slate-900">Project Details</h3>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">
                         Due Date
@@ -766,7 +766,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       <CustomCalendar
                         value={formData.dueDate}
                         onChange={(date) => setFormData({ ...formData, dueDate: date })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
 
@@ -779,7 +779,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                         placeholder="Select priority..."
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                         onFocus={() => setShowPriorityDropdown(true)}
                         onBlur={() => setTimeout(() => setShowPriorityDropdown(false), 200)}
                       />
@@ -789,7 +789,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                            className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                           >
                             <motion.div
                               key="Low"
@@ -845,7 +845,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Select project manager..."
                       value={formData.projectManager}
                       onChange={(e) => setFormData({ ...formData, projectManager: e.target.value })}
-                      className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       onFocus={() => setShowProjectManagerDropdown(true)}
                       onBlur={() => setTimeout(() => setShowProjectManagerDropdown(false), 200)}
                     />
@@ -855,7 +855,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                          className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                         >
                           <motion.div
                             key="John Doe"
@@ -908,17 +908,17 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="bg-white rounded-3xl p-8 shadow-xl border-2 border-slate-200"
+                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-2xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center shadow-lg">
                     <Tag className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-black text-slate-900">Internal Information</h3>
+                  <h3 className="text-base font-bold text-slate-900">Internal Information</h3>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">
                         Internal SKU
@@ -928,7 +928,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                         placeholder="Enter internal SKU or product code"
                         value={formData.internalSKU}
                         onChange={(e) => setFormData({ ...formData, internalSKU: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
 
@@ -941,7 +941,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                         placeholder="e.g., 35"
                         value={formData.targetMargin}
                         onChange={(e) => setFormData({ ...formData, targetMargin: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
                       />
                     </div>
                   </div>
@@ -950,27 +950,27 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
             </div>
 
             {/* Footer Actions */}
-            <div className="border-t-2 border-slate-200 p-8 bg-white shadow-2xl">
+            <div className="border-t border-slate-200 px-6 py-4 bg-white">
               {submitError && (
-                <p className="text-red-600 text-sm font-medium mb-4">{submitError}</p>
+                <p className="text-red-600 text-sm font-medium mb-3">{submitError}</p>
               )}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={onClose}
-                  className="px-10 py-4 bg-slate-100 text-slate-700 font-black rounded-2xl hover:bg-slate-200 transition-all text-lg border-2 border-slate-200"
+                  className="flex-1 px-6 py-3.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all text-sm"
                 >
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 20px 50px rgba(0,0,0,0.3)' }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleSubmit}
                   disabled={isProcessingImage}
-                  className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-black rounded-2xl hover:from-slate-800 hover:to-slate-700 transition-all shadow-2xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-slate-900 to-slate-800 text-white font-semibold rounded-xl hover:from-slate-800 hover:to-slate-700 transition-all shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Package className="w-6 h-6" />
+                  <Package className="w-5 h-5" />
                   {productData?.id ? 'Save Changes' : 'Add Product'}
                 </motion.button>
               </div>

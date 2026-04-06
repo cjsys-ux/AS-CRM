@@ -8,9 +8,10 @@ interface ModernDropdownProps {
   options: string[];
   label?: string;
   icon?: React.ReactNode;
+  compact?: boolean;
 }
 
-export function ModernDropdown({ value, onChange, options, label, icon }: ModernDropdownProps) {
+export function ModernDropdown({ value, onChange, options, label, icon, compact }: ModernDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,14 +46,17 @@ export function ModernDropdown({ value, onChange, options, label, icon }: Modern
         onClick={() => setIsOpen(!isOpen)}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
-        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all flex items-center justify-between"
+        className={compact
+          ? "px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all flex items-center gap-1.5 whitespace-nowrap"
+          : "w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all flex items-center justify-between"
+        }
       >
         <span>{value}</span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className="w-5 h-5 text-slate-400" />
+          <ChevronDown className={compact ? "w-3.5 h-3.5 text-slate-400" : "w-5 h-5 text-slate-400"} />
         </motion.div>
       </motion.button>
 
@@ -64,7 +68,10 @@ export function ModernDropdown({ value, onChange, options, label, icon }: Modern
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
+            className={compact
+              ? "absolute z-50 min-w-[140px] mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
+              : "absolute z-50 w-full mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
+            }
           >
             {options.map((option, index) => (
               <motion.button
@@ -72,11 +79,13 @@ export function ModernDropdown({ value, onChange, options, label, icon }: Modern
                 type="button"
                 onClick={() => handleSelect(option)}
                 whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
-                className={`w-full px-4 py-3 text-left transition-colors flex items-center justify-between ${
+                className={`w-full text-left transition-colors flex items-center justify-between ${
+                  compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'
+                } ${
                   index !== options.length - 1 ? 'border-b border-slate-100' : ''
                 } ${value === option ? 'bg-blue-50' : ''}`}
               >
-                <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-900'}`}>
+                <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
                   {option}
                 </span>
                 {value === option && (
@@ -85,7 +94,7 @@ export function ModernDropdown({ value, onChange, options, label, icon }: Modern
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   >
-                    <Check className="w-5 h-5 text-blue-600" />
+                    <Check className={compact ? "w-3.5 h-3.5 text-blue-600" : "w-5 h-5 text-blue-600"} />
                   </motion.div>
                 )}
               </motion.button>
