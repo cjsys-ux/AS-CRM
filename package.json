@@ -2,7 +2,6 @@
       "name": "AS CRM ACTUAL",
       "version": "0.1.0",
       "private": true,
-      "type": "module",
       "dependencies": {
             "@auth0/auth0-react": "^2.2.4",
             "@aws-sdk/client-s3": "^3.883.0",
