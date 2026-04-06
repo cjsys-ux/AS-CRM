@@ -721,7 +721,7 @@ const handleOpenColumnPicker = () => {
                     {visibleColumns.has('client') && (
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
                         <button onClick={() => handleSort('client')} className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors">
-                          Client <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                          Customer <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                         </button>
                       </th>
                     )}

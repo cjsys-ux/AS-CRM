@@ -5,7 +5,7 @@ export const COLUMNS = [
   { id: 'image',          label: 'Image' },
   { id: 'projectNumber',  label: 'Project #' },
   { id: 'name',           label: 'Product Name' },
-  { id: 'client',         label: 'Client' },
+  { id: 'client',         label: 'Customer' },
   { id: 'vendor',         label: 'Vendor' },
   { id: 'status',         label: 'Status' },
   { id: 'progress',       label: 'Progress' },
