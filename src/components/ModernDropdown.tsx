@@ -8,9 +8,10 @@ interface ModernDropdownProps {
   options: string[];
   label?: string;
   icon?: React.ReactNode;
+  compact?: boolean;
 }
 
-export function ModernDropdown({ value, onChange, options, label, icon }: ModernDropdownProps) {
+export function ModernDropdown({ value, onChange, options, label, icon, compact }: ModernDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,14 +46,17 @@ export function ModernDropdown({ value, onChange, options, label, icon }: Modern
         onClick={() => setIsOpen(!isOpen)}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
-        className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all flex items-center justify-between"
+        className={compact
+          ? "px-3 py-1.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all flex items-center gap-2 whitespace-nowrap text-sm"
+          : "w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all flex items-center justify-between"
+        }
       >
         <span>{value}</span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className="w-5 h-5 text-slate-400" />
+          <ChevronDown className={compact ? "w-4 h-4 text-slate-400" : "w-5 h-5 text-slate-400"} />
         </motion.div>
       </motion.button>
 
@@ -64,7 +68,7 @@ export function ModernDropdown({ value, onChange, options, label, icon }: Modern
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
+            className={`absolute z-50 mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden ${compact ? 'min-w-full' : 'w-full'}`}
           >
             {options.map((option, index) => (
               <motion.button
