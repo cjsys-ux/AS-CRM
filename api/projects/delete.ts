@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = await getDb();
-    const result = await db.collection('projects').deleteOne({ _id: objectId });
+    const result = await db.collection('product_pipelines').deleteOne({ _id: objectId });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Project not found.' });

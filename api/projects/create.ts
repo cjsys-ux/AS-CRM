@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       createdAt: new Date(),
     };
 
-    const result = await db.collection('projects').insertOne(doc);
+    const result = await db.collection('product_pipelines').insertOne(doc);
 
     return res.status(201).json({
       project: {
