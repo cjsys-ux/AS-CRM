@@ -146,7 +146,7 @@ export function LinkVendorDrawer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             onClick={onClose}
           />
 
@@ -157,7 +157,7 @@ export function LinkVendorDrawer({
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
             className="fixed right-0 top-0 bottom-0 bg-white shadow-2xl z-50 flex flex-col"
-            style={{ width: '380px' }}
+            style={{ width: '420px', minWidth: '420px', maxWidth: '420px' }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4 flex items-center justify-between flex-shrink-0">

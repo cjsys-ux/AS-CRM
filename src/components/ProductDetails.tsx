@@ -220,40 +220,47 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden relative">
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
 
-      {/* ── Header ── */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0 sticky top-0 z-20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+      {/* Blur backdrop when any drawer is open */}
+      {(isLinkVendorDrawerOpen || isAddVendorDrawerOpen || isOrderSampleDrawerOpen || isEditProductInfoDrawerOpen || unlinkConfirm.open) && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-10 pointer-events-none" />
+      )}
+
+      {/* ── Header ── sticky works because parent in App.tsx is overflow-y-auto */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0 sticky top-0 z-20">
+        {/* Row 1: back + title + right controls all inline */}
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: back + product name + project badge */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <motion.button
               whileHover={{ x: -2 }} whileTap={{ scale: 0.95 }}
               onClick={onBack}
               className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium hidden sm:inline">Back</span>
+              <span className="font-medium">Back</span>
             </motion.button>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+                <h1 className="text-lg font-bold text-slate-900 truncate">{productInfo.name}</h1>
                 {projectNumber && (
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-lg border bg-green-50 text-green-700 border-green-200 shrink-0">
                     {projectNumber}
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 hidden sm:block">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Complete product sourcing information and supplier details
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Progress Ring — always visible */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
-              <div className="relative w-8 h-8 sm:w-9 sm:h-9">
-                <svg className="w-8 h-8 sm:w-9 sm:h-9 -rotate-90" viewBox="0 0 36 36">
+          {/* Right: progress ring + order sample — always inline */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <div className="relative w-9 h-9">
+                <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
                   <motion.circle
                     cx="18" cy="18" r="14" fill="none"
@@ -277,24 +284,24 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
 
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              className="px-3 sm:px-5 py-2 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl flex items-center gap-1.5 sm:gap-2 shadow-lg transition-all"
+              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl flex items-center gap-2 shadow-lg transition-all shrink-0"
               onClick={() => setIsOrderSampleDrawerOpen(true)}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              <span>Order Sample</span>
+              Order Sample
             </motion.button>
           </div>
         </div>
 
-        {/* Overall Progress Bar — always visible */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-1.5">
+        {/* Row 2: Overall Progress Bar */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-slate-500">Overall Completion</span>
             <span className={`text-xs font-bold ${getProgressTextColor()}`}>{progressPercent}%</span>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
@@ -306,7 +313,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
       </div>
 
       {/* ── Main Content ── */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+      <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
           {/* Product Overview */}
@@ -504,8 +511,6 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                             <div
                               key={vendor.id}
                               className="relative"
-                              draggable
-                              onDragStart={() => setDraggedVendorId(vendor.id)}
                               onDragOver={(e) => { e.preventDefault(); setDragOverVendorId(vendor.id); }}
                               onDrop={() => {
                                 if (draggedVendorId && draggedVendorId !== vendor.id) {
@@ -559,8 +564,13 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                               >
                                 <div className="flex items-start gap-2.5 mb-2">
                                   {vendors.length > 1 && (
-                                    <div className="mt-0.5 cursor-grab active:cursor-grabbing shrink-0" onClick={e => e.stopPropagation()}>
-                                      <GripVertical className="w-4 h-4 text-slate-300 hover:text-slate-500 transition-colors" />
+                                    <div
+                                      className="mt-0.5 cursor-grab active:cursor-grabbing shrink-0 p-0.5 rounded hover:bg-slate-100 transition-colors"
+                                      draggable
+                                      onDragStart={(e) => { e.stopPropagation(); setDraggedVendorId(vendor.id); }}
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      <GripVertical className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
                                     </div>
                                   )}
                                   <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
