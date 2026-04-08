@@ -36,6 +36,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
@@ -132,6 +133,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       });
       setUploadedImage(null);
       setUploadedImageKey(null);
+      setImageUploadError(null);
     }
   }, [productData, isOpen]);
 
@@ -139,6 +141,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     if (!file) return;
 
     setIsProcessingImage(true);
+    setImageUploadError(null);
 
     try {
       // Show a local preview immediately
@@ -177,7 +180,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     } catch (error) {
       console.error('Error uploading image:', error);
       setUploadedImage(null);
-      setSubmitError('Image upload failed. Please try again before submitting.');
+      setImageUploadError('Image upload failed. Please try again.');
     } finally {
       setIsProcessingImage(false);
     }
@@ -405,6 +408,10 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       <Upload className="w-4 h-4" />
                       {isProcessingImage ? 'Processing...' : 'Upload Product Image'}
                     </motion.button>
+
+                    {imageUploadError && (
+                      <p className="text-red-500 text-xs font-medium">{imageUploadError}</p>
+                    )}
 
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <div className="flex items-center justify-between">
