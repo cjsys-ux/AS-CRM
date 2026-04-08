@@ -61,6 +61,9 @@ type Product = {
   internalSKU?: string;
   targetMargin?: string;
   image: string;
+  projectNumber?: string;
+  htsCode?: string;
+  htsRate?: string;
 };
 
 type ProjectsApiResponse = {
@@ -77,7 +80,7 @@ export function ProductPipeline() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>('projectNumber');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | undefined>();
@@ -168,18 +171,23 @@ const handleOpenColumnPicker = () => {
         <ProductDetails 
           productId={selectedProductId}
           onBack={() => setSelectedProductId(null)}
+          projectNumber={selectedProduct.projectNumber}
           productData={{
             name: selectedProduct.name,
             client: selectedProduct.client,
-            vendor: selectedProduct.vendor || 'SC Promo',
+            vendor: selectedProduct.vendor || '',
             status: selectedProduct.status,
-            type: selectedProduct.type || 'Both',
+            type: selectedProduct.type || '',
             internalSKU: selectedProduct.internalSKU || '',
-            projectManager: selectedProduct.projectManager || 'Mike Johnson',
+            projectManager: selectedProduct.projectManager || '',
             image: selectedProduct.image,
+            competitorName: selectedProduct.competitorName || '',
+            competitorLink: selectedProduct.competitorLink || '',
+            competitorPrice: selectedProduct.competitorPrice || '',
+            htsCode: selectedProduct.htsCode || '',
+            htsRate: selectedProduct.htsRate || '',
           }}
           onProductUpdate={(updatedInfo) => {
-            // Update the product in the products array
             setProducts(prevProducts => 
               prevProducts.map(p => 
                 p.id === selectedProductId 
@@ -193,6 +201,9 @@ const handleOpenColumnPicker = () => {
                       internalSKU: updatedInfo.internalSKU,
                       projectManager: updatedInfo.projectManager,
                       image: updatedInfo.image,
+                      competitorName: updatedInfo.competitorName,
+                      competitorLink: updatedInfo.competitorLink,
+                      competitorPrice: updatedInfo.competitorPrice,
                     }
                   : p
               )
@@ -250,6 +261,11 @@ const handleOpenColumnPicker = () => {
     let aValue: any = a[sortColumn as keyof typeof a];
     let bValue: any = b[sortColumn as keyof typeof b];
 
+    // Push empty/null values to the end
+    if (!aValue && !bValue) return 0;
+    if (!aValue) return 1;
+    if (!bValue) return -1;
+
     // Handle numeric sorting
     if (typeof aValue === 'number' && typeof bValue === 'number') {
       return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
@@ -257,7 +273,7 @@ const handleOpenColumnPicker = () => {
 
     // Handle string sorting
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      return sortDirection === 'asc' 
+      return sortDirection === 'asc'
         ? aValue.localeCompare(bValue)
         : bValue.localeCompare(aValue);
     }

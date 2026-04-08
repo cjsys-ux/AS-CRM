@@ -215,12 +215,8 @@ export function SamplesTab({ productId = '' }: SamplesTabProps) {
 
       {/* Checklist - Moved to Bottom */}
       <ChecklistWidget
-        items={[
-          { id: '1', label: 'Sample Request Submitted', completed: false },
-          { id: '2', label: 'Sample Received', completed: false },
-          { id: '3', label: 'Quality Review Completed', completed: false },
-          { id: '4', label: 'Sample Documentation', completed: false }
-        ]}
+        productId={productId}
+        tabId="samples"
       />
 
       {/* Add Sample Drawer */}

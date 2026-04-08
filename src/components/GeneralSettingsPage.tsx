@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Filter, Settings as SettingsIcon, ChevronRight, ChevronDown, Package, ShoppingCart, Users, Database, Home, BarChart3, Boxes, Factory, TrendingUp, Palette, Plus, Edit, Trash2, X, GripVertical } from 'lucide-react';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DraggableOption } from './DraggableOption';
@@ -177,43 +177,37 @@ const modules: Module[] = [
     id: 'pipeline',
     name: 'Product Pipeline',
     icon: TrendingUp,
-    settingsCount: 6,
+    settingsCount: 5,
     items: [
-      { 
-        id: 'stages', 
-        name: 'Pipeline Stages', 
-        itemCount: 5,
-        options: ['Research', 'Design', 'Development', 'Testing', 'Launch']
+      {
+        id: 'vendors-checklist',
+        name: 'Vendors Checklist',
+        itemCount: 4,
+        options: ['Primary Vendor Linked', 'Pricing Confirmed', 'Shipping Terms Agreed', 'Lead Time Confirmed'],
       },
-      { 
-        id: 'milestones', 
-        name: 'Milestones', 
-        itemCount: 8,
-        options: ['Concept Approval', 'Design Complete', 'Prototype Ready', 'Sample Approved', 'Production Start', 'Quality Check', 'Packaging Complete', 'Market Launch']
+      {
+        id: 'specifications-checklist',
+        name: 'Specifications Checklist',
+        itemCount: 4,
+        options: ['Product Dimensions', 'Material Specifications', 'Weight & Shipping Info', 'Compliance Documents'],
       },
-      { 
-        id: 'automation', 
-        name: 'Automation Rules', 
-        itemCount: 10,
-        options: ['Auto-assign Tasks', 'Stage Progression', 'Email Notifications', 'Status Updates', 'Deadline Reminders', 'Approval Requests', 'Budget Alerts', 'Team Notifications', 'Document Generation', 'Reporting Triggers']
+      {
+        id: 'packaging-checklist',
+        name: 'Packaging Checklist',
+        itemCount: 4,
+        options: ['Packaging Mockup', 'Packaging Template', 'Dieline/CAD Files', 'Packaging Spec Sheet'],
       },
-      { 
-        id: 'notifications', 
-        name: 'Stage Notifications', 
-        itemCount: 7,
-        options: ['Stage Change', 'Task Assigned', 'Deadline Approaching', 'Approval Needed', 'Milestone Reached', 'Issue Detected', 'Project Completed']
+      {
+        id: 'samples-checklist',
+        name: 'Samples Checklist',
+        itemCount: 4,
+        options: ['Sample Request Submitted', 'Sample Received', 'Quality Review Completed', 'Sample Documentation'],
       },
-      { 
-        id: 'metrics', 
-        name: 'Metric Tracking', 
-        itemCount: 12,
-        options: ['Time in Stage', 'Completion Rate', 'Success Rate', 'Budget Utilization', 'Resource Allocation', 'Team Velocity', 'Bottleneck Analysis', 'ROI Tracking', 'Quality Score', 'Customer Feedback', 'Market Readiness', 'Competitive Position']
-      },
-      { 
-        id: 'reports', 
-        name: 'Pipeline Reports', 
-        itemCount: 9,
-        options: ['Pipeline Overview', 'Stage Analysis', 'Performance Report', 'Bottleneck Report', 'Resource Report', 'Timeline Report', 'Budget Report', 'Risk Assessment', 'Forecast Report']
+      {
+        id: 'files-checklist',
+        name: 'Files Checklist',
+        itemCount: 4,
+        options: ['Product Images Uploaded', 'Spec Sheets Uploaded', 'Vendor Quotes Filed', 'Compliance Docs Filed'],
       },
     ],
   },
@@ -563,6 +557,57 @@ export function GeneralSettingsPage() {
   const [editValue, setEditValue] = useState('');
   const [newOption, setNewOption] = useState<{ settingId: string; value: string } | null>(null);
   const [localModules, setLocalModules] = useState(modules);
+  const [pipelineSettingsLoaded, setPipelineSettingsLoaded] = useState(false);
+  const prevPipelineRef = useRef<string>('');
+
+  // ── Load pipeline checklist settings from API on mount ──
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/pipeline/settings/get');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.checklists) {
+          setLocalModules(prev => prev.map(mod => {
+            if (mod.id !== 'pipeline') return mod;
+            return {
+              ...mod,
+              items: mod.items.map(item => {
+                const tabKey = item.id.replace('-checklist', '');
+                if (data.checklists[tabKey]) {
+                  return { ...item, options: data.checklists[tabKey], itemCount: data.checklists[tabKey].length };
+                }
+                return item;
+              }),
+            };
+          }));
+        }
+      } catch {}
+      finally { setPipelineSettingsLoaded(true); }
+    };
+    load();
+  }, []);
+
+  // ── Auto-save pipeline checklist settings when they change ──
+  useEffect(() => {
+    if (!pipelineSettingsLoaded) return;
+    const pipelineMod = localModules.find(m => m.id === 'pipeline');
+    if (!pipelineMod) return;
+    const serialized = JSON.stringify(pipelineMod.items.map(i => ({ id: i.id, options: i.options })));
+    if (prevPipelineRef.current && prevPipelineRef.current !== serialized) {
+      const checklists: Record<string, string[]> = {};
+      pipelineMod.items.forEach(item => {
+        const tabKey = item.id.replace('-checklist', '');
+        checklists[tabKey] = item.options.map(o => typeof o === 'string' ? o : (o as any).value);
+      });
+      fetch('/api/pipeline/settings/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checklists }),
+      }).catch(() => {});
+    }
+    prevPipelineRef.current = serialized;
+  }, [localModules, pipelineSettingsLoaded]);
 
   const selectedModuleData = localModules.find(m => m.id === selectedModule);
   const totalSettings = localModules.reduce((sum, m) => sum + m.settingsCount, 0);

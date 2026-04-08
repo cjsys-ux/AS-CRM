@@ -43,6 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logo: logo ?? null,
       status: status ?? 'Active',
       contactName: contactName ?? null,
+      globalVendorId: req.body.globalVendorId ?? null,
       email: email ?? null,
       phone: phone ?? null,
       wechatId: wechatId ?? null,

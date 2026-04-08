@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingCart, Package, Plus, Link as LinkIcon, MapPin, ChevronDown, Check, Trash2, Calendar } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 
@@ -28,7 +28,9 @@ export function OrderSampleDrawer({
   const [variants, setVariants] = useState([
     { id: '1', sku: '', size: '', color: '', qty: 1, costPerUnit: 0 }
   ]);
-  const [vendor, setVendor] = useState('Ergodyne');
+  const [vendor, setVendor] = useState('');
+  const [availableVendors, setAvailableVendors] = useState<{id:string;name:string}[]>([]);
+  const [availableWarehouses, setAvailableWarehouses] = useState<{id:string;name:string;address:string;city:string;state:string;zip:string}[]>([]);
   const [isVendorDropdownOpen, setIsVendorDropdownOpen] = useState(false);
   const [destinations, setDestinations] = useState<Array<{
     id: string;
@@ -44,10 +46,24 @@ export function OrderSampleDrawer({
       type: string;
     };
   }>>([
-    { id: '1', name: 'Destination #1', allocations: {}, location: 'Activate Swag Warehouse' }
+    { id: '1', name: 'Destination #1', allocations: {}, location: '' }
   ]);
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [inHandsDate, setInHandsDate] = useState('');
+
+  // Fetch vendors and warehouses from API
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch('/api/vendors/list')
+      .then(r => r.json())
+      .then(data => setAvailableVendors(
+        (data.vendors ?? []).map((v: any) => ({ id: v.id, name: v.vendorName || v.name || '' })).filter((v: any) => v.name)
+      )).catch(() => {});
+    fetch('/api/wms/warehouses')
+      .then(r => r.json())
+      .then(data => setAvailableWarehouses(data.warehouses ?? []))
+      .catch(() => {});
+  }, [isOpen]);
 
   const handleAddVariant = () => {
     setVariants([
@@ -79,7 +95,7 @@ export function OrderSampleDrawer({
       });
       setDestinations([
         { ...destinations[0], allocations: {} },
-        { id: newDestinationId, name: `Destination #${destinations.length + 1}`, allocations: newAllocations, location: 'Activate Swag Warehouse' }
+        { id: newDestinationId, name: `Destination #${destinations.length + 1}`, allocations: newAllocations, location: '' }
       ]);
     } else {
       // Just add empty destination
@@ -88,7 +104,7 @@ export function OrderSampleDrawer({
       });
       setDestinations([
         ...destinations,
-        { id: newDestinationId, name: `Destination #${destinations.length + 1}`, allocations: newAllocations, location: 'Activate Swag Warehouse' }
+        { id: newDestinationId, name: `Destination #${destinations.length + 1}`, allocations: newAllocations, location: '' }
       ]);
     }
   };
@@ -119,6 +135,13 @@ export function OrderSampleDrawer({
 
   const totalQuantity = variants.reduce((sum, v) => sum + v.qty, 0);
   const totalCost = variants.reduce((sum, v) => sum + (v.qty * v.costPerUnit), 0);
+
+  // Required: vendor selected, every variant has SKU + color + size + qty >= 1,
+  // every destination has a location selected
+  const isFormValid =
+    vendor.trim() !== '' &&
+    variants.every(v => v.sku.trim() !== '' && v.color.trim() !== '' && v.size.trim() !== '' && Number(v.qty) >= 1) &&
+    destinations.every(d => d.location.trim() !== '');
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -300,7 +323,7 @@ export function OrderSampleDrawer({
                       </div>
                       <div className="grid grid-cols-5 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">SKU</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">SKU <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             placeholder="e.g., 3132"
@@ -310,17 +333,7 @@ export function OrderSampleDrawer({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Size</label>
-                          <input
-                            type="text"
-                            placeholder="e.g., Medium"
-                            value={variant.size}
-                            onChange={(e) => handleUpdateVariant(variant.id, 'size', e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Color</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Color <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             placeholder="e.g., Black"
@@ -330,7 +343,17 @@ export function OrderSampleDrawer({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Qty</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Size <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Medium"
+                            value={variant.size}
+                            onChange={(e) => handleUpdateVariant(variant.id, 'size', e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Qty <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             placeholder="1"
@@ -358,7 +381,7 @@ export function OrderSampleDrawer({
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-700 mb-1">Cost/Unit</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Cost/Unit <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             placeholder="0.00"
@@ -409,7 +432,7 @@ export function OrderSampleDrawer({
                       onClick={() => setIsVendorDropdownOpen(!isVendorDropdownOpen)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 flex items-center justify-between"
                     >
-                      <span className="text-slate-900">{vendor}</span>
+                      <span className={vendor ? "text-slate-900" : "text-slate-400"}>{vendor || "Select a vendor..."}</span>
                       <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isVendorDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
@@ -422,23 +445,26 @@ export function OrderSampleDrawer({
                           transition={{ duration: 0.2 }}
                           className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-10 overflow-hidden"
                         >
-                          {['Ergodyne', 'Vendor 2', 'Vendor 3'].map((vendorOption) => (
-                            <button
-                              key={vendorOption}
-                              onClick={() => {
-                                setVendor(vendorOption);
-                                setIsVendorDropdownOpen(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
-                            >
-                              <Check 
-                                className={`w-4 h-4 ${vendor === vendorOption ? 'text-slate-900' : 'text-transparent'}`} 
-                              />
-                              <span className={vendor === vendorOption ? 'text-slate-900 font-medium' : 'text-slate-700'}>
-                                {vendorOption}
-                              </span>
-                            </button>
-                          ))}
+                          {availableVendors.map((v) => {
+                            const vendorOption = v.name;
+                            return (
+                              <button
+                                key={vendorOption}
+                                onClick={() => {
+                                  setVendor(vendorOption);
+                                  setIsVendorDropdownOpen(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
+                              >
+                                <Check
+                                  className={`w-4 h-4 ${vendor === vendorOption ? 'text-slate-900' : 'text-transparent'}`}
+                                />
+                                <span className={vendor === vendorOption ? 'text-slate-900 font-medium' : 'text-slate-700'}>
+                                  {vendorOption}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -548,35 +574,46 @@ export function OrderSampleDrawer({
                         </div>
 
                         <div className="mb-3">
-                          <label className="block text-xs font-medium text-slate-700 mb-2">Saved Location</label>
+                          <label className="block text-xs font-medium text-slate-700 mb-2">Ship To Location</label>
                           <div className="relative">
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <select
                               value={dest.location}
                               onChange={(e) => {
                                 const newLocation = e.target.value;
-                                setDestinations(destinations.map(d => 
-                                  d.id === dest.id ? { 
-                                    ...d, 
+                                setDestinations(destinations.map(d =>
+                                  d.id === dest.id ? {
+                                    ...d,
                                     location: newLocation,
-                                    // Initialize custom address if switching to Other Location
                                     customAddress: newLocation === 'Other Location' && !d.customAddress ? {
-                                      name: '',
-                                      street: '',
-                                      city: '',
-                                      state: '',
-                                      zip: '',
-                                      type: 'Commercial'
+                                      name: '', street: '', city: '', state: '', zip: '', type: 'Commercial'
                                     } : d.customAddress
                                   } : d
                                 ));
                               }}
                               className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 appearance-none"
                             >
-                              <option value="Activate Swag Warehouse">Activate Swag Warehouse</option>
+                              <option value="">Select a location...</option>
+                              {availableWarehouses.map(wh => (
+                                <option key={wh.id} value={wh.name}>{wh.name}</option>
+                              ))}
                               <option value="Other Location">Other Location</option>
                             </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                           </div>
+                          {/* Show selected warehouse details */}
+                          {dest.location && dest.location !== 'Other Location' && (() => {
+                            const wh = availableWarehouses.find(w => w.name === dest.location);
+                            if (!wh) return null;
+                            const addr = [wh.address, wh.city, wh.state, wh.zip].filter(Boolean).join(', ');
+                            return (
+                              <div className="mt-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <p className="font-semibold text-slate-900 text-sm">{wh.name}</p>
+                                {addr && <p className="text-xs text-slate-600 mt-0.5">{addr}</p>}
+                                <p className="text-xs text-blue-600 font-medium mt-1">Warehouse</p>
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {dest.location === 'Other Location' ? (
@@ -729,13 +766,7 @@ export function OrderSampleDrawer({
                               </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                            <p className="font-semibold text-slate-900 text-sm mb-1">Activate Swag Warehouse</p>
-                            <p className="text-xs text-slate-600">2726 NW 72nd Avenue, Miami, FL 33122</p>
-                            <p className="text-xs text-blue-600 font-medium mt-1">Commercial</p>
-                          </div>
-                        )}
+                        ) : null}
                       </div>
                     );
                   })}
@@ -803,11 +834,15 @@ export function OrderSampleDrawer({
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  whileHover={{ scale: isFormValid && !isSubmitting ? 1.02 : 1 }}
+                  whileTap={{ scale: isFormValid && !isSubmitting ? 0.98 : 1 }}
+                  onClick={isFormValid ? handleSubmit : undefined}
+                  disabled={!isFormValid || isSubmitting}
+                  className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-colors ${
+                    !isFormValid || isSubmitting
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-slate-900 text-white hover:bg-slate-800 cursor-pointer'
+                  }`}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Sample Order'}
                 </motion.button>
