@@ -147,8 +147,15 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       // Show a local preview immediately
       setUploadedImage(URL.createObjectURL(file));
 
-      // Get a presigned S3 URL
-      const presignRes = await fetch('/api/files/presign', {
+      // Convert file to base64 for server-side upload
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const uploadRes = await fetch('/api/files/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -156,26 +163,15 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
           fileType: file.type,
           entityType: 'project',
           entityId: productData?.id ?? 'new',
+          fileData: base64,
         }),
       });
 
-      if (!presignRes.ok) {
-        throw new Error('Failed to get upload URL.');
-      }
-
-      const { uploadUrl, key } = await presignRes.json();
-
-      // Upload the file directly to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
       if (!uploadRes.ok) {
-        throw new Error('Failed to upload image to storage.');
+        throw new Error('Failed to upload image.');
       }
 
+      const { key } = await uploadRes.json();
       setUploadedImageKey(key);
     } catch (error) {
       console.error('Error uploading image:', error);
