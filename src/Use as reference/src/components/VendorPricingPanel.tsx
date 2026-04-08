@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Save, DollarSign, Clock, Ship, Package, Truck, Pencil, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Plus, Trash2, Save, DollarSign, Clock, Ship, Package, Truck, Pencil, X, GripVertical } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
@@ -38,7 +40,7 @@ interface VendorPricingPanelProps {
   onVendorUpdated: (vendor: Vendor) => void;
 }
 
-const DDP_METHODS = ['Air', 'Sea', 'Express', 'Rail', 'Truck'];
+const DDP_METHODS = ['Air Cargo', 'Express Air', 'Fast Boat', 'Slow Boat', 'Rail', 'FTL'];
 
 const formatCurrency = (val: number | string): string => {
   const num = Number(val);
@@ -60,6 +62,216 @@ const parseQty = (val: string): string => {
   return val.replace(/[^0-9]/g, '');
 };
 
+const TIER_DND_TYPE = 'PRICING_TIER';
+
+interface DraggableTierRowProps {
+  tier: PricingTier;
+  index: number;
+  isEditing: boolean;
+  hasChanges: boolean;
+  isDropship: boolean;
+  updateTier: (index: number, field: keyof PricingTier, value: string | number) => void;
+  removeTier: (index: number) => void;
+  moveTier: (dragIndex: number, hoverIndex: number) => void;
+}
+
+function DraggableTierRow({ tier, index, isEditing, hasChanges, isDropship, updateTier, removeTier, moveTier }: DraggableTierRowProps) {
+  const ref = useRef<HTMLTableRowElement>(null);
+  const canDrag = isEditing || hasChanges;
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: TIER_DND_TYPE,
+    item: { index },
+    canDrag: () => canDrag,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [{ isOver }, drop] = useDrop({
+    accept: TIER_DND_TYPE,
+    hover: (item: { index: number }, monitor) => {
+      if (!ref.current) return;
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) return;
+
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
+      moveTier(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  preview(drop(ref));
+
+  return (
+    <tr
+      ref={ref}
+      className={`border-b border-slate-100 last:border-0 group transition-colors ${
+        isDragging ? 'opacity-40 bg-blue-50' : isOver ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'
+      }`}
+    >
+      {/* Drag handle */}
+      <td className="px-1 py-1.5 w-[28px]">
+        {canDrag ? (
+          <div
+            ref={(node) => { drag(node); }}
+            className="flex items-center justify-center cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 transition-colors"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center p-0.5 text-slate-200">
+            <GripVertical className="w-3.5 h-3.5" />
+          </div>
+        )}
+      </td>
+      <td className="px-3 py-1.5">
+        {isEditing || hasChanges ? (
+          <input
+            type="text"
+            value={focusedField === 'quantity' ? String(tier.quantity) : (String(tier.quantity) ? formatQty(tier.quantity) : '')}
+            onChange={(e) => {
+              const raw = parseQty(e.target.value);
+              updateTier(index, 'quantity', raw);
+            }}
+            onFocus={() => setFocusedField('quantity')}
+            onBlur={() => setFocusedField(null)}
+            className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-semibold text-slate-900 focus:outline-none transition-all"
+          />
+        ) : (
+          <span className="px-2 py-1.5 text-sm font-semibold text-slate-900">{formatQty(tier.quantity)}</span>
+        )}
+      </td>
+      {!isDropship && (
+        <td className="px-3 py-1.5">
+          {isEditing || hasChanges ? (
+            <input
+              type="text"
+              value={focusedField === 'exwPrice' ? String(tier.exwPrice) : (String(tier.exwPrice) ? formatCurrency(tier.exwPrice) : '')}
+              onChange={(e) => {
+                const raw = parseCurrency(e.target.value);
+                updateTier(index, 'exwPrice', raw);
+              }}
+              onFocus={() => setFocusedField('exwPrice')}
+              onBlur={() => {
+                setFocusedField(null);
+                const num = Number(tier.exwPrice);
+                if (!isNaN(num)) updateTier(index, 'exwPrice', num.toFixed(2));
+              }}
+              className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
+            />
+          ) : (
+            <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.exwPrice)}</span>
+          )}
+        </td>
+      )}
+      <td className="px-3 py-1.5">
+        {isEditing || hasChanges ? (
+          <input
+            type="text"
+            value={focusedField === 'fobPrice' ? String(tier.fobPrice) : (String(tier.fobPrice) ? formatCurrency(tier.fobPrice) : '')}
+            onChange={(e) => {
+              const raw = parseCurrency(e.target.value);
+              updateTier(index, 'fobPrice', raw);
+            }}
+            onFocus={() => setFocusedField('fobPrice')}
+            onBlur={() => {
+              setFocusedField(null);
+              const num = Number(tier.fobPrice);
+              if (!isNaN(num)) updateTier(index, 'fobPrice', num.toFixed(2));
+            }}
+            className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
+          />
+        ) : (
+          <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.fobPrice)}</span>
+        )}
+      </td>
+      {!isDropship && (
+        <>
+          <td className="px-3 py-1.5">
+            {isEditing || hasChanges ? (
+              <input
+                type="text"
+                value={focusedField === 'ddpPrice' ? String(tier.ddpPrice) : (String(tier.ddpPrice) ? formatCurrency(tier.ddpPrice) : '')}
+                onChange={(e) => {
+                  const raw = parseCurrency(e.target.value);
+                  updateTier(index, 'ddpPrice', raw);
+                }}
+                onFocus={() => setFocusedField('ddpPrice')}
+                onBlur={() => {
+                  setFocusedField(null);
+                  const num = Number(tier.ddpPrice);
+                  if (!isNaN(num)) updateTier(index, 'ddpPrice', num.toFixed(2));
+                }}
+                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
+              />
+            ) : (
+              <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.ddpPrice)}</span>
+            )}
+          </td>
+          <td className="px-3 py-1.5">
+            {isEditing || hasChanges ? (
+              <select
+                value={tier.ddpMethod}
+                onChange={(e) => updateTier(index, 'ddpMethod', e.target.value)}
+                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all text-center cursor-pointer"
+              >
+                <option value="" disabled>Select</option>
+                {DDP_METHODS.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="px-2 py-1.5 text-sm text-slate-600 font-medium flex justify-center">{tier.ddpMethod}</span>
+            )}
+          </td>
+        </>
+      )}
+      <td className="px-3 py-1.5">
+        {isEditing || hasChanges ? (
+          <input
+            type="text"
+            value={tier.leadTime}
+            onChange={(e) => {
+              const raw = parseQty(e.target.value);
+              updateTier(index, 'leadTime', raw);
+            }}
+            className={`w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-medium focus:outline-none transition-all ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}
+            placeholder={isDropship ? 'e.g. 2' : ''}
+          />
+        ) : (
+          <span className={`px-2 py-1.5 text-sm font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}>{tier.leadTime}</span>
+        )}
+      </td>
+      <td className="px-2 py-1.5 w-[36px]">
+        {(isEditing || hasChanges) && (
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => removeTier(index)}
+            className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </motion.button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: VendorPricingPanelProps) {
   const [isDropship, setIsDropship] = useState(vendor.supportsDropShipping === true);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>(
@@ -79,14 +291,13 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
   }, [vendor.id]);
 
   const addTier = () => {
-    const lastTier = pricingTiers[pricingTiers.length - 1];
     const newTier: PricingTier = {
-      quantity: lastTier ? lastTier.quantity + 500 : moq ? parseInt(moq) : 100,
-      exwPrice: lastTier ? lastTier.exwPrice : 0,
-      fobPrice: lastTier ? lastTier.fobPrice : 0,
-      ddpPrice: lastTier ? lastTier.ddpPrice : 0,
-      ddpMethod: lastTier ? lastTier.ddpMethod : 'Sea',
-      leadTime: lastTier ? lastTier.leadTime : isDropship ? 2 : 30,
+      quantity: '',
+      exwPrice: '',
+      fobPrice: '',
+      ddpPrice: '',
+      ddpMethod: '',
+      leadTime: '',
     };
     setPricingTiers([...pricingTiers, newTier]);
     setHasChanges(true);
@@ -154,11 +365,12 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
     : null;
 
   return (
+    <DndProvider backend={HTML5Backend}>
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden flex flex-col h-full"
+      className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="px-6 py-4 flex-shrink-0 bg-gradient-to-r from-slate-800 to-slate-700">
@@ -406,11 +618,12 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : 'w-[12%]'}`}>Qty</th>
+                      <th className="px-1 py-2.5 w-[28px]"></th>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : 'w-[18%]'}`}>Qty</th>
                       {!isDropship && (
-                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[14%]">EXW ($)</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[12%]">EXW ($)</th>
                       )}
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[14%]'}`}>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[12%]'}`}>
                         {isDropship ? 'Price ($)' : 'FOB ($)'}
                       </th>
                       {!isDropship && (
@@ -422,141 +635,29 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                       <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'w-[12%] text-slate-500'}`}>
                         {isDropship ? 'Dropship Days' : 'Days'}
                       </th>
-                      <th className="px-2 py-2.5 w-[36px]"></th>
+                      <th className="px-2 py-2.5 w-[36px] text-[11px] font-bold text-slate-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     <AnimatePresence>
                       {pricingTiers.map((tier, index) => (
-                        <motion.tr
+                        <DraggableTierRow
                           key={index}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="border-b border-slate-100 last:border-0 group hover:bg-slate-50/50"
-                        >
-                          <td className="px-3 py-1.5">
-                            {isEditing || hasChanges ? (
-                              <input
-                                type="text"
-                                value={tier.quantity}
-                                onChange={(e) => {
-                                  const raw = parseQty(e.target.value);
-                                  updateTier(index, 'quantity', raw);
-                                }}
-                                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-semibold text-slate-900 focus:outline-none transition-all"
-                              />
-                            ) : (
-                              <span className="px-2 py-1.5 text-sm font-semibold text-slate-900">{formatQty(tier.quantity)}</span>
-                            )}
-                          </td>
-                          {!isDropship && (
-                            <td className="px-3 py-1.5">
-                              {isEditing || hasChanges ? (
-                                <input
-                                  type="text"
-                                  value={tier.exwPrice}
-                                  onChange={(e) => {
-                                    const raw = parseCurrency(e.target.value);
-                                    updateTier(index, 'exwPrice', raw);
-                                  }}
-                                  onBlur={() => {
-                                    const num = Number(tier.exwPrice);
-                                    if (!isNaN(num)) updateTier(index, 'exwPrice', num.toFixed(2));
-                                  }}
-                                  className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
-                                />
-                              ) : (
-                                <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.exwPrice)}</span>
-                              )}
-                            </td>
-                          )}
-                          <td className="px-3 py-1.5">
-                            {isEditing || hasChanges ? (
-                              <input
-                                type="text"
-                                value={tier.fobPrice}
-                                onChange={(e) => {
-                                  const raw = parseCurrency(e.target.value);
-                                  updateTier(index, 'fobPrice', raw);
-                                }}
-                                onBlur={() => {
-                                  const num = Number(tier.fobPrice);
-                                  if (!isNaN(num)) updateTier(index, 'fobPrice', num.toFixed(2));
-                                }}
-                                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
-                              />
-                            ) : (
-                              <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.fobPrice)}</span>
-                            )}
-                          </td>
-                          {!isDropship && (
-                            <>
-                              <td className="px-3 py-1.5">
-                                {isEditing || hasChanges ? (
-                                  <input
-                                    type="text"
-                                    value={tier.ddpPrice}
-                                    onChange={(e) => {
-                                      const raw = parseCurrency(e.target.value);
-                                      updateTier(index, 'ddpPrice', raw);
-                                    }}
-                                    onBlur={() => {
-                                      const num = Number(tier.ddpPrice);
-                                      if (!isNaN(num)) updateTier(index, 'ddpPrice', num.toFixed(2));
-                                    }}
-                                    className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
-                                  />
-                                ) : (
-                                  <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.ddpPrice)}</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-1.5">
-                                {isEditing || hasChanges ? (
-                                  <select
-                                    value={tier.ddpMethod}
-                                    onChange={(e) => updateTier(index, 'ddpMethod', e.target.value)}
-                                    className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all text-center cursor-pointer"
-                                  >
-                                    {DDP_METHODS.map(m => (
-                                      <option key={m} value={m}>{m}</option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  <span className="px-2 py-1.5 text-sm text-slate-600 font-medium flex justify-center">{tier.ddpMethod}</span>
-                                )}
-                              </td>
-                            </>
-                          )}
-                          <td className="px-3 py-1.5">
-                            {isEditing || hasChanges ? (
-                              <input
-                                type="text"
-                                value={tier.leadTime}
-                                onChange={(e) => {
-                                  const raw = parseQty(e.target.value);
-                                  updateTier(index, 'leadTime', raw);
-                                }}
-                                className={`w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-medium focus:outline-none transition-all ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}
-                                placeholder={isDropship ? 'e.g. 2' : ''}
-                              />
-                            ) : (
-                              <span className={`px-2 py-1.5 text-sm font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}>{tier.leadTime}</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            {(isEditing || hasChanges) && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => removeTier(index)}
-                                className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </motion.button>
-                            )}
-                          </td>
-                        </motion.tr>
+                          tier={tier}
+                          index={index}
+                          isEditing={isEditing}
+                          hasChanges={hasChanges}
+                          isDropship={isDropship}
+                          updateTier={updateTier}
+                          removeTier={removeTier}
+                          moveTier={(dragIndex, hoverIndex) => {
+                            const newTiers = [...pricingTiers];
+                            const [draggedTier] = newTiers.splice(dragIndex, 1);
+                            newTiers.splice(hoverIndex, 0, draggedTier);
+                            setPricingTiers(newTiers);
+                            setHasChanges(true);
+                          }}
+                        />
                       ))}
                     </AnimatePresence>
                   </tbody>
@@ -567,5 +668,6 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
         </div>
       </div>
     </motion.div>
+    </DndProvider>
   );
 }

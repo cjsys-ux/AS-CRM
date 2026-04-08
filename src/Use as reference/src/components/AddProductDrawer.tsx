@@ -362,24 +362,24 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 35, stiffness: 350 }}
-            className="fixed right-0 top-0 h-full w-full max-w-xl bg-slate-50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full md:w-[520px] bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between shadow-xl shrink-0">
-              <div className="flex items-center gap-3 sm:gap-4">
+            <div className="bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 px-5 py-4 flex items-center justify-between shadow-xl shrink-0">
+              <div className="flex items-center gap-3">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.2, type: 'spring' }}
-                  className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center shadow-xl"
+                  className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg"
                 >
-                  <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <Package className="w-5 h-5 text-white" />
                 </motion.div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white">
+                  <h2 className="text-lg font-black text-white">
                     {productData?.id ? 'Edit Product' : 'Add New Product'}
                   </h2>
-                  <p className="text-teal-100 text-sm">
+                  <p className="text-teal-100 text-xs">
                     Submit a new product to the supply chain pipeline
                   </p>
                 </div>
@@ -388,26 +388,26 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-xl transition-all"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-all"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-5 h-5 text-white" />
               </motion.button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 drawer-scroll">
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 drawer-scroll">
               {/* Product Image */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
-                    <ImageIcon className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow">
+                    <ImageIcon className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Product Image</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Product Image</h3>
                 </div>
 
                 <div className="flex items-start gap-5">
@@ -492,18 +492,18 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow">
-                    <FileText className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow">
+                    <FileText className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Basic Information</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Basic Information</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Product Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -511,7 +511,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       placeholder="Enter product name"
                       value={formData.productName}
                       onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all"
                     />
                   </div>
 
@@ -526,7 +526,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           placeholder="Select customer..."
                           value={formData.clientName}
                           onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all"
                           onFocus={() => setShowClientDropdown(true)}
                           onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
                         />
@@ -589,7 +589,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           placeholder="Select vendor..."
                           value={formData.vendor}
                           onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
-                          className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                          className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all"
                           onFocus={() => setShowVendorDropdown(true)}
                           onBlur={() => setTimeout(() => setShowVendorDropdown(false), 200)}
                         />
@@ -657,7 +657,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
-                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none font-medium"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -668,13 +668,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow">
-                    <TrendingUp className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow">
+                    <TrendingUp className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Competitor Analysis</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Competitor Analysis</h3>
                 </div>
 
                 <div className="space-y-4">
@@ -724,13 +724,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
-                    <DollarSign className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow">
+                    <DollarSign className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Pricing & Quantity</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Pricing & Quantity</h3>
                 </div>
 
                 <div className="space-y-4">
@@ -813,13 +813,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow">
-                    <Calendar className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow">
+                    <Calendar className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Project Details</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Project Details</h3>
                 </div>
 
                 <div className="space-y-4">
@@ -927,13 +927,13 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center shadow">
-                    <Tag className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-slate-600 to-slate-700 rounded-lg flex items-center justify-center shadow">
+                    <Tag className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Internal Information</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Internal Information</h3>
                 </div>
 
                 <div className="space-y-4">

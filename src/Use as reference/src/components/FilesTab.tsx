@@ -98,6 +98,13 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
 
   const categories = ['all', ...Array.from(new Set(files.map(f => f.category).filter(Boolean)))];
 
+  // Reset selected category if it no longer exists
+  useEffect(() => {
+    if (selectedCategory !== 'all' && !categories.includes(selectedCategory)) {
+      setSelectedCategory('all');
+    }
+  }, [categories, selectedCategory]);
+
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
     if (!uploadedFiles || uploadedFiles.length === 0) return;
 
@@ -200,8 +207,13 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
   };
 
   const updateCategory = async (file: FileItem, category: string) => {
+    // Optimistically update local state immediately
+    const previousFiles = [...files];
+    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, category } : f));
+    
     try {
-      await fetch(`${API_URL}/products/${productId}/files/${file.id}`, {
+      console.log(`Updating category for file ${file.id} to "${category}"`);
+      const response = await fetch(`${API_URL}/products/${productId}/files/${file.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
@@ -209,10 +221,54 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
         },
         body: JSON.stringify({ category }),
       });
-      await fetchFiles();
+      
+      const data = await response.json();
+      console.log('Update category response:', data);
+      
+      if (!response.ok || !data.success) {
+        // Server rejected — revert optimistic update
+        console.error('Failed to update category:', data);
+        setFiles(previousFiles);
+        toast.error('Failed to update category');
+        return;
+      }
+      
+      // Update with server response to ensure consistency
+      setFiles(prev => prev.map(f => f.id === file.id ? data.file : f));
+      
       toast.success(category ? `Category set to "${category}"` : 'Category removed', { duration: 2000 });
     } catch (error) {
       console.error('Error updating category:', error);
+      // Revert on network error
+      setFiles(previousFiles);
+      toast.error('Failed to update category');
+    }
+  };
+
+  const handleDownload = async (file: FileItem) => {
+    try {
+      const response = await fetch(`${API_URL}/products/${productId}/files/${file.id}/download`, {
+        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Download failed:', data);
+        toast.error(data.error || 'Failed to download file');
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success && data.url) {
+        // Use window.open for better compatibility
+        window.open(data.url, '_blank');
+        toast.success('Download started');
+      } else {
+        toast.error('Failed to download file');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download file');
     }
   };
 
@@ -403,7 +459,7 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => console.log('Download:', file.id)}
+                      onClick={() => handleDownload(file)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="Download"
                     >

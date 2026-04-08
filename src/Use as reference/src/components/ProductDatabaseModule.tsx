@@ -228,95 +228,98 @@ export function ProductDatabaseModule() {
     <>
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header Section - matches Customers */}
-      <div className="bg-white border-b border-slate-200 px-8 py-8">
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
-                <Package className="w-7 h-7 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-1">Product Database</h1>
-                <p className="text-slate-500">Internal Products Available for Sale</p>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Product Database</h1>
+                <p className="text-xs text-slate-500">Internal Products Available for Sale</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
               onClick={() => {
                 setEditingProduct(null);
                 setIsDrawerOpen(true);
               }}
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               New Product
             </motion.button>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards - matches Customers */}
-      <div className="px-8 mt-6 mb-6 relative z-10">
+      {/* KPI Strip - compact inline */}
+      <div className="px-6 mt-4 mb-4 relative z-10">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-            {[
-              { label: 'Total Products', value: totalProductsCount, icon: Package, from: 'from-cyan-500', to: 'to-blue-600' },
-              { label: 'Active Products', value: activeProducts, icon: Box, from: 'from-green-500', to: 'to-emerald-600' },
-              { label: 'Inactive Products', value: inactiveProducts, icon: XCircle, from: 'from-slate-400', to: 'to-slate-500' },
-              { label: 'Product Distributor', value: productDistributors, icon: Truck, from: 'from-indigo-500', to: 'to-indigo-600' },
-              { label: 'Apparel Distributor', value: apparelDistributors, icon: Shirt, from: 'from-purple-500', to: 'to-purple-600' },
-              { label: 'Decorator', value: decorators, icon: Paintbrush, from: 'from-pink-500', to: 'to-rose-600' },
-              { label: 'Promo Distributor', value: promoDistributors, icon: Megaphone, from: 'from-orange-500', to: 'to-amber-600' },
-              { label: 'Product Manufacturer', value: productManufacturers, icon: Factory, from: 'from-teal-500', to: 'to-teal-600' },
-            ].map((kpi, idx) => (
-              <motion.div
-                key={kpi.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.03 }}
-                whileHover={{ y: -3, boxShadow: '0 12px 24px rgba(0,0,0,0.08)' }}
-                className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg"
-              >
-                <div className={`w-10 h-10 bg-gradient-to-br ${kpi.from} ${kpi.to} rounded-xl flex items-center justify-center shadow-md mb-2.5`}>
-                  <kpi.icon className="w-5 h-5 text-white" />
-                </div>
-                <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">{kpi.label}</p>
-                <h3 className="text-2xl font-bold text-slate-900">{kpi.value}</h3>
-              </motion.div>
-            ))}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-3">
+            <div className="flex items-center divide-x divide-slate-200 overflow-x-auto">
+              {[
+                { label: 'Total Products', value: totalProductsCount, icon: Package, color: 'bg-cyan-500' },
+                { label: 'Active', value: activeProducts, icon: Box, color: 'bg-green-500' },
+                { label: 'Inactive', value: inactiveProducts, icon: XCircle, color: 'bg-slate-400' },
+                { label: 'Product Dist.', value: productDistributors, icon: Truck, color: 'bg-indigo-500' },
+                { label: 'Apparel Dist.', value: apparelDistributors, icon: Shirt, color: 'bg-purple-500' },
+                { label: 'Decorator', value: decorators, icon: Paintbrush, color: 'bg-pink-500' },
+                { label: 'Promo Dist.', value: promoDistributors, icon: Megaphone, color: 'bg-orange-500' },
+                { label: 'Manufacturer', value: productManufacturers, icon: Factory, color: 'bg-teal-500' },
+              ].map((kpi, idx) => (
+                <motion.div
+                  key={kpi.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="flex items-center gap-2.5 px-4 py-1 first:pl-1 whitespace-nowrap"
+                >
+                  <div className={`w-8 h-8 ${kpi.color} rounded-lg flex items-center justify-center shrink-0`}>
+                    <kpi.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-slate-400 leading-tight">{kpi.label}</p>
+                    <p className="text-lg font-bold text-slate-900 leading-tight">{kpi.value}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Filters and Search - matches Customers */}
-      <div className="px-8 pb-0 shrink-0 overflow-visible relative z-20">
+      <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg overflow-visible">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search products by name, SKU, or description..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchProducts}
-                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
             {/* Filters Row */}
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-2 mt-3">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <Filter className="w-4 h-4" />
                 Filters
@@ -328,7 +331,7 @@ export function ProductDatabaseModule() {
               <select
                 value={selectedStatus}
                 onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               >
                 <option value="all">Status: All</option>
                 <option value="Active">Active</option>
@@ -343,7 +346,7 @@ export function ProductDatabaseModule() {
               <select
                 value={selectedCategory}
                 onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               >
                 <option value="all">Category: All</option>
                 {allCategories.map(cat => (
@@ -358,7 +361,7 @@ export function ProductDatabaseModule() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => { setSelectedStatus('all'); setSelectedCategory('all'); setCurrentPage(1); }}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear
@@ -379,20 +382,20 @@ export function ProductDatabaseModule() {
       </div>
 
       {/* Scrollable Table Area - matches Customers */}
-      <div className="flex-1 overflow-y-auto px-8 pt-6 pb-8">
+      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead>
+                <thead className="sticky top-0 z-10">
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    {isColVisible('image') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('image') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Image
                     </th>}
-                    {isColVisible('product') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('product') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Product
                     </th>}
-                    {isColVisible('category') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('category') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('category')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
@@ -401,10 +404,10 @@ export function ProductDatabaseModule() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>}
-                    {isColVisible('pricing') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('pricing') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Pricing
                     </th>}
-                    {isColVisible('margin') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('margin') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('margin')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
@@ -413,13 +416,13 @@ export function ProductDatabaseModule() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>}
-                    {isColVisible('minOrder') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 tracking-wider whitespace-nowrap">
+                    {isColVisible('minOrder') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider whitespace-nowrap">
                       Min Order
                     </th>}
-                    {isColVisible('leadTime') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 tracking-wider whitespace-nowrap">
+                    {isColVisible('leadTime') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider whitespace-nowrap">
                       Lead Time
                     </th>}
-                    {isColVisible('status') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('status') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('status')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
@@ -428,10 +431,10 @@ export function ProductDatabaseModule() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>}
-                    {isColVisible('created') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('created') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Created
                     </th>}
-                    {isColVisible('actions') && <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    {isColVisible('actions') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Actions
                     </th>}
                   </tr>
@@ -461,10 +464,10 @@ export function ProductDatabaseModule() {
                         transition={{ delay: index * 0.03 }}
                         className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group"
                       >
-                        {isColVisible('image') && <td className="px-4 py-4">
+                        {isColVisible('image') && <td className="px-3 py-3">
                           {product.image ? (
                             <div 
-                              className="w-16 h-12 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm bg-white cursor-pointer hover:border-blue-400 transition-colors"
+                              className="w-14 h-10 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm bg-white cursor-pointer hover:border-blue-400 transition-colors"
                               onClick={() => {
                                 setPreviewImage(product.image);
                                 setPreviewImageName(product.name);
@@ -473,18 +476,18 @@ export function ProductDatabaseModule() {
                               <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
                             </div>
                           ) : (
-                            <div className="w-16 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                            <div className="w-14 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
                               <Package className="w-5 h-5 text-white" />
                             </div>
                           )}
                         </td>}
-                        {isColVisible('product') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('product') && <td className="px-3 py-3 whitespace-nowrap">
                           <div>
                             <div className="font-semibold text-slate-900">{product.name}</div>
                             <div className="text-xs text-slate-500">{product.sku || product.id}</div>
                           </div>
                         </td>}
-                        {isColVisible('category') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('category') && <td className="px-3 py-3 whitespace-nowrap">
                           {product.category ? (
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getCategoryBadgeColor(product.category)}`}>
                               {product.category}
@@ -493,13 +496,13 @@ export function ProductDatabaseModule() {
                             <span className="text-sm text-slate-400">—</span>
                           )}
                         </td>}
-                        {isColVisible('pricing') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('pricing') && <td className="px-3 py-3 whitespace-nowrap">
                           <div className="text-sm">
                             <div className="text-slate-900 font-medium">Base: {product.basePrice || '—'}</div>
                             <div className="text-slate-500 text-xs">Retail: {product.retailPrice || '—'}</div>
                           </div>
                         </td>}
-                        {isColVisible('margin') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('margin') && <td className="px-3 py-3 whitespace-nowrap">
                           {product.margin ? (
                             <div className="flex items-center gap-1.5">
                               <TrendingUp className="w-3.5 h-3.5 text-green-600" />
@@ -509,26 +512,26 @@ export function ProductDatabaseModule() {
                             <span className="text-sm text-slate-400">—</span>
                           )}
                         </td>}
-                        {isColVisible('minOrder') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('minOrder') && <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.minOrder ? `${product.minOrder} units` : '—'}</span>
                         </td>}
-                        {isColVisible('leadTime') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('leadTime') && <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.leadTime || '—'}</span>
                         </td>}
-                        {isColVisible('status') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('status') && <td className="px-3 py-3 whitespace-nowrap">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(product.status)}`}>
                             {product.status}
                           </span>
                         </td>}
-                        {isColVisible('created') && <td className="px-4 py-4 whitespace-nowrap">
+                        {isColVisible('created') && <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-500">{product.createdAt ? new Date(product.createdAt).toLocaleDateString() : '—'}</span>
                         </td>}
-                        {isColVisible('actions') && <td className="px-4 py-4">
+                        {isColVisible('actions') && <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                               onClick={() => setViewingProduct(product)}
                               title="View Details"
                             >
@@ -537,7 +540,7 @@ export function ProductDatabaseModule() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                               onClick={() => {
                                 setEditingProduct(product);
                                 setIsDrawerOpen(true);
@@ -549,7 +552,7 @@ export function ProductDatabaseModule() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               onClick={() => {
                                 setProductToDelete(product);
                                 setDeleteModalOpen(true);

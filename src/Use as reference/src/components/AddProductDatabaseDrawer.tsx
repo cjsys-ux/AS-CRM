@@ -675,25 +675,25 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 35, stiffness: 350 }}
-            className="fixed right-0 top-0 h-full w-full max-w-4xl bg-slate-50 shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 h-full w-full md:w-[520px] bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 px-6 py-5 flex items-center justify-between shadow-xl shrink-0">
-              <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-r from-cyan-500 via-cyan-400 to-blue-500 px-5 py-4 flex items-center justify-between shadow-xl shrink-0">
+              <div className="flex items-center gap-3">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: 0.2, type: 'spring' }}
-                  className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl"
+                  className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg"
                 >
-                  <Package className="w-6 h-6 text-white" />
+                  <Package className="w-5 h-5 text-white" />
                 </motion.div>
                 <div>
                   <motion.h2
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="text-xl font-black text-white"
+                    className="text-lg font-black text-white"
                   >
                     {productData?.id ? 'Edit Product' : 'Add Product'}
                   </motion.h2>
@@ -701,7 +701,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="text-cyan-50 text-sm"
+                    className="text-cyan-50 text-xs"
                   >
                     {productData?.id ? 'Update product information' : 'Add a new product to your catalog'}
                   </motion.p>
@@ -711,26 +711,26 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-xl transition-all"
+                className="p-1.5 hover:bg-white/20 rounded-lg transition-all"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-5 h-5 text-white" />
               </motion.button>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 drawer-scroll">
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 drawer-scroll">
               {/* Product Image Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow">
-                    <ImageIcon className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow">
+                    <ImageIcon className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Product Image</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Product Image</h3>
                 </div>
 
                 <div className="flex items-start gap-5">
@@ -822,19 +822,19 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow">
-                    <FileText className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow">
+                    <FileText className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Basic Information</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Basic Information</h3>
                 </div>
 
                 <div className="space-y-4">
                   {/* Product Name */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Product Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -842,39 +842,39 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                       value={formData.productName}
                       onChange={(e) => handleInputChange('productName', e.target.value)}
                       placeholder="Enter product name"
-                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all font-medium"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                       required
                     />
                   </div>
 
                   {/* SKU */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">SKU</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">SKU</label>
                     <input
                       type="text"
                       value={formData.sku}
                       onChange={(e) => handleInputChange('sku', e.target.value)}
                       placeholder="HSV-001"
-                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all font-medium"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                     />
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Description</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       placeholder="Enter product description..."
                       rows={3}
-                      className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all resize-none font-medium"
+                      className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all resize-none"
                     />
                   </div>
 
                   {/* Vendor and Category */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Vendor</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Vendor</label>
                       <div className="relative">
                         <input
                           type="text"
@@ -945,7 +945,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                     </div>
 
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Product Category <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
@@ -985,7 +985,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                   {/* Subcategory */}
                   {formData.category && CATEGORY_SUBCATEGORIES[formData.category] && (
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Subcategory</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Subcategory</label>
                       <div className="relative">
                         <button
                           type="button"
@@ -1022,7 +1022,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                   {/* Vendor Type, Country of Origin, Brand */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Vendor Type</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Vendor Type</label>
                       <div className="relative">
                         <button
                           type="button"
@@ -1055,7 +1055,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Country of Origin</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Country of Origin</label>
                       <div className="relative">
                         <button
                           type="button"
@@ -1088,7 +1088,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Brand</label>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Brand</label>
                       <input
                         type="text"
                         value={formData.brand}
@@ -1107,101 +1107,32 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-2xl p-5 shadow-md border border-slate-200"
+                className="bg-slate-50 rounded-xl p-4 border border-slate-200"
               >
-                <div className="flex items-center gap-2.5 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow">
-                    <DollarSign className="w-4 h-4 text-white" />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow">
+                    <DollarSign className="w-3.5 h-3.5 text-white" />
                   </div>
-                  <h3 className="text-base font-bold text-slate-900">Pricing & Inventory</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">Pricing & Inventory</h3>
                 </div>
 
                 {/* Check if vendor type is Apparel Distributor for size-based pricing */}
                 {formData.vendorType === 'Apparel Distributor' ? (
                   <div className="space-y-4">
-                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
-                      <p className="text-xs font-semibold text-purple-900">Apparel Size-Based Pricing</p>
-                      <p className="text-xs text-purple-700 mt-1">Configure pricing and case sizes for each apparel size</p>
-                    </div>
-
-                    {/* Apparel Size-Based Pricing Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="bg-slate-100">
-                            <th className="px-3 py-2 text-left text-xs font-bold text-slate-700 border border-slate-300 rounded-tl-lg">
-                              Size
-                            </th>
-                            {formData.apparelPricing.sizes.map((size) => (
-                              <th key={size} className="px-3 py-2 text-center border border-slate-300 relative group">
-                                <div className="flex items-center justify-center gap-1">
-                                  <span>{size}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const isActive = formData.apparelPricing.activeSizes.includes(size);
-                                      const newActiveSizes = isActive
-                                        ? formData.apparelPricing.activeSizes.filter(s => s !== size)
-                                        : [...formData.apparelPricing.activeSizes, size];
-                                      setFormData({
-                                        ...formData,
-                                        apparelPricing: {
-                                          ...formData.apparelPricing,
-                                          activeSizes: newActiveSizes,
-                                        },
-                                      });
-                                    }}
-                                    className={`w-4 h-4 rounded flex items-center justify-center transition-all ${
-                                      formData.apparelPricing.activeSizes.includes(size)
-                                        ? 'bg-emerald-500 text-white'
-                                        : 'bg-slate-300 text-slate-500'
-                                    }`}
-                                    title={formData.apparelPricing.activeSizes.includes(size) ? 'Click to disable' : 'Click to enable'}
-                                  >
-                                    {formData.apparelPricing.activeSizes.includes(size) && (
-                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    )}
-                                  </button>
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* Price Row */}
-                          <tr className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-2.5 font-semibold text-sm text-slate-900 border border-slate-300 bg-slate-50">
-                              Price
-                            </td>
-                            {formData.apparelPricing.sizes.map((size) => (
-                              <td key={size} className={`px-3 py-2 border border-slate-300 ${!formData.apparelPricing.activeSizes.includes(size) ? 'bg-slate-100' : ''}`}>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={formData.apparelPricing.prices[size] || ''}
-                                  onChange={(e) => {
-                                    setFormData({
-                                      ...formData,
-                                      apparelPricing: {
-                                        ...formData.apparelPricing,
-                                        prices: {
-                                          ...formData.apparelPricing.prices,
-                                          [size]: e.target.value,
-                                        },
-                                      },
-                                    });
-                                  }}
-                                  disabled={!formData.apparelPricing.activeSizes.includes(size)}
-                                  placeholder="0.00"
-                                  className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded text-xs text-center font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 disabled:bg-slate-50 disabled:text-slate-400"
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        </tbody>
-                      </table>
+                    {/* Simple Base Price Input */}
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5">Base Price / Cost</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.basePrice || ''}
+                          onChange={(e) => handleInputChange('basePrice', e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-3 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all font-medium"
+                        />
+                      </div>
                     </div>
 
                     {/* Additional Fields */}
@@ -1252,12 +1183,6 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                           searchable={false}
                         />
                       </div>
-                    </div>
-
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                      <p className="text-xs text-slate-600">
-                        <span className="font-bold">Note:</span> Toggle sizes on/off using the checkboxes. Enter price for each available size. Disabled sizes will not be included.
-                      </p>
                     </div>
                   </div>
                 ) : formData.vendor.toUpperCase() === 'PCNA' ? (
@@ -1639,13 +1564,13 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
             </div>
 
             {/* Footer Actions */}
-            <div className="border-t border-slate-200 px-6 py-4 bg-white flex items-center justify-between gap-4 shadow-2xl shrink-0">
+            <div className="border-t border-slate-200 px-5 py-3 bg-white flex items-center justify-between gap-3 shadow-2xl shrink-0">
               <motion.button
                 type="button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onClose}
-                className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm"
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-all"
               >
                 Cancel
               </motion.button>
@@ -1655,7 +1580,7 @@ export function AddProductDatabaseDrawer({ isOpen, onClose, productData, onSucce
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50"
               >
                 {isSaving ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   DollarSign, Plus, Trash2, Save, Loader2, Calendar,
   AlertTriangle, X, FileText, Scissors, Package, Paintbrush, Pen, Stamp,
-  Copy, Check, Info, Settings, ChevronDown, Edit3
+  Copy, Check, Info, Settings, ChevronDown, Edit3, Upload
 } from 'lucide-react';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
@@ -59,7 +59,7 @@ const ROW_LABEL_OPTIONS: Record<string, string[]> = {
   ],
   screenprint: [
     '1 Color', '2 Colors', '3 Colors', '4 Colors', '5 Colors',
-    '6 Colors', '7 Colors', '8 Colors', 'Additional Location',
+    '6 Colors', '7 Colors', '8 Colors', '9 Colors', '10 Colors',
   ],
   dtg: [
     'Small (up to 5x5")', 'Medium (up to 10x10")', 'Large (up to 14x16")',
@@ -82,7 +82,7 @@ const ROW_LABEL_OPTIONS: Record<string, string[]> = {
 // ─── Default quantity brackets per type ───
 const DEFAULT_BRACKETS: Record<string, string[]> = {
   embroidery: ['Under 6', '7-14', '15-29', '30-74', '75-149', '150-299', '300-599', '600-999', 'addtl. 1000'],
-  screenprint: ['1-11', '12-35', '36-71', '72-143', '144-287', '288-499', '500-999', '1000+'],
+  screenprint: ['12', '24', '36', '48', '72', '144', '288', '576', '1200', '2500', '5000', '10000'],
   dtg: ['1-11', '12-24', '25-49', '50-99', '100-249', '250-499', '500+'],
   dtf: ['1-11', '12-24', '25-49', '50-99', '100-249', '250-499', '500+'],
   heattransfer: ['1-11', '12-24', '25-49', '50-99', '100-249', '250-499', '500+'],
@@ -115,6 +115,30 @@ const DEFAULT_PACKAGING: ChargeItem[] = [
   { id: 'pk3', name: 'Unbagging of Goods', price: '', description: 'Per piece' },
   { id: 'pk4', name: 'Size Stickers on Bags', price: '', description: 'Per piece' },
 ];
+
+// ─── Screen Print Additional Charges (from pricing sheet) ───
+const SCREENPRINT_ADDITIONAL_CHARGES: ChargeItem[] = [
+  { id: 'sc1', name: 'Flash placement', price: '0.25', description: 'Per print' },
+  { id: 'sc2', name: 'Pocket placement', price: '0.25', description: 'Per print' },
+  { id: 'sc3', name: 'Sleeve prints on shorts/sweatpants', price: '0.25', description: 'Per print' },
+  { id: 'sc4', name: 'Screen charges for new logos', price: '10.00', description: 'Per screen' },
+  { id: 'sc5', name: 'Color changes', price: '10.00', description: 'Per change' },
+  { id: 'sc6', name: 'Screen charges for reorders', price: '4.00', description: 'Per screen' },
+];
+
+// ─── Pre-populated Screen Print Pricing Data ───
+const SCREENPRINT_DEFAULT_PRICING: Record<string, string[]> = {
+  '1 Color': ['4.50', '3.00', '2.40', '2.00', '1.50', '1.25', '1.00', '0.85', '0.75', '0.65', '0.60', '0.55'],
+  '2 Colors': ['5.25', '3.50', '2.80', '2.35', '1.75', '1.45', '1.20', '1.00', '0.90', '0.75', '0.70', '0.65'],
+  '3 Colors': ['6.00', '4.00', '3.20', '2.70', '2.00', '1.65', '1.40', '1.15', '1.05', '0.85', '0.80', '0.75'],
+  '4 Colors': ['6.75', '4.50', '3.60', '3.05', '2.25', '1.85', '1.60', '1.30', '1.20', '0.95', '0.90', '0.85'],
+  '5 Colors': ['7.50', '5.00', '4.00', '3.40', '2.50', '2.05', '1.80', '1.45', '1.35', '1.05', '1.00', '0.95'],
+  '6 Colors': ['8.25', '5.50', '4.40', '3.75', '2.75', '2.25', '2.00', '1.60', '1.50', '1.15', '1.10', '1.05'],
+  '7 Colors': ['9.00', '6.00', '4.80', '4.10', '3.00', '2.45', '2.20', '1.75', '1.65', '1.25', '1.20', '1.15'],
+  '8 Colors': ['9.75', '6.50', '5.20', '4.45', '3.25', '2.65', '2.40', '1.90', '1.80', '1.35', '1.30', '1.25'],
+  '9 Colors': ['10.50', '7.00', '5.60', '4.80', '3.50', '2.85', '2.60', '2.05', '1.95', '1.45', '1.40', '1.35'],
+  '10 Colors': ['11.25', '7.50', '6.00', '5.15', '3.75', '3.05', '2.80', '2.20', '2.10', '1.55', '1.50', '1.45'],
+};
 
 function getRowLabelForType(type: string): string {
   switch (type) {
@@ -365,6 +389,12 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
 
   const sheetKey = `${activeDecType}:${activeYear}`;
 
+  // Upload state
+  const [uploading, setUploading] = useState(false);
+  const [showUploadPreview, setShowUploadPreview] = useState(false);
+  const [extractedData, setExtractedData] = useState<{ matrix: PricingRow[]; brackets: string[] } | null>(null);
+  const fileUploadRef = useRef<HTMLInputElement>(null);
+
   // Close add-type menu on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -372,9 +402,14 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
         setShowAddTypeMenu(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    if (showAddTypeMenu) {
+      // Delay adding the listener to avoid capturing the same click that opened it
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 0);
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [showAddTypeMenu]);
 
   // Fetch all sheets for vendor
   const fetchAllSheets = useCallback(async () => {
@@ -446,17 +481,31 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
     } else {
       // Load defaults for this decoration type
       const brackets = DEFAULT_BRACKETS[activeDecType] || DEFAULT_BRACKETS['embroidery'];
-      const rows = getDefaultRows(activeDecType);
-      setPricingMatrix(rows.map(r => ({ ...r, prices: [...r.prices] })));
-      setQuantityBrackets([...brackets]);
-      if (activeDecType === 'embroidery') {
-        setAdditionalCharges(DEFAULT_ADDITIONAL_CHARGES.map(c => ({ ...c })));
-        setPersonalization(DEFAULT_PERSONALIZATION.map(c => ({ ...c })));
-        setPackagingShipping(DEFAULT_PACKAGING.map(c => ({ ...c })));
+      
+      // For screenprint, load pre-populated pricing data
+      if (activeDecType === 'screenprint') {
+        const rows: PricingRow[] = Object.entries(SCREENPRINT_DEFAULT_PRICING).map(([label, prices], i) => ({
+          id: `r${i + 1}`,
+          label,
+          prices: [...prices],
+        }));
+        setPricingMatrix(rows);
+        setQuantityBrackets([...brackets]);
+        setAdditionalCharges(SCREENPRINT_ADDITIONAL_CHARGES.map(c => ({ ...c })));
       } else {
-        setAdditionalCharges([]);
-        setPersonalization([]);
-        setPackagingShipping([]);
+        const rows = getDefaultRows(activeDecType);
+        setPricingMatrix(rows.map(r => ({ ...r, prices: [...r.prices] })));
+        setQuantityBrackets([...brackets]);
+        
+        if (activeDecType === 'embroidery') {
+          setAdditionalCharges(DEFAULT_ADDITIONAL_CHARGES.map(c => ({ ...c })));
+          setPersonalization(DEFAULT_PERSONALIZATION.map(c => ({ ...c })));
+          setPackagingShipping(DEFAULT_PACKAGING.map(c => ({ ...c })));
+        } else {
+          setAdditionalCharges([]);
+          setPersonalization([]);
+          setPackagingShipping([]);
+        }
       }
       setTermsAndConditions('');
       setNotes('');
@@ -637,6 +686,90 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
     markChanged();
   };
 
+  // Handle file upload for pricing table extraction
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a PDF or image file (PNG, JPG)');
+      return;
+    }
+
+    setUploading(true);
+    toast.info('Extracting pricing table from upload...');
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        
+        // Call backend AI extraction endpoint
+        const res = await fetch(`${API_URL}/ai/extract-pricing-table`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({
+            file: base64,
+            fileType: file.type,
+            decorationType: activeDecType,
+            currentBrackets: quantityBrackets,
+          }),
+        });
+
+        const data = await res.json();
+        
+        if (data.success && data.extracted) {
+          // Map extracted data to our format
+          const extracted = data.extracted;
+          const newBrackets = extracted.quantityBrackets || quantityBrackets;
+          const newMatrix: PricingRow[] = extracted.rows?.map((row: any, i: number) => ({
+            id: uid(),
+            label: row.label || '',
+            prices: row.prices || Array(newBrackets.length).fill(''),
+          })) || [];
+
+          setExtractedData({ matrix: newMatrix, brackets: newBrackets });
+          setShowUploadPreview(true);
+          toast.success('Pricing table extracted! Review and confirm below.');
+        } else {
+          toast.error(data.error || 'Failed to extract pricing table');
+        }
+      };
+      
+      reader.onerror = () => {
+        toast.error('Failed to read file');
+      };
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('Error processing file');
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileUploadRef.current) {
+        fileUploadRef.current.value = '';
+      }
+    }
+  };
+
+  // Apply extracted data
+  const applyExtractedData = () => {
+    if (extractedData) {
+      setPricingMatrix(extractedData.matrix);
+      setQuantityBrackets(extractedData.brackets);
+      setExtractedData(null);
+      setShowUploadPreview(false);
+      markChanged();
+      toast.success('Pricing table applied!');
+    }
+  };
+
   const activeDecConfig = ALL_DECORATION_TYPES.find(d => d.id === activeDecType);
   const rowLabel = getRowLabelForType(activeDecType);
   const rowOptions = ROW_LABEL_OPTIONS[activeDecType] || [];
@@ -661,7 +794,7 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
 
       {/* Top Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-visible">
         <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-violet-50 px-6 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <div>
@@ -744,7 +877,7 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute left-0 top-full z-50 mt-1 w-52 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
+                      className="absolute left-0 top-full z-[9999] mt-1 w-52 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
                     >
                       <div className="py-1">
                         {availableToAdd.map(dt => {
@@ -781,7 +914,7 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
                   return (
                     <button
                       key={y}
-                      onClick={() => setActiveYear(y)}
+                      onClick={() => { setActiveYear(y); setEffectiveDate(y); markChanged(); }}
                       className={`relative px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
                         activeYear === y
                           ? 'bg-indigo-600 text-white shadow-md'
@@ -845,6 +978,27 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
             >
               <Plus className="w-3.5 h-3.5" /> Add Column
             </motion.button>
+            
+            {/* Upload Pricing Table Button */}
+            <motion.button 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.95 }} 
+              onClick={() => fileUploadRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-lg text-xs font-bold hover:shadow-lg transition-all disabled:opacity-50"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              Upload Pricing Table
+            </motion.button>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileUploadRef}
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
           </div>
         </div>
 
@@ -913,11 +1067,10 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
         <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-4">
           <span className="text-xs font-bold text-slate-500 uppercase">Effective Date:</span>
           <input
-            type="text"
-            value={effectiveDate}
+            type="date"
+            value={effectiveDate || '2026-01-01'}
             onChange={(e) => { setEffectiveDate(e.target.value); markChanged(); }}
-            placeholder="e.g. 03/2025"
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 w-40"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 w-40 cursor-pointer"
           />
         </div>
       </div>
@@ -1027,6 +1180,114 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
                 {saving ? 'Saving...' : 'Save Changes'}
               </motion.button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Upload Preview Modal */}
+      <AnimatePresence>
+        {showUploadPreview && extractedData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowUploadPreview(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-violet-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Upload className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Review Extracted Pricing Data</h3>
+                    <p className="text-sm text-purple-100">Review the AI-extracted data before applying</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowUploadPreview(false)}
+                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+
+              {/* Preview Table */}
+              <div className="p-6 overflow-auto max-h-[60vh]">
+                <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-200 border-b border-slate-300">
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-700 uppercase">
+                          {rowLabel}
+                        </th>
+                        {extractedData.brackets.map((bracket, idx) => (
+                          <th key={idx} className="px-2 py-3 text-center text-xs font-bold text-slate-700 uppercase min-w-[90px]">
+                            {bracket}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {extractedData.matrix.map((row, rowIdx) => (
+                        <tr key={row.id} className="border-b border-slate-200 hover:bg-slate-100/50 transition-colors">
+                          <td className="px-4 py-2 text-sm font-semibold text-slate-900">
+                            {row.label}
+                          </td>
+                          {row.prices.map((price, colIdx) => (
+                            <td key={colIdx} className="px-2 py-2 text-center text-sm font-medium text-slate-900">
+                              {price ? `$${price}` : '—'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900">AI Extraction Preview</p>
+                      <p className="text-xs text-blue-700 mt-1">
+                        This data was extracted using AI. Please review it carefully before applying. 
+                        You can edit any values after applying.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowUploadPreview(false)}
+                  className="px-4 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={applyExtractedData}
+                  className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Check className="w-4 h-4" />
+                  Apply to Pricing Table
+                </motion.button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -401,8 +401,8 @@ export function InventoryModule() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Single scrollable content area - matches Receiving tab layout */}
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-[1800px] mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-[1800px] mx-auto space-y-4">
           {/* KPI Cards - directly under tabs, no header */}
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             {[
@@ -415,54 +415,54 @@ export function InventoryModule() {
             ].map((s, i) => {
               const Icon = s.icon;
               return (
-                <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center shadow-lg`}><Icon className="w-6 h-6 text-white" /></div>
+                <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`w-10 h-10 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center shadow-lg`}><Icon className="w-5 h-5 text-white" /></div>
                   </div>
-                  <div className="text-sm text-slate-500 mb-1">{s.label}</div>
-                  <div className="text-2xl font-bold text-slate-900">{s.value}</div>
+                  <div className="text-[11px] font-medium text-slate-500 mb-0.5">{s.label}</div>
+                  <div className="text-xl font-bold text-slate-900">{s.value}</div>
                 </motion.div>
               );
             })}
           </div>
 
           {/* Search & Filters */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg overflow-visible">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg overflow-visible">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search by name, SKU, category, or supplier..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchItems}
-                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => { setEditItem(null); setIsAddDrawerOpen(true); }}
-                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 Add Item
               </motion.button>
             </div>
 
             {/* Filters Row */}
-            <div className="flex items-center gap-3 mt-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-                <Filter className="w-4 h-4" />
+            <div className="flex items-center gap-3 mt-3">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <Filter className="w-3.5 h-3.5" />
                 Filters
                 {activeFilters > 0 && (
                   <span className="w-5 h-5 bg-indigo-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilters}</span>
@@ -472,7 +472,7 @@ export function InventoryModule() {
               <select
                 value={categoryFilter}
                 onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               >
                 <option value="all">Category: All</option>
                 {categories.filter(c => c !== 'all').map(cat => (
@@ -483,7 +483,7 @@ export function InventoryModule() {
               <select
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
               >
                 <option value="all">Status: All</option>
                 <option value="In Stock">In Stock</option>
@@ -497,7 +497,7 @@ export function InventoryModule() {
               <select
                 value={itemTypeFilter}
                 onChange={(e) => { setItemTypeFilter(e.target.value); setCurrentPage(1); }}
-                className={`px-4 py-2 border-2 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all ${
+                className={`px-3.5 py-2 border rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all ${
                   itemTypeFilter !== 'all' ? 'bg-purple-50 border-purple-300 text-purple-700' : 'bg-slate-50 border-slate-200 text-slate-700'
                 }`}
               >
@@ -510,7 +510,7 @@ export function InventoryModule() {
               <select
                 value={customerFilter}
                 onChange={(e) => { setCustomerFilter(e.target.value); setCurrentPage(1); }}
-                className={`px-4 py-2 border-2 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all ${
+                className={`px-3.5 py-2 border rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all ${
                   customerFilter !== 'all' ? 'bg-teal-50 border-teal-300 text-teal-700' : 'bg-slate-50 border-slate-200 text-slate-700'
                 }`}
               >
@@ -527,7 +527,7 @@ export function InventoryModule() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => { setCategoryFilter('all'); setStatusFilter('all'); setItemTypeFilter('all'); setCustomerFilter('all'); setCurrentPage(1); }}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear
@@ -590,12 +590,12 @@ export function InventoryModule() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead>
+                <thead className="sticky top-0 z-10">
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-4 py-4 w-12">
+                    <th className="text-left px-3 py-3 w-12">
                       <input
                         type="checkbox"
                         className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500/20"
@@ -603,83 +603,83 @@ export function InventoryModule() {
                         onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Image
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button onClick={() => handleSort('sku')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                         SKU <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button onClick={() => handleSort('name')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                         Item Name <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button onClick={() => handleSort('category')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                         Category <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button onClick={() => handleSort('quantity')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                         Quantity <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
                     {isColVisible('available') && (
-                      <th className="text-center px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-center px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         Available
                       </th>
                     )}
                     {isColVisible('allocated') && (
-                      <th className="text-center px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-center px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         Allocated
                       </th>
                     )}
                     {isColVisible('onOrder') && (
-                      <th className="text-center px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-center px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         On Order
                       </th>
                     )}
                     {isColVisible('inTransit') && (
-                      <th className="text-center px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-center px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         In Transit
                       </th>
                     )}
-                    <th className="text-center px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-center px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Status
                     </th>
                     {isColVisible('customer') && (
-                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         <button onClick={() => handleSort('customer')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                           Customer <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                         </button>
                       </th>
                     )}
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button onClick={() => handleSort('supplier')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                         Supplier <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Cost/Unit
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Location
                     </th>
                     {isColVisible('itemType') && (
-                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         <button onClick={() => handleSort('itemType')} className="flex items-center gap-2 whitespace-nowrap hover:text-indigo-600 transition-colors">
                           Item Type <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                         </button>
                       </th>
                     )}
                     {isColVisible('tags') && (
-                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                      <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                         Tags
                       </th>
                     )}
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -687,17 +687,17 @@ export function InventoryModule() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={visibleColCount} className="px-6 py-16 text-center">
-                        <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-3" />
+                      <td colSpan={visibleColCount} className="px-6 py-12 text-center">
+                        <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin mx-auto mb-3" />
                         <p className="text-slate-500 font-medium">Loading inventory...</p>
                       </td>
                     </tr>
                   ) : paginatedItems.length === 0 ? (
                     <tr>
-                      <td colSpan={visibleColCount} className="px-6 py-16 text-center">
-                        <Boxes className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium text-lg mb-1">No Inventory Items</p>
-                        <p className="text-slate-400 text-sm mb-4">Get started by adding your first inventory item</p>
+                      <td colSpan={visibleColCount} className="px-6 py-12 text-center">
+                        <Boxes className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium text-sm mb-1">No Inventory Items</p>
+                        <p className="text-slate-400 text-xs mb-4">Get started by adding your first inventory item</p>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}

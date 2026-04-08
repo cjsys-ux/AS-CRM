@@ -7,6 +7,96 @@ import { createPortal } from 'react-dom';
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
 
+// ── Size Variants Editor ──
+const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+
+function SizeVariantsEditor({ sizes, onChange }: { sizes: string[]; onChange: (sizes: string[]) => void }) {
+  const [customSize, setCustomSize] = useState('');
+
+  const toggleSize = (size: string) => {
+    if (sizes.includes(size)) {
+      onChange(sizes.filter(s => s !== size));
+    } else {
+      onChange([...sizes, size]);
+    }
+  };
+
+  const addCustomSize = () => {
+    const trimmed = customSize.trim().toUpperCase();
+    if (trimmed && !sizes.includes(trimmed)) {
+      onChange([...sizes, trimmed]);
+      setCustomSize('');
+    }
+  };
+
+  const removeSize = (size: string) => {
+    onChange(sizes.filter(s => s !== size));
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {/* Common size quick-toggles */}
+      <div className="flex flex-wrap gap-1.5">
+        {COMMON_SIZES.map(size => (
+          <button
+            key={size}
+            type="button"
+            onClick={() => toggleSize(size)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+              sizes.includes(size)
+                ? 'bg-indigo-100 text-indigo-700 border-indigo-300 ring-1 ring-indigo-200'
+                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700'
+            }`}
+          >
+            {size}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom size input */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={customSize}
+          onChange={(e) => setCustomSize(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomSize(); } }}
+          className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+          placeholder="Custom size (e.g. OSFA, 6, 7.5)"
+        />
+        <button
+          type="button"
+          onClick={addCustomSize}
+          disabled={!customSize.trim()}
+          className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          Add
+        </button>
+      </div>
+
+      {/* Selected sizes display */}
+      {sizes.length > 0 && (
+        <div>
+          <div className="text-[10px] font-semibold text-slate-500 mb-1.5">Selected ({sizes.length})</div>
+          <div className="flex flex-wrap gap-1.5">
+            {sizes.map(size => (
+              <span key={size} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                {size}
+                <button
+                  type="button"
+                  onClick={() => removeSize(size)}
+                  className="hover:text-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Reusable portal-based dropdown for drawer fields ──
 function DrawerDropdown({ value, onChange, options, placeholder, disabledOptions }: {
   value: string;
@@ -112,6 +202,11 @@ interface EditProductInfoDrawerProps {
     type: string;
     internalSKU: string;
     projectManager: string;
+    htsCode?: string;
+    htsRate?: string;
+    htsBaseRate?: string;
+    htsSection301?: boolean;
+    sizeVariants?: string[];
     image: string;
     competitorName?: string;
     competitorLink?: string;
@@ -362,6 +457,79 @@ export function EditProductInfoDrawer({ isOpen, onClose, productInfo, onSave, li
                     onChange={(v) => setFormData({ ...formData, projectManager: v })}
                     options={projectManagers.map(pm => pm.name)}
                     placeholder="Select project manager"
+                  />
+                </div>
+
+                {/* HTS Code & HTS Rate */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">HTS Code</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.htsCode || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                        setFormData({ ...formData, htsCode: val });
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                      placeholder="e.g. 6307.90.9889"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Base Rate (%)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={formData.htsBaseRate || ''}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '');
+                          setFormData({ ...formData, htsBaseRate: val });
+                        }}
+                        className="w-full px-3 py-2 pr-8 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                        placeholder="e.g. 4.7"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 301 Tariff Toggle */}
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-700">Section 301 Tariff</div>
+                      <div className="text-[10px] text-slate-500 mt-0.5">Adds 25% on top of base rate</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, htsSection301: !formData.htsSection301 })}
+                      className={`relative w-10 h-5 rounded-full transition-colors ${formData.htsSection301 ? 'bg-red-500' : 'bg-slate-300'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.htsSection301 ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                  {formData.htsBaseRate && (
+                    <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-slate-500">Total Duty Rate</span>
+                      <span className="text-xs font-bold text-slate-900">
+                        {formData.htsSection301
+                          ? `${(parseFloat(formData.htsBaseRate) + 25).toFixed(1)}%`
+                          : `${formData.htsBaseRate}%`
+                        }
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Size Variants */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Size Variants</label>
+                  <p className="text-[10px] text-slate-500 mb-2">Add sizes for apparel or sized products (e.g. XS, S, M, L, XL)</p>
+                  <SizeVariantsEditor
+                    sizes={formData.sizeVariants || []}
+                    onChange={(sizes) => setFormData({ ...formData, sizeVariants: sizes })}
                   />
                 </div>
 

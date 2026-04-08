@@ -10,7 +10,7 @@ app.use(
   cors({
     origin: "*",
     allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
   }),
@@ -1693,6 +1693,7 @@ app.get("/make-server-c0840c88/products/:productId/files", async (c) => {
 // Upload file for product
 app.post("/make-server-c0840c88/products/:productId/files", async (c) => {
   try {
+    await ensureBucket();
     const productId = c.req.param("productId");
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
@@ -1702,8 +1703,25 @@ app.post("/make-server-c0840c88/products/:productId/files", async (c) => {
       return c.json({ success: false, error: "No file provided" }, 400);
     }
     
+    const fileId = `FILE-${Date.now()}`;
+    const storagePath = `${productId}/${fileId}-${file.name}`;
+    
+    // Upload file to Supabase Storage
+    const fileBuffer = await file.arrayBuffer();
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(storagePath, fileBuffer, { 
+        contentType: file.type,
+        upsert: true 
+      });
+    
+    if (uploadError) {
+      console.error("Error uploading file to storage:", uploadError);
+      return c.json({ success: false, error: String(uploadError) }, 500);
+    }
+    
     const fileMetadata = {
-      id: `FILE-${Date.now()}`,
+      id: fileId,
       name: file.name,
       type: file.type.split('/')[1]?.toUpperCase() || 'FILE',
       size: file.size > 1024 * 1024 
@@ -1713,6 +1731,7 @@ app.post("/make-server-c0840c88/products/:productId/files", async (c) => {
       uploadedDate: new Date().toISOString(),
       category: category || 'General',
       productId,
+      storagePath,
     };
     
     await kv.set(`file:${productId}:${fileMetadata.id}`, fileMetadata);
@@ -1751,9 +1770,20 @@ app.delete("/make-server-c0840c88/products/:productId/files/:fileId", async (c) 
     const productId = c.req.param("productId");
     const fileId = c.req.param("fileId");
     
-    const file = await kv.get(`file:${productId}:${fileId}`);
+    const file = await kv.get(`file:${productId}:${fileId}`) as any;
     if (!file) {
       return c.json({ success: false, error: "File not found" }, 404);
+    }
+    
+    // Delete from Supabase Storage if storagePath exists
+    if (file.storagePath) {
+      const { error: deleteError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([file.storagePath]);
+      
+      if (deleteError) {
+        console.error("Error deleting file from storage:", deleteError);
+      }
     }
     
     await kv.del(`file:${productId}:${fileId}`);
@@ -1793,17 +1823,83 @@ app.patch("/make-server-c0840c88/products/:productId/files/:fileId", async (c) =
     const fileId = c.req.param("fileId");
     const updates = await c.req.json();
     
-    const file = await kv.get(`file:${productId}:${fileId}`) as any;
+    console.log(`Updating file ${fileId} for product ${productId} with:`, updates);
+    
+    // Try direct get first
+    let file = await kv.get(`file:${productId}:${fileId}`) as any;
+    let kvKey = `file:${productId}:${fileId}`;
+    
+    // If not found, search by prefix and match by id field
     if (!file) {
+      console.log(`File not found with direct key, searching by prefix...`);
+      const allFiles = await kv.getByPrefix(`file:${productId}:`) as any[];
+      console.log(`Found ${allFiles.length} files with prefix`);
+      file = allFiles.find((f: any) => f.id === fileId);
+      
+      if (file) {
+        console.log(`Found file via prefix search`);
+        // Use the same key pattern for consistency
+        kvKey = `file:${productId}:${fileId}`;
+      }
+    }
+    
+    if (!file) {
+      console.error(`File ${fileId} not found in product ${productId}`);
       return c.json({ success: false, error: "File not found" }, 404);
     }
     
     const updatedFile = { ...file, ...updates };
-    await kv.set(`file:${productId}:${fileId}`, updatedFile);
+    console.log(`Saving updated file to key: ${kvKey}`, updatedFile);
+    await kv.set(kvKey, updatedFile);
+    
+    // Verify the save
+    const verification = await kv.get(kvKey);
+    console.log(`Verification read:`, verification);
     
     return c.json({ success: true, file: updatedFile });
   } catch (error) {
     console.error("Error updating file:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Download file (get signed URL)
+app.get("/make-server-c0840c88/products/:productId/files/:fileId/download", async (c) => {
+  try {
+    const productId = c.req.param("productId");
+    const fileId = c.req.param("fileId");
+    
+    // Try direct get first
+    let file = await kv.get(`file:${productId}:${fileId}`) as any;
+    
+    // If not found, search by prefix and match by id field
+    if (!file) {
+      const allFiles = await kv.getByPrefix(`file:${productId}:`) as any[];
+      file = allFiles.find((f: any) => f.id === fileId);
+    }
+    
+    if (!file) {
+      return c.json({ success: false, error: "File not found" }, 404);
+    }
+    
+    // Check if file has a storage path
+    if (!file.storagePath) {
+      return c.json({ success: false, error: "File has no storage path" }, 400);
+    }
+    
+    // Generate signed URL (valid for 1 hour)
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(file.storagePath, 3600);
+    
+    if (error) {
+      console.error("Error creating signed URL:", error);
+      return c.json({ success: false, error: String(error) }, 500);
+    }
+    
+    return c.json({ success: true, url: data.signedUrl });
+  } catch (error) {
+    console.error("Error downloading file:", error);
     return c.json({ success: false, error: String(error) }, 500);
   }
 });
@@ -5102,6 +5198,81 @@ app.delete("/make-server-c0840c88/contacts/:contactId/tickets/:ticketId", async 
     return c.json({ success: true });
   } catch (error) {
     console.error("Error deleting contact ticket:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// ==================== AI PRICING TABLE EXTRACTION ====================
+
+// AI endpoint to extract pricing table from uploaded PDF or image
+app.post("/make-server-c0840c88/ai/extract-pricing-table", async (c) => {
+  try {
+    const { file, fileType, decorationType, currentBrackets } = await c.req.json();
+    
+    // For now, return a mock extraction since we don't have OpenAI API set up
+    // In production, this would use OpenAI Vision API or similar to extract the table
+    
+    // Mock extracted data based on decoration type
+    const mockExtraction: any = {
+      success: true,
+      extracted: {
+        quantityBrackets: currentBrackets || ['12', '24', '48', '72', '144', '288'],
+        rows: []
+      }
+    };
+    
+    // Generate mock rows based on decoration type
+    if (decorationType === 'screenprint') {
+      mockExtraction.extracted.rows = [
+        { label: '1 Color', prices: ['4.50', '3.00', '2.00', '1.50', '1.25', '1.00'] },
+        { label: '2 Colors', prices: ['5.25', '3.50', '2.35', '1.75', '1.45', '1.20'] },
+        { label: '3 Colors', prices: ['6.00', '4.00', '2.70', '2.00', '1.65', '1.40'] },
+      ];
+    } else if (decorationType === 'embroidery') {
+      mockExtraction.extracted.rows = [
+        { label: 'up to 5000', prices: ['3.50', '2.75', '2.25', '1.95', '1.75', '1.50'] },
+        { label: 'up to 7000', prices: ['4.25', '3.25', '2.75', '2.35', '2.10', '1.85'] },
+        { label: 'up to 10000', prices: ['5.50', '4.25', '3.50', '3.00', '2.75', '2.40'] },
+      ];
+    } else {
+      // DTG, DTF, etc.
+      mockExtraction.extracted.rows = [
+        { label: 'Small (up to 5x5")', prices: ['8.00', '6.50', '5.50', '4.75', '4.25', '3.95'] },
+        { label: 'Medium (up to 10x10")', prices: ['12.00', '9.50', '8.00', '7.00', '6.25', '5.75'] },
+        { label: 'Large (up to 14x16")', prices: ['16.00', '13.00', '11.00', '9.50', '8.50', '7.95'] },
+      ];
+    }
+    
+    return c.json(mockExtraction);
+    
+    // TODO: Real implementation would use OpenAI Vision API:
+    // const openaiKey = Deno.env.get('OPENAI_API_KEY');
+    // if (!openaiKey) {
+    //   return c.json({ success: false, error: 'AI extraction not configured' }, 500);
+    // }
+    // 
+    // const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Authorization': `Bearer ${openaiKey}`,
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     model: 'gpt-4-vision-preview',
+    //     messages: [{
+    //       role: 'user',
+    //       content: [
+    //         { type: 'text', text: `Extract pricing table data from this ${decorationType} pricing sheet...` },
+    //         { type: 'image_url', image_url: { url: file } }
+    //       ]
+    //     }],
+    //     max_tokens: 2000,
+    //   }),
+    // });
+    // ... parse and return structured data
+    
+  } catch (error) {
+    console.error("Error extracting pricing table:", error);
     return c.json({ success: false, error: String(error) }, 500);
   }
 });

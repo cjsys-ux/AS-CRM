@@ -158,8 +158,8 @@ function AddProductionOrderDrawer({
     </div>
   );
 
-  const inputCls = "w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
-  const selectCls = "w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
+  const inputCls = "w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
+  const selectCls = "w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
 
   return (
     <AnimatePresence>
@@ -240,7 +240,7 @@ function AddProductionOrderDrawer({
                     <QuantityStepper value={form.completed || 0} onChange={(val) => setForm(p => ({ ...p, completed: val }))} min={0} wide />
                   </InputField>
                   <InputField label="Quality %">
-                    <input type="number" min="0" max="100" value={form.quality || ''} onChange={e => setForm(p => ({ ...p, quality: e.target.value === '' ? '' : parseInt(e.target.value) }))} className={inputCls} />
+                    <input type="number" min="0" max="100" value={form.quality || ''} onChange={e => setForm(p => ({ ...p, quality: e.target.value === '' ? 0 : parseInt(e.target.value) }))} className={inputCls} />
                   </InputField>
                 </div>
               </div>
@@ -266,7 +266,7 @@ function AddProductionOrderDrawer({
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
-              <button onClick={onClose} className="px-5 py-2.5 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all">
+              <button onClick={onClose} className="px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all">
                 Cancel
               </button>
               <motion.button
@@ -451,23 +451,23 @@ export function ProductionModule() {
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header Section - matches Customers */}
-          <div className="bg-white border-b border-slate-200 px-8 py-8">
+          <div className="bg-white border-b border-slate-200 px-6 py-4">
             <div className="max-w-[1800px] mx-auto">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
-                    <Factory className="w-7 h-7 text-white" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                    <Factory className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-1">Production Management</h1>
-                    <p className="text-slate-500">Monitor and manage production orders and quality control</p>
+                    <h1 className="text-xl font-bold text-slate-900 mb-0.5">Production Management</h1>
+                    <p className="text-xs text-slate-500">Monitor and manage production orders and quality control</p>
                   </div>
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => { setEditOrder(null); setDrawerOpen(true); }}
-                  className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
                 >
                   <Plus className="w-5 h-5" />
                   New Production Order
@@ -477,26 +477,24 @@ export function ProductionModule() {
           </div>
 
           {/* KPI Cards - matches Customers pattern exactly */}
-          <div className="px-8 mt-6 mb-6 relative z-10">
+          <div className="px-6 mt-4 mb-4 relative z-10">
             <div className="max-w-[1800px] mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-                  className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Factory className="w-6 h-6 text-white" />
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
+                    <Factory className="w-5 h-5 text-white" />
                   </div>
-                  <p className="text-xs font-medium text-slate-600 mb-1">Total Orders</p>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Total Orders</p>
                   <motion.h3
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="text-3xl font-bold text-slate-900"
+                    className="text-xl font-bold text-slate-900"
                   >
                     {totalOrders}
                   </motion.h3>
@@ -507,19 +505,17 @@ export function ProductionModule() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05 }}
                   whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-                  className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Play className="w-6 h-6 text-white" />
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-2">
+                    <Play className="w-5 h-5 text-white" />
                   </div>
-                  <p className="text-xs font-medium text-slate-600 mb-1">In Progress</p>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">In Progress</p>
                   <motion.h3
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.35 }}
-                    className="text-3xl font-bold text-slate-900"
+                    className="text-xl font-bold text-slate-900"
                   >
                     {inProgressCount}
                   </motion.h3>
@@ -530,19 +526,17 @@ export function ProductionModule() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
                   whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-                  className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <CheckCircle className="w-6 h-6 text-white" />
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2">
+                    <CheckCircle className="w-5 h-5 text-white" />
                   </div>
-                  <p className="text-xs font-medium text-slate-600 mb-1">Completed</p>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Completed</p>
                   <motion.h3
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
-                    className="text-3xl font-bold text-slate-900"
+                    className="text-xl font-bold text-slate-900"
                   >
                     {completedCount}
                   </motion.h3>
@@ -553,19 +547,17 @@ export function ProductionModule() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
                   whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-                  className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xl"
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Gauge className="w-6 h-6 text-white" />
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2">
+                    <Gauge className="w-5 h-5 text-white" />
                   </div>
-                  <p className="text-xs font-medium text-slate-600 mb-1">Avg Quality Score</p>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Avg Quality Score</p>
                   <motion.h3
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.45 }}
-                    className="text-3xl font-bold text-slate-900"
+                    className="text-xl font-bold text-slate-900"
                   >
                     {avgQuality > 0 ? `${avgQuality.toFixed(1)}%` : '—'}
                   </motion.h3>
@@ -575,33 +567,33 @@ export function ProductionModule() {
           </div>
 
           {/* Filters and Search - matches Customers pattern */}
-          <div className="px-8 pb-0 shrink-0 overflow-visible relative z-20">
+          <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
             <div className="max-w-[1800px] mx-auto">
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg overflow-visible">
-                <div className="flex items-center gap-4">
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
+                <div className="flex items-center gap-3">
                   <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Search orders, clients, or IDs..."
                       value={searchTerm}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                     />
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={fetchOrders}
-                    className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                    className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                     title="Refresh"
                   >
-                    <RefreshCw className={`w-5 h-5 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-4 h-4 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
                   </motion.button>
                 </div>
 
                 {/* Filters Row */}
-                <div className="flex items-center gap-3 mt-4">
+                <div className="flex items-center gap-2 mt-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                     <Filter className="w-4 h-4" />
                     Filters
@@ -613,7 +605,7 @@ export function ProductionModule() {
                   <select
                     value={selectedStatus}
                     onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-                    className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                    className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                   >
                     <option value="all">Status: All</option>
                     <option value="Pending">Pending</option>
@@ -627,7 +619,7 @@ export function ProductionModule() {
                   <select
                     value={selectedPriority}
                     onChange={(e) => { setSelectedPriority(e.target.value); setCurrentPage(1); }}
-                    className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                    className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                   >
                     <option value="all">Priority: All</option>
                     <option value="High">High</option>
@@ -638,7 +630,7 @@ export function ProductionModule() {
                   <select
                     value={selectedLine}
                     onChange={(e) => { setSelectedLine(e.target.value); setCurrentPage(1); }}
-                    className="px-4 py-2 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                    className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                   >
                     <option value="all">Line: All</option>
                     {uniqueLines.map(line => (
@@ -653,7 +645,7 @@ export function ProductionModule() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => { setSelectedStatus('all'); setSelectedPriority('all'); setSelectedLine('all'); setCurrentPage(1); }}
-                      className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                       Clear
@@ -674,40 +666,25 @@ export function ProductionModule() {
           </div>
 
           {/* Table Area */}
-          <div className="flex-1 overflow-y-auto px-8 pt-6 pb-8">
+          <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
             <div className="max-w-[1800px] mx-auto">
               {isLoading ? (
                 <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 shadow-lg">
                   <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
                 </div>
-              ) : orders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 shadow-lg">
-                  <Package className="w-16 h-16 text-slate-300 mb-4" />
-                  <h3 className="text-lg font-bold text-slate-700 mb-1">No Production Orders Yet</h3>
-                  <p className="text-sm text-slate-500 mb-4">Create your first production order to start tracking.</p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => { setEditOrder(null); setDrawerOpen(true); }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold rounded-xl"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Production Order
-                  </motion.button>
-                </div>
               ) : (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead>
+                      <thead className="sticky top-0 z-10">
                         <tr className="bg-slate-50 border-b border-slate-200">
                           {isColVisible('orderId') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               Order ID
                             </th>
                           )}
                           {isColVisible('orderName') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               <button onClick={() => handleSort('orderName')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
                                 Order Name
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
@@ -715,7 +692,7 @@ export function ProductionModule() {
                             </th>
                           )}
                           {isColVisible('client') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               <button onClick={() => handleSort('client')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
                                 Client
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
@@ -723,7 +700,7 @@ export function ProductionModule() {
                             </th>
                           )}
                           {isColVisible('status') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               <button onClick={() => handleSort('status')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
                                 Status
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
@@ -731,17 +708,17 @@ export function ProductionModule() {
                             </th>
                           )}
                           {isColVisible('priority') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                                 Priority
                             </th>
                           )}
                           {isColVisible('progress') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                                 Progress
                             </th>
                           )}
                           {isColVisible('quality') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               <button onClick={() => handleSort('quality')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
                                 Quality
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
@@ -749,7 +726,7 @@ export function ProductionModule() {
                             </th>
                           )}
                           {isColVisible('dueDate') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               <button onClick={() => handleSort('dueDate')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
                                 Due Date
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
@@ -757,19 +734,41 @@ export function ProductionModule() {
                             </th>
                           )}
                           {isColVisible('line') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                                 Line
                             </th>
                           )}
                           {isColVisible('actions') && (
-                            <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                                 Actions
                             </th>
                           )}
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedOrders.map((order, index) => {
+                        {orders.length === 0 ? (
+                          <tr>
+                            <td colSpan={productionColumns.length} className="px-8 py-20">
+                              <div className="flex flex-col items-center justify-center text-center">
+                                <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-4">
+                                  <Package className="w-10 h-10 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-1">No Production Orders Yet</h3>
+                                <p className="text-sm text-slate-500 max-w-md mb-4">Create your first production order to start tracking.</p>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => { setEditOrder(null); setDrawerOpen(true); }}
+                                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold rounded-xl"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                  New Production Order
+                                </motion.button>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                        paginatedOrders.map((order, index) => {
                           const progress = order.quantity > 0 ? (order.completed / order.quantity) * 100 : 0;
                           return (
                             <motion.tr
@@ -780,36 +779,36 @@ export function ProductionModule() {
                               className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group"
                             >
                               {isColVisible('orderId') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <span className="font-mono text-sm font-semibold text-slate-900">{order.id}</span>
                                 </td>
                               )}
                               {isColVisible('orderName') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <span className="font-semibold text-slate-900">{order.orderName}</span>
                                 </td>
                               )}
                               {isColVisible('client') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <span className="text-sm text-slate-700">{order.client}</span>
                                 </td>
                               )}
                               {isColVisible('status') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
                                     {order.status}
                                   </span>
                                 </td>
                               )}
                               {isColVisible('priority') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(order.priority)}`}>
                                     {order.priority}
                                   </span>
                                 </td>
                               )}
                               {isColVisible('progress') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-3">
                                     <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden min-w-[100px]">
                                       <motion.div
@@ -834,7 +833,7 @@ export function ProductionModule() {
                                 </td>
                               )}
                               {isColVisible('quality') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   {(order.quality || 0) > 0 ? (
                                     <span className="font-semibold text-slate-900">{order.quality}%</span>
                                   ) : (
@@ -843,7 +842,7 @@ export function ProductionModule() {
                                 </td>
                               )}
                               {isColVisible('dueDate') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-slate-400" />
                                     <span className="text-sm text-slate-700">{order.dueDate || '—'}</span>
@@ -851,17 +850,17 @@ export function ProductionModule() {
                                 </td>
                               )}
                               {isColVisible('line') && (
-                                <td className="px-4 py-4 whitespace-nowrap">
+                                <td className="px-3 py-3 whitespace-nowrap">
                                   <span className="text-sm text-slate-700">{order.assignedTo || '—'}</span>
                                 </td>
                               )}
                               {isColVisible('actions') && (
-                                <td className="px-4 py-4">
+                                <td className="px-3 py-3">
                                   <div className="flex items-center gap-1">
                                     <motion.button
                                       whileHover={{ scale: 1.1 }}
                                       whileTap={{ scale: 0.95 }}
-                                      className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                      className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                       onClick={() => {
                                         setSelectedOrder(order);
                                         setIsDetailOpen(true);
@@ -873,7 +872,7 @@ export function ProductionModule() {
                                     <motion.button
                                       whileHover={{ scale: 1.1 }}
                                       whileTap={{ scale: 0.95 }}
-                                      className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                      className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                       onClick={() => {
                                         setEditOrder(order);
                                         setDrawerOpen(true);
@@ -885,7 +884,7 @@ export function ProductionModule() {
                                     <motion.button
                                       whileHover={{ scale: 1.1 }}
                                       whileTap={{ scale: 0.95 }}
-                                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                      className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                       onClick={() => {
                                         setOrderToDelete(order);
                                         setDeleteModalOpen(true);
@@ -899,7 +898,8 @@ export function ProductionModule() {
                               )}
                             </motion.tr>
                           );
-                        })}
+                        })
+                        )}
                       </tbody>
                     </table>
                   </div>

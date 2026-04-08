@@ -49,6 +49,7 @@ interface SpecsData {
   shippingWeightUnit: string;
   materials: MaterialComposition[];
   careInstructions: string;
+  variantSpecs?: Record<string, { length: string; width: string; height: string; weight: string; weightUnit: string; dimensionUnit: string }>;
 }
 
 // Portal-based material dropdown
@@ -135,6 +136,7 @@ function MaterialDropdown({ value, onChange, compositions, currentId }: {
 
 interface SpecificationsTabProps {
   productId?: string;
+  sizeVariants?: string[];
   onChecklistChanged?: (allChecklists: Record<string, ChecklistItem[]>) => void;
   onActivityDetected?: () => void;
 }
@@ -151,7 +153,7 @@ const defaultSpecs: SpecsData = {
   careInstructions: '',
 };
 
-export function SpecificationsTab({ productId, onChecklistChanged, onActivityDetected }: SpecificationsTabProps) {
+export function SpecificationsTab({ productId, sizeVariants = [], onChecklistChanged, onActivityDetected }: SpecificationsTabProps) {
   const [files, setFiles] = useState<{file: File; displayName: string; category: string; uploadedBy: string; uploadedAt: string}[]>([]);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -449,6 +451,108 @@ export function SpecificationsTab({ productId, onChecklistChanged, onActivityDet
           </div>
         </div>
       </div>
+
+      {/* Size Variants Specifications */}
+      {sizeVariants.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl border-2 border-slate-200 overflow-visible"
+        >
+          <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+            <Package className="w-5 h-5 text-indigo-600" />
+            <h3 className="font-bold text-slate-900">Size Variants</h3>
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{sizeVariants.length} variant{sizeVariants.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="p-6 space-y-3">
+            {sizeVariants.map((variant, idx) => {
+              const vs = specs.variantSpecs?.[variant] || { length: '', width: '', height: '', weight: '', weightUnit: 'oz', dimensionUnit: 'in' };
+              const updateVariantSpec = (field: string, value: string) => {
+                setSpecs(prev => ({
+                  ...prev,
+                  variantSpecs: {
+                    ...(prev.variantSpecs || {}),
+                    [variant]: { ...vs, [field]: value }
+                  }
+                }));
+              };
+              const hasDims = vs.length || vs.width || vs.height;
+              const displayDims = hasDims ? `${vs.length || '–'}" × ${vs.width || '–'}" × ${vs.height || '–'}"` : '';
+              return (
+                <motion.div
+                  key={variant}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-slate-50 border border-slate-200 rounded-xl p-4"
+                >
+                  <div className="grid grid-cols-[120px_1fr_160px] gap-4 items-center">
+                    <div>
+                      <div className="text-[11px] font-medium text-slate-500 mb-1">Size</div>
+                      <div className="text-sm font-semibold text-indigo-700">{variant}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-medium text-slate-500 mb-1">Dimensions (L × W × H)</div>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            placeholder="L"
+                            value={vs.length}
+                            onChange={(e) => updateVariantSpec('length', e.target.value)}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="text-slate-400 text-xs">×</span>
+                          <input
+                            type="number"
+                            placeholder="W"
+                            value={vs.width}
+                            onChange={(e) => updateVariantSpec('width', e.target.value)}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="text-slate-400 text-xs">×</span>
+                          <input
+                            type="number"
+                            placeholder="H"
+                            value={vs.height}
+                            onChange={(e) => updateVariantSpec('height', e.target.value)}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <span className="text-xs text-slate-500 ml-1">{vs.dimensionUnit}</span>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-semibold text-slate-900">{displayDims || <span className="text-slate-400 font-normal">Not set</span>}</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-medium text-slate-500 mb-1">Weight</div>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            placeholder="0.0"
+                            value={vs.weight}
+                            onChange={(e) => updateVariantSpec('weight', e.target.value)}
+                            className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <UnitDropdown
+                            options={['oz', 'lbs', 'g', 'kg']}
+                            defaultOption="oz"
+                            value={vs.weightUnit}
+                            onChange={(v) => updateVariantSpec('weightUnit', v)}
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-sm font-semibold text-slate-900">{vs.weight ? `${vs.weight} ${vs.weightUnit}` : <span className="text-slate-400 font-normal">Not set</span>}</div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Material Specifications */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">

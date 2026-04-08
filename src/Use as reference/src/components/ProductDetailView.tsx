@@ -124,7 +124,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   // Track uploaded image filenames for AI color detection
   const [imageFileNames, setImageFileNames] = useState<string[]>(product.imageFileNames || []);
 
-  const standardSizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+  const standardSizes = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
 
   // Tiered Pricing Edit State
   const [isEditingTieredPricing, setIsEditingTieredPricing] = useState(false);
@@ -187,9 +187,16 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
           const num = Number(key);
           return isNaN(num) ? key : num;
         }).sort((a, b) => {
-          // Sort numbers numerically, strings alphabetically
+          // Sort numbers numerically, strings by size order
           if (typeof a === 'number' && typeof b === 'number') return a - b;
-          if (typeof a === 'string' && typeof b === 'string') return a.localeCompare(b);
+          if (typeof a === 'string' && typeof b === 'string') {
+            const idxA = standardSizes.indexOf(a);
+            const idxB = standardSizes.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+          }
           return typeof a === 'number' ? -1 : 1;
         })
       : [250, 500, 750, 1125, 1500];
@@ -205,6 +212,18 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       ? Object.keys(product.tieredPricing[0].prices || {}).map(key => {
           const num = Number(key);
           return isNaN(num) ? key : num;
+        }).sort((a, b) => {
+          // Sort numbers numerically, strings by size order
+          if (typeof a === 'number' && typeof b === 'number') return a - b;
+          if (typeof a === 'string' && typeof b === 'string') {
+            const idxA = standardSizes.indexOf(a);
+            const idxB = standardSizes.indexOf(b);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+          }
+          return typeof a === 'number' ? -1 : 1;
         })
       : [250, 500, 750, 1125, 1500];
     setEditedQuantities(existingQtys as any);
@@ -449,11 +468,18 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const [selectedDecorationMethod, setSelectedDecorationMethod] = useState<string>('Embroidery');
   
   // Imprint method-aware pricing state
-  const [selectedImprintMethod, setSelectedImprintMethod] = useState<'Embroidery' | 'Screen Print' | 'DTG'>('Embroidery');
+  const [selectedImprintMethod, setSelectedImprintMethod] = useState<'Embroidery' | 'Screen Print' | 'DTG' | ''>('');
   const [selectedQuantityTier, setSelectedQuantityTier] = useState<string>('Under 6');
   const [embroideryStitchCount, setEmbroideryStitchCount] = useState<string>(product.embroideryStitchCount || 'up to 5000');
   const [screenPrintColors, setScreenPrintColors] = useState<number>(product.screenPrintColors || 1);
   const [dtgFlatRate, setDtgFlatRate] = useState<number>(product.dtgFlatRate || 0);
+  
+  // Screen Print Contract Pricing Integration
+  const [screenPrintVendors, setScreenPrintVendors] = useState<{ id: string; name: string }[]>([]);
+  const [selectedScreenPrintVendor, setSelectedScreenPrintVendor] = useState<string>(product.selectedScreenPrintVendor || '');
+  const [contractPricingData, setContractPricingData] = useState<any>(null);
+  const [loadingContractPricing, setLoadingContractPricing] = useState(false);
+  const [showScreenPrintVendorDropdown, setShowScreenPrintVendorDropdown] = useState(false);
   
   // Embroidery rate lookup: stitch count -> quantity tier -> rate
   const [embroideryRates, setEmbroideryRates] = useState<Record<string, Record<string, number>>>(
@@ -533,6 +559,19 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     if (selectedImprintMethod === 'Embroidery') {
       return embroideryRates[embroideryStitchCount]?.[selectedQuantityTier] || null;
     } else if (selectedImprintMethod === 'Screen Print') {
+      // Use contract pricing data if available
+      if (contractPricingData && selectedScreenPrintVendor) {
+        const colorRow = contractPricingData.pricingMatrix?.find((row: any) => 
+          row.label === `${screenPrintColors} Color${screenPrintColors > 1 ? 's' : ''}`
+        );
+        if (colorRow && contractPricingData.quantityBrackets) {
+          const tierIndex = contractPricingData.quantityBrackets.indexOf(selectedQuantityTier);
+          if (tierIndex >= 0 && colorRow.prices[tierIndex]) {
+            return parseFloat(colorRow.prices[tierIndex]);
+          }
+        }
+      }
+      // Fallback to screenPrintRates if contract pricing not available
       return screenPrintRates[screenPrintColors]?.[selectedQuantityTier] || null;
     } else if (selectedImprintMethod === 'DTG') {
       return dtgFlatRate;
@@ -714,6 +753,96 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       })
       .catch(err => console.error('Error fetching decorator vendors:', err));
   }, [needsDecorationVendor]);
+
+  // Reset imprint method when decoration methods change
+  useEffect(() => {
+    if (decorationMethods.length === 0) {
+      setSelectedImprintMethod('');
+    } else if (selectedImprintMethod && !decorationMethods.includes(selectedImprintMethod)) {
+      // Clear if the currently selected method was removed
+      setSelectedImprintMethod('');
+    }
+  }, [decorationMethods, selectedImprintMethod]);
+
+  // Fetch screen print vendors (vendors tagged with screenprint decoration type)
+  useEffect(() => {
+    if (selectedImprintMethod !== 'Screen Print') return;
+    
+    fetch(`${API_URL}/vendors`, {
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.vendors) {
+          // Filter vendors that have screenprint in their decoration types
+          const screenPrintVendorsList = data.vendors
+            .filter((v: any) => {
+              const decorationTypes = v.decorationTypes || v.decorationType || [];
+              const decorationTypesArray = Array.isArray(decorationTypes) ? decorationTypes : [decorationTypes];
+              
+              // Check if vendor has screen print decoration type
+              const hasScreenPrint = decorationTypesArray.some((dt: string) => {
+                const dtLower = (dt || '').toLowerCase();
+                return dtLower.includes('screen') && dtLower.includes('print');
+              });
+              
+              // Also check if vendor type is Decorator and name/id suggests screen printing
+              const isDecorator = (v.type || v.vendorType || '').toLowerCase() === 'decorator';
+              const nameIndicatesScreenPrint = (v.name || v.vendorName || v.companyName || '').toLowerCase().includes('screen');
+              
+              return hasScreenPrint || (isDecorator && nameIndicatesScreenPrint);
+            })
+            .map((v: any) => ({
+              id: v.id || '',
+              name: v.name || v.vendorName || v.companyName || 'Unknown',
+            }));
+          
+          console.log('Screen Print Vendors Found:', screenPrintVendorsList);
+          setScreenPrintVendors(screenPrintVendorsList);
+          
+          // Auto-select if product already has a saved vendor
+          if (product.selectedScreenPrintVendor && screenPrintVendorsList.some(v => v.id === product.selectedScreenPrintVendor)) {
+            setSelectedScreenPrintVendor(product.selectedScreenPrintVendor);
+          }
+        }
+      })
+      .catch(err => console.error('Error fetching screen print vendors:', err));
+  }, [selectedImprintMethod]);
+
+  // Fetch contract pricing when screen print vendor is selected
+  useEffect(() => {
+    if (selectedImprintMethod !== 'Screen Print' || !selectedScreenPrintVendor) {
+      setContractPricingData(null);
+      return;
+    }
+    
+    setLoadingContractPricing(true);
+    fetch(`${API_URL}/contractpricing/${selectedScreenPrintVendor}`, {
+      headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.items) {
+          // Find screenprint pricing for 2026 (or latest year)
+          const screenPrintSheet = data.items.find((item: any) => 
+            item.decorationType === 'screenprint' && item.year === '2026'
+          ) || data.items.find((item: any) => 
+            item.decorationType === 'screenprint'
+          );
+          
+          if (screenPrintSheet) {
+            setContractPricingData(screenPrintSheet);
+          } else {
+            setContractPricingData(null);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching contract pricing:', err);
+        setContractPricingData(null);
+      })
+      .finally(() => setLoadingContractPricing(false));
+  }, [selectedScreenPrintVendor, selectedImprintMethod]);
 
   const toggleImprintLocation = (location: string) => {
     setImprintLocations(prev => 
@@ -913,6 +1042,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         embroideryRates,
         screenPrintRates,
         sizeBlankCosts,
+        selectedScreenPrintVendor,
       };
 
       const endpoint = product._source === 'pipeline'
@@ -2440,7 +2570,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
             const firstTier = product.tieredPricing[0];
             const priceKeys = firstTier?.prices ? Object.keys(firstTier.prices) : [];
             const isApparelPricing = priceKeys.length > 0 && isNaN(Number(priceKeys[0]));
-            const columns = isApparelPricing ? priceKeys : [250, 500, 750, 1125, 1500];
+            const columns = isApparelPricing ? sortSizes(priceKeys) : [250, 500, 750, 1125, 1500];
             
             return (
             <motion.div
@@ -2551,52 +2681,114 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     </tr>
                   </thead>
                   <tbody>
-                    {(isEditingTieredPricing ? editedTieredPricing : product.tieredPricing).map((tier: any, index: number) => (
-                      <tr key={index} className="hover:bg-slate-50 transition-colors group">
-                        <td className="px-3 py-2.5 font-semibold text-sm text-slate-900 border border-slate-300">
-                          {isEditingTieredPricing ? (
-                            <input
-                              type="text"
-                              value={tier.imprintMethod || tier.decorationMethod || ''}
-                              onChange={(e) => updateTieredPricingMethod(index, e.target.value)}
-                              placeholder="Enter decoration method..."
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                            />
-                          ) : (
-                            tier.decorationMethod || tier.imprintMethod || `${tier.decorationType || 'N/A'}`
-                          )}
-                        </td>
-                        {(isEditingTieredPricing ? editedQuantities : columns).map((col) => (
-                          <td key={col} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
+                    {(() => {
+                      const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
+                      const tiersToDisplay = isEditingTieredPricing ? editedTieredPricing : product.tieredPricing;
+                      
+                      // For apparel pricing, show a single "Price" row with prices for each size
+                      if (isApparelPricing) {
+                        // Create a map of size -> price from the tiered pricing data
+                        const sizePriceMap: any = {};
+                        tiersToDisplay.forEach((tier: any) => {
+                          const size = tier.imprintMethod || tier.decorationMethod || '';
+                          if (size && tier.prices) {
+                            // Get the first price value for this size (there should only be one for apparel)
+                            const priceValue = Object.values(tier.prices)[0];
+                            sizePriceMap[size] = priceValue;
+                          }
+                        });
+                        
+                        return (
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="px-3 py-2.5 font-semibold text-sm text-slate-900 border border-slate-300">
+                              Price
+                            </td>
+                            {(isEditingTieredPricing ? editedQuantities : columns).map((col) => {
+                              const currentPrice = sizePriceMap[col] || basePrice;
+                              return (
+                                <td key={col} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
+                                  {isEditingTieredPricing ? (
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={currentPrice !== undefined && currentPrice !== '' ? currentPrice : basePrice}
+                                      onChange={(e) => {
+                                        // Find the tier for this size and update it
+                                        const tierIndex = editedTieredPricing.findIndex((t: any) => 
+                                          (t.imprintMethod || t.decorationMethod) === col
+                                        );
+                                        if (tierIndex !== -1) {
+                                          updateTieredPrice(tierIndex, col, e.target.value);
+                                        }
+                                      }}
+                                      placeholder={basePrice.toFixed(2)}
+                                      className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                    />
+                                  ) : (
+                                    currentPrice ? `$${parseFloat(currentPrice).toFixed(2)}` : '—'
+                                  )}
+                                </td>
+                              );
+                            })}
+                            {isEditingTieredPricing && (
+                              <td className="px-3 py-2.5 text-center border border-slate-300">
+                                {/* No delete action for the single Price row */}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      }
+                      
+                      // For non-apparel pricing, show multiple rows for different decoration methods
+                      const sortedTiers = tiersToDisplay;
+                      
+                      return sortedTiers.map((tier: any, index: number) => (
+                        <tr key={index} className="hover:bg-slate-50 transition-colors group">
+                          <td className="px-3 py-2.5 font-semibold text-sm text-slate-900 border border-slate-300">
                             {isEditingTieredPricing ? (
                               <input
-                                type="number"
-                                step="0.01"
-                                value={tier.prices[col] || ''}
-                                onChange={(e) => updateTieredPrice(index, typeof col === 'number' ? col : col, e.target.value)}
-                                placeholder="0.00"
-                                className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                type="text"
+                                value={tier.imprintMethod || tier.decorationMethod || ''}
+                                onChange={(e) => updateTieredPricingMethod(index, e.target.value)}
+                                placeholder="Enter decoration method..."
+                                className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                               />
                             ) : (
-                              tier.prices[col] ? (
-                                `$${parseFloat(tier.prices[col]).toFixed(2)}`
-                              ) : '—'
+                              tier.decorationMethod || tier.imprintMethod || `${tier.decorationType || 'N/A'}`
                             )}
                           </td>
-                        ))}
-                        {isEditingTieredPricing && (
-                          <td className="px-3 py-2.5 text-center border border-slate-300">
-                            <button
-                              onClick={() => removeTieredPricingRow(index)}
-                              className="w-6 h-6 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center justify-center mx-auto"
-                              title="Delete row"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
+                          {(isEditingTieredPricing ? editedQuantities : columns).map((col) => (
+                            <td key={col} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
+                              {isEditingTieredPricing ? (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={tier.prices[col] !== undefined && tier.prices[col] !== '' ? tier.prices[col] : basePrice}
+                                  onChange={(e) => updateTieredPrice(index, typeof col === 'number' ? col : col, e.target.value)}
+                                  placeholder={basePrice.toFixed(2)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                />
+                              ) : (
+                                tier.prices[col] ? (
+                                  `$${parseFloat(tier.prices[col]).toFixed(2)}`
+                                ) : '—'
+                              )}
+                            </td>
+                          ))}
+                          {isEditingTieredPricing && (
+                            <td className="px-3 py-2.5 text-center border border-slate-300">
+                              <button
+                                onClick={() => removeTieredPricingRow(index)}
+                                className="w-6 h-6 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center justify-center mx-auto"
+                                title="Delete row"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -2605,7 +2797,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
           })()}
 
           {/* Pricing Structure - Full Width (hideable) */}
-          {showPricingStructure ? (
+          {showPricingStructure && decorationMethods.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2623,76 +2815,57 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {(['Embroidery', 'Screen Print', 'DTG'] as const).map(method => (
-                  <button
-                    key={method}
-                    onClick={() => setSelectedImprintMethod(method)}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
-                      selectedImprintMethod === method
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    {method}
-                  </button>
-                ))}
+                {decorationMethods.length > 0 ? (
+                  decorationMethods
+                    .filter((m): m is 'Embroidery' | 'Screen Print' | 'DTG' => 
+                      ['Embroidery', 'Screen Print', 'DTG'].includes(m)
+                    )
+                    .map(method => (
+                      <button
+                        key={method}
+                        onClick={() => setSelectedImprintMethod(method)}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
+                          selectedImprintMethod === method
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {method}
+                      </button>
+                    ))
+                ) : (
+                  <span className="text-xs text-slate-400 italic">No decoration methods selected</span>
+                )}
               </div>
             </div>
 
+            {/* Show prompt if no imprint method selected */}
+            {!selectedImprintMethod ? (
+              <div className="px-6 py-12 bg-slate-50">
+                <div className="max-w-md mx-auto text-center">
+                  <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-6 h-6 text-slate-500" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">Select an Imprint Method</h4>
+                  <p className="text-xs text-slate-600">Choose an imprint method above to view pricing details</p>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Method-Specific Config Bar */}
             <div className={`px-6 py-3 border-b border-slate-200 ${
               selectedImprintMethod === 'Embroidery' ? 'bg-blue-50/50' :
               selectedImprintMethod === 'Screen Print' ? 'bg-amber-50/50' : 'bg-emerald-50/50'
             }`}>
               <div className="flex items-center gap-4">
-                {selectedImprintMethod === 'Embroidery' && (
-                  <>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase">Stitch Count</label>
-                      <select
-                        value={embroideryStitchCount}
-                        onChange={(e) => setEmbroideryStitchCount(e.target.value)}
-                        className="px-3 py-1.5 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                      >
-                        <option value="up to 5000">up to 5000</option>
-                        <option value="6000">6000</option>
-                        <option value="7000">7000</option>
-                        <option value="8000">8000</option>
-                        <option value="9000">9000</option>
-                        <option value="10000">10000</option>
-                        <option value="12000">12000</option>
-                      </select>
+                {selectedImprintMethod === 'Screen Print' && contractPricingData && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-600 uppercase">Using Contract Pricing</label>
+                    <div className="px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-lg flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {contractPricingData.effectiveDate || '2026'}
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase">Rate ($/pc)</label>
-                      <div className="px-3 py-1.5 text-sm font-bold text-blue-700 bg-white border border-blue-200 rounded-lg">
-                        ${(getDecorationRate('M') || 0).toFixed(2)}
-                      </div>
-                    </div>
-                  </>
-                )}
-                {selectedImprintMethod === 'Screen Print' && (
-                  <>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase">Number of Colors</label>
-                      <select
-                        value={screenPrintColors}
-                        onChange={(e) => setScreenPrintColors(parseInt(e.target.value))}
-                        className="px-3 py-1.5 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                      >
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-600 uppercase">Rate ($/pc)</label>
-                      <div className="px-3 py-1.5 text-sm font-bold text-amber-700 bg-white border border-amber-200 rounded-lg">
-                        ${(getDecorationRate('M') || 0).toFixed(2)}
-                      </div>
-                    </div>
-                  </>
+                  </div>
                 )}
                 {selectedImprintMethod === 'DTG' && (
                   <div className="flex flex-col gap-1">
@@ -2709,126 +2882,211 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 )}
               </div>
             </div>
-
-            {/* Quantity Tier Tabs */}
-            {selectedImprintMethod !== 'DTG' && (
-              <div className="px-6 py-0 border-b border-slate-200 flex items-center gap-0 overflow-x-auto">
-                {getQuantityTiersForMethod(selectedImprintMethod).map(tier => (
-                  <button
-                    key={tier}
-                    onClick={() => setSelectedQuantityTier(tier)}
-                    className={`px-4 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 transition-all ${
-                      selectedQuantityTier === tier
-                        ? selectedImprintMethod === 'Embroidery' 
-                          ? 'border-blue-500 text-blue-700 bg-blue-50/30'
-                          : 'border-amber-500 text-amber-700 bg-amber-50/30'
-                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    {tier}
-                  </button>
-                ))}
+            
+            {/* Screen Print Vendor Selection (Required Before Viewing Pricing) */}
+            {selectedImprintMethod === 'Screen Print' && screenPrintVendors.length === 0 && (
+              <div className="px-6 py-8 bg-slate-50 border-b border-slate-200">
+                <div className="max-w-md mx-auto text-center">
+                  <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <User className="w-6 h-6 text-slate-500" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">No Screen Print Vendors Found</h4>
+                  <p className="text-xs text-slate-600">Add vendors with screen print decoration types in the Vendor module</p>
+                </div>
+              </div>
+            )}
+            {selectedImprintMethod === 'Screen Print' && screenPrintVendors.length > 0 && !selectedScreenPrintVendor && (
+              <div className="px-6 py-8 bg-amber-50/30 border-b border-slate-200">
+                <div className="max-w-md mx-auto text-center">
+                  <div className="mb-4">
+                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <User className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900 mb-1">Select Contract Vendor</h4>
+                    <p className="text-xs text-slate-600">Choose a vendor to view their contract pricing</p>
+                  </div>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowScreenPrintVendorDropdown(!showScreenPrintVendorDropdown)}
+                      className="w-full px-4 py-3 text-sm font-semibold text-slate-900 bg-white border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 flex items-center gap-2 justify-between hover:border-amber-400 transition-all"
+                    >
+                      <span className="truncate">Select Vendor...</span>
+                      <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    </button>
+                    {showScreenPrintVendorDropdown && (
+                      <div className="absolute left-0 top-full z-50 mt-2 w-full bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+                        {screenPrintVendors.map(vendor => (
+                          <button
+                            key={vendor.id}
+                            onClick={() => {
+                              setSelectedScreenPrintVendor(vendor.id);
+                              setShowScreenPrintVendorDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 text-sm transition-colors text-slate-700 hover:bg-amber-50 font-medium border-b border-slate-100 last:border-0"
+                          >
+                            {vendor.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Selected Vendor Badge (when vendor is chosen) */}
+            {selectedImprintMethod === 'Screen Print' && selectedScreenPrintVendor && screenPrintVendors.length > 0 && (
+              <div className="px-6 py-3 bg-amber-50/50 border-b border-amber-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-bold text-slate-700">Viewing pricing for:</span>
+                  <span className="text-xs font-black text-amber-700">
+                    {screenPrintVendors.find(v => v.id === selectedScreenPrintVendor)?.name}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedScreenPrintVendor('')}
+                  className="text-xs font-semibold text-amber-600 hover:text-amber-700 underline"
+                >
+                  Change Vendor
+                </button>
               </div>
             )}
 
             {/* Pricing Table */}
+            {selectedImprintMethod && decorationMethods.length > 0 && (selectedImprintMethod === 'Screen Print' && !selectedScreenPrintVendor ? null : (
             <div className="overflow-x-auto">
+              {loadingContractPricing ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+                  <span className="ml-2 text-sm text-slate-500">Loading contract pricing...</span>
+                </div>
+              ) : selectedImprintMethod === 'Screen Print' && contractPricingData && selectedScreenPrintVendor ? (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Colors</th>
+                      {(contractPricingData.quantityBrackets || []).map((bracket: string) => (
+                        <th key={bracket} className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span>{bracket}</span>
+                            <span className="text-[9px] font-normal text-slate-400">(Deco Cost)</span>
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(contractPricingData.pricingMatrix || []).map((row: any) => (
+                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 bg-amber-50 text-amber-900 text-xs font-bold rounded border border-amber-200">
+                              {row.label}
+                            </span>
+                          </div>
+                        </td>
+                        {(row.prices || []).map((price: string, idx: number) => (
+                          <td key={idx} className="px-4 py-2 text-center">
+                            <span className="text-sm font-bold text-amber-600">
+                              {price ? `$${parseFloat(price).toFixed(2)}` : '—'}
+                            </span>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : selectedImprintMethod === 'Embroidery' ? (
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Size</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Blank Cost</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Deco Cost</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Total Cost</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Margin %</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Sell Price</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Stitch Count</th>
+                    {getQuantityTiersForMethod(selectedImprintMethod).map(tier => (
+                      <th key={tier} className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                        {tier}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'].map(size => {
-                    const row = calculateRowValues(size);
-                    const hasUpcharge = ['2XL', '3XL', '4XL'].includes(size);
+                  {Object.keys(embroideryRates).sort((a, b) => {
+                    // Extract numeric value from stitch count strings
+                    const numA = parseInt(a.replace(/[^\d]/g, ''));
+                    const numB = parseInt(b.replace(/[^\d]/g, ''));
+                    return numA - numB;
+                  }).map(stitchCount => {
                     return (
-                      <tr key={size} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      <tr key={stitchCount} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-900 text-xs font-bold rounded border border-slate-200">
-                              {size}
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-900 text-xs font-bold rounded border border-blue-200">
+                              {stitchCount.replace('up to ', '≤')}
                             </span>
-                            {hasUpcharge && (
-                              <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[9px] font-bold rounded border border-orange-200">
-                                +
+                          </div>
+                        </td>
+                        {getQuantityTiersForMethod(selectedImprintMethod).map(tier => {
+                          const rate = embroideryRates[stitchCount]?.[tier];
+                          return (
+                            <td key={tier} className="px-4 py-2 text-center">
+                              <span className="text-sm font-bold text-blue-600">
+                                {rate !== undefined ? `$${rate.toFixed(2)}` : '—'}
                               </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="relative w-24">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={row.blankCost || ''}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                setSizeBlankCosts(prev => ({ ...prev, [size]: val }));
-                              }}
-                              className="w-full pl-5 pr-2 py-1.5 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="text-sm font-bold text-blue-600">
-                            {row.decoCost !== null ? `$${row.decoCost.toFixed(2)}` : '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="text-sm font-semibold text-slate-900">
-                            {row.totalCost !== null ? `$${row.totalCost.toFixed(2)}` : '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="text-sm font-medium text-slate-700">
-                            {row.margin !== null ? `${row.margin.toFixed(0)}%` : '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2">
-                          <span className="text-sm font-bold text-green-600">
-                            {row.sellPrice !== null ? `$${row.sellPrice.toFixed(2)}` : '—'}
-                          </span>
-                        </td>
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-            </div>
+              ) : selectedImprintMethod === 'Screen Print' && selectedScreenPrintVendor && !contractPricingData ? (
+                <div className="py-12 text-center">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <FileText className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700 mb-1">No Contract Pricing Found</p>
+                  <p className="text-xs text-slate-500">
+                    {screenPrintVendors.find(v => v.id === selectedScreenPrintVendor)?.name} doesn't have contract pricing set up yet
+                  </p>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-sm text-slate-500">
+                  No pricing data available for {selectedImprintMethod}
+                </div>
+              )}
 
-            {/* Summary Footer Bar */}
-            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
-              <div className="flex items-center gap-6 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-500 uppercase">Avg Blank:</span>
-                  <span className="font-bold text-slate-900">${calculateSummaryAverages().avgBlank.toFixed(2)}</span>
+              {/* Summary Footer Bar */}
+              {selectedImprintMethod === 'Screen Print' && contractPricingData && selectedScreenPrintVendor && (
+                <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
+                  <div className="flex items-center gap-6 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-500 uppercase">Avg Blank:</span>
+                      <span className="font-bold text-slate-900">${calculateSummaryAverages().avgBlank.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-500 uppercase">Avg Deco:</span>
+                      <span className="font-bold text-blue-600">${calculateSummaryAverages().avgDeco.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-500 uppercase">Avg Total Cost:</span>
+                      <span className="font-bold text-slate-900">${calculateSummaryAverages().avgTotalCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-500 uppercase">Avg Sell Price:</span>
+                      <span className="font-bold text-green-600">${calculateSummaryAverages().avgSellPrice.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-500 uppercase">Margin:</span>
+                      <span className="font-bold text-slate-900">{calculateSummaryAverages().margin.toFixed(1)}%</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-500 uppercase">Avg Deco:</span>
-                  <span className="font-bold text-blue-600">${calculateSummaryAverages().avgDeco.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-500 uppercase">Avg Total Cost:</span>
-                  <span className="font-bold text-slate-900">${calculateSummaryAverages().avgTotalCost.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-500 uppercase">Avg Sell Price:</span>
-                  <span className="font-bold text-green-600">${calculateSummaryAverages().avgSellPrice.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-500 uppercase">Margin:</span>
-                  <span className="font-bold text-slate-900">{calculateSummaryAverages().margin.toFixed(1)}%</span>
-                </div>
-              </div>
+              )}
             </div>
+            ))}
+            </>
+            )}
           </motion.div>
           ) : (
             <motion.div

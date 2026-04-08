@@ -12,6 +12,7 @@ import { TimelineTab } from './TimelineTab';
 import { LinkVendorDrawer } from './LinkVendorDrawer';
 import { EditProductInfoDrawer } from './EditProductInfoDrawer';
 import { VendorPricingPanel } from './VendorPricingPanel';
+import { ImportCostAnalysis } from './ImportCostAnalysis';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
 import { getProjectBadgeStaticClasses } from './projectNumberUtils';
@@ -29,6 +30,11 @@ interface ProductDetailsProps {
     type: string;
     internalSKU?: string;
     projectManager?: string;
+    htsCode?: string;
+    htsRate?: string;
+    htsBaseRate?: string;
+    htsSection301?: boolean;
+    sizeVariants?: string[];
     image: string;
     competitorName?: string;
     competitorLink?: string;
@@ -57,6 +63,7 @@ interface Vendor {
 
 interface PricingTier {
   quantity: number;
+  exwPrice: number;
   fobPrice: number;
   ddpPrice: number;
   ddpMethod: string;
@@ -82,6 +89,11 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     type: productData?.type || '',
     internalSKU: productData?.internalSKU || '',
     projectManager: productData?.projectManager || '',
+    htsCode: productData?.htsCode || '',
+    htsRate: productData?.htsRate || '',
+    htsBaseRate: productData?.htsBaseRate || '',
+    htsSection301: productData?.htsSection301 || false,
+    sizeVariants: productData?.sizeVariants || [],
     image: productData?.image || '',
     competitorName: productData?.competitorName || '',
     competitorLink: productData?.competitorLink || '',
@@ -555,9 +567,62 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4 sm:col-span-2 lg:col-span-3">
+                  <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
+                  </div>
+
+                  {/* HTS Duty Rate Breakdown */}
+                  <div className="sm:col-span-2 bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-2">HTS Duty Rate</div>
+                    {productInfo.htsBaseRate ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-500">Base Rate</span>
+                          <span className="text-sm font-semibold text-slate-900">{productInfo.htsBaseRate}%</span>
+                        </div>
+                        {productInfo.htsSection301 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                              Section 301
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">ACTIVE</span>
+                            </span>
+                            <span className="text-sm font-semibold text-red-600">+25%</span>
+                          </div>
+                        )}
+                        <div className="border-t border-slate-200 pt-1.5 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-700">Total Rate</span>
+                          <span className="text-sm font-bold text-slate-900">
+                            {productInfo.htsSection301
+                              ? `${(parseFloat(productInfo.htsBaseRate) + 25).toFixed(1)}%`
+                              : `${productInfo.htsBaseRate}%`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic font-normal">—</span>
+                    )}
+                  </div>
+
+                  {/* Size Variants */}
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
+                    {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {productInfo.sizeVariants.map((size: string) => (
+                          <span key={size} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            {size}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic font-normal">No sizes defined</span>
+                    )}
                   </div>
 
                   {/* Competitor Analysis Section */}
@@ -824,14 +889,28 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       {/* Right Side - Pricing Details */}
                       <div className="lg:col-span-7">
                         {expandedVendor && productVendors.find(v => v.id === expandedVendor) ? (
-                          <VendorPricingPanel
-                            vendor={productVendors.find(v => v.id === expandedVendor)!}
-                            productId={productId}
-                            onVendorUpdated={(updatedVendor) => {
-                              setProductVendors(prev => prev.map(v => v.id === updatedVendor.id ? updatedVendor : v));
-                              triggerAutoProgress();
-                            }}
-                          />
+                          <div className="flex flex-col gap-0">
+                            <VendorPricingPanel
+                              vendor={productVendors.find(v => v.id === expandedVendor)!}
+                              productId={productId}
+                              onVendorUpdated={(updatedVendor) => {
+                                setProductVendors(prev => prev.map(v => v.id === updatedVendor.id ? updatedVendor : v));
+                                triggerAutoProgress();
+                              }}
+                            />
+                            {(() => {
+                              const vendor = productVendors.find(v => v.id === expandedVendor);
+                              if (!vendor?.pricingTiers || vendor.pricingTiers.length === 0) return null;
+                              return (
+                                <ImportCostAnalysis
+                                  pricingTiers={vendor.pricingTiers}
+                                  htsBaseRate={productInfo.htsBaseRate || ''}
+                                  htsSection301={productInfo.htsSection301 || false}
+                                  vendorName={vendor.name}
+                                />
+                              );
+                            })()}
+                          </div>
                         ) : (
                           <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center h-full min-h-[500px]">
                             <div className="w-24 h-24 bg-slate-200 rounded-2xl flex items-center justify-center mb-4">
@@ -862,6 +941,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
               {activeTab === 'specifications' && (
                 <SpecificationsTab
                   productId={productId}
+                  sizeVariants={productInfo.sizeVariants || []}
                   onChecklistChanged={handleChecklistChanged}
                   onActivityDetected={triggerAutoProgress}
                 />

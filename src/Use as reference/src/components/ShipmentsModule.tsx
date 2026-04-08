@@ -353,126 +353,116 @@ export function ShipmentsModule() {
   const isSomeSelected = selectedShipments.length > 0 && selectedShipments.length < paginatedShipments.length;
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
-      {/* Simple Flat Header */}
-      <div className="bg-emerald-600 px-8 py-6">
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header Section - matches Customers */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Truck className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                <Truck className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Shipments Management</h1>
-                <p className="text-emerald-100 text-sm">Track and manage all shipments</p>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Shipments Management</h1>
+                <p className="text-xs text-slate-500">Track and manage all shipments</p>
               </div>
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setIsAddDrawerOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-600 font-semibold rounded-lg hover:bg-emerald-50 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
               Add Shipment
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="px-8 -mt-4 mb-6">
+      {/* KPI Cards - matches Customers pattern */}
+      <div className="px-6 mt-4 mb-4 relative z-10">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <Package className="w-5 h-5 text-white" />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
+                <Package className="w-5 h-5 text-white" />
               </div>
-              <p className="text-xs font-medium text-slate-600 mb-1">Total Shipments</p>
-              <h3 className="text-2xl font-bold text-slate-900">{totalShipments}</h3>
-            </div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Total Shipments</p>
+              <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-xl font-bold text-slate-900">{totalShipments}</motion.h3>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2">
+                <Truck className="w-5 h-5 text-white" />
               </div>
-              <p className="text-xs font-medium text-slate-600 mb-1">In Transit</p>
-              <h3 className="text-2xl font-bold text-slate-900">{inTransitCount}</h3>
-            </div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">In Transit</p>
+              <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="text-xl font-bold text-slate-900">{inTransitCount}</motion.h3>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2">
+                <CheckCircle className="w-5 h-5 text-white" />
               </div>
-              <p className="text-xs font-medium text-slate-600 mb-1">Delivered</p>
-              <h3 className="text-2xl font-bold text-slate-900">{deliveredCount}</h3>
-            </div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Delivered</p>
+              <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-xl font-bold text-slate-900">{deliveredCount}</motion.h3>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-                  <TriangleAlert className="w-5 h-5 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-2">
+                <TriangleAlert className="w-5 h-5 text-white" />
               </div>
-              <p className="text-xs font-medium text-slate-600 mb-1">Shipments with Issues</p>
-              <h3 className="text-2xl font-bold text-slate-900">{shipmentsWithIssues}</h3>
-            </div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Shipments with Issues</p>
+              <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="text-xl font-bold text-slate-900">{shipmentsWithIssues}</motion.h3>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2">
+                <CheckCircle className="w-5 h-5 text-white" />
               </div>
-              <p className="text-xs font-medium text-slate-600 mb-1">On-Time Shipments</p>
-              <h3 className="text-2xl font-bold text-slate-900">{onTimeShipments}</h3>
-            </div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">On-Time Shipments</p>
+              <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-xl font-bold text-slate-900">{onTimeShipments}</motion.h3>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center mb-2">
+                <Clock className="w-5 h-5 text-white" />
               </div>
-              <p className="text-xs font-medium text-slate-600 mb-1">Delayed Shipments</p>
-              <h3 className="text-2xl font-bold text-slate-900">{delayedCount}</h3>
-            </div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Delayed Shipments</p>
+              <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }} className="text-xl font-bold text-slate-900">{delayedCount}</motion.h3>
+            </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Search & Filters - Matching Orders module pattern */}
-      <div className="px-8 pb-0 shrink-0 mb-6">
+      {/* Search & Filters - Compact pattern */}
+      <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search shipments, tracking numbers, customers, or POs..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchShipments}
-                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center gap-3 mt-4">
+            {/* Filters Row */}
+            <div className="flex items-center gap-2 mt-3">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <Filter className="w-4 h-4" />
                 Filters
@@ -481,21 +471,16 @@ export function ShipmentsModule() {
                 )}
               </div>
 
-              <ShipmentFilterDropdown
-                label="Status"
-                value={selectedStatus === 'all' ? 'All Status' : selectedStatus}
-                options={['All Status', ...SHIPMENT_STATUSES]}
-                onChange={(val) => { setSelectedStatus(val === 'All Status' ? 'all' : val); setCurrentPage(1); }}
-              />
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-all text-sm ml-auto"
+              <select
+                value={selectedStatus}
+                onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+                className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               >
-                <Download className="w-4 h-4" />
-                Export
-              </motion.button>
+                <option value="all">Status: All</option>
+                {SHIPMENT_STATUSES.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
 
               {activeFilterCount > 0 && (
                 <motion.button
@@ -503,8 +488,8 @@ export function ShipmentsModule() {
                   animate={{ opacity: 1, scale: 1 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedStatus('all')}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                  onClick={() => { setSelectedStatus('all'); setCurrentPage(1); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear
@@ -526,7 +511,7 @@ export function ShipmentsModule() {
 
       {/* Bulk Actions Bar */}
       {selectedShipments.length > 0 && (
-        <div className="px-8 pb-4">
+        <div className="px-6 pt-3 pb-0">
           <div className="max-w-[1800px] mx-auto">
             <div className="bg-emerald-600 text-white rounded-xl px-6 py-3 flex items-center justify-between shadow-lg">
               <div className="flex items-center gap-3">
@@ -556,12 +541,12 @@ export function ShipmentsModule() {
       )}
 
       {/* Content Area - Clean Table */}
-      <div className="flex-1 px-8 pb-8 overflow-hidden">
+      <div className="flex-1 px-6 pt-4 pb-6 overflow-hidden">
         <div className="max-w-[1800px] mx-auto h-full">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg h-full flex flex-col">
             <div className="overflow-x-auto flex-1">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="sticky top-0 z-10">
                   <tr>
                     {isColVisible('checkbox') && (
                       <th className="px-3 py-3 text-left w-10">
@@ -582,46 +567,46 @@ export function ShipmentsModule() {
                       <th className="px-2 py-3 text-left w-8"></th>
                     )}
                     {isColVisible('masterTracking') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Master Tracking #</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Master Tracking #</th>
                     )}
                     {isColVisible('poNumber') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">PO Number</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO Number</th>
                     )}
                     {isColVisible('order') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Order</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Order</th>
                     )}
                     {isColVisible('customer') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Customer</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Customer</th>
                     )}
                     {isColVisible('quantity') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Quantity</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Quantity</th>
                     )}
                     {isColVisible('itemName') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Item Name</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Item Name</th>
                     )}
                     {isColVisible('project') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Project</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project</th>
                     )}
                     {isColVisible('projectNumber') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Project #</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project #</th>
                     )}
                     {isColVisible('carrier') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Carrier</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Carrier</th>
                     )}
                     {isColVisible('serviceLevel') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Service Level</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Service Level</th>
                     )}
                     {isColVisible('status') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Status</th>
                     )}
                     {isColVisible('shipDate') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Ship Date</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Ship Date</th>
                     )}
                     {isColVisible('estDelivery') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Est. Delivery</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Est. Delivery</th>
                     )}
                     {isColVisible('actions') && (
-                      <th className="px-3 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                      <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -804,39 +789,40 @@ export function ShipmentsModule() {
               </table>
             </div>
 
-            {/* Pagination */}
-            <div className="border-t border-slate-200 px-6 py-4 bg-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-slate-700">Rows per page:</span>
-                  <select
-                    value={rowsPerPage}
-                    onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                    className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
-                  <span className="text-sm text-slate-600">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredShipments.length)} of {filteredShipments.length} shipments
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
+            {/* Pagination - matches Customers pattern */}
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                Page {currentPage} of {Math.max(1, totalPages)} · Showing {filteredShipments.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, filteredShipments.length)} of {filteredShipments.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Rows per page:</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <div className="flex gap-1 ml-4">
                   <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage <= 1}
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Previous
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
                   </button>
                   <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage >= Math.max(1, totalPages)}
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || filteredShipments.length === 0}
-                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
               </div>

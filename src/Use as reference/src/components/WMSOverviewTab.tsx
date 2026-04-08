@@ -93,10 +93,10 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
   ];
 
   return (
-    <div className="p-8">
-      <div className="max-w-[1800px] mx-auto space-y-6">
+    <div className="p-6">
+      <div className="max-w-[1800px] mx-auto space-y-4">
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           {statCards.map((card, i) => {
             const Icon = card.icon;
             return (
@@ -106,17 +106,18 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => onNavigate(card.tab)}
-                className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all"
+                whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg cursor-pointer transition-all"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${card.color} rounded-xl flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-2">
+                  <div className={`w-10 h-10 bg-gradient-to-br ${card.color} rounded-xl flex items-center justify-center`}>
+                    <Icon className="w-5 h-5 text-white" />
                   </div>
                   <ArrowRight className="w-4 h-4 text-slate-300" />
                 </div>
-                <div className="text-sm text-slate-500 mb-1">{card.label}</div>
-                <div className="text-2xl font-bold text-slate-900">
-                  {loading ? <div className="w-8 h-7 bg-slate-200 rounded animate-pulse" /> : card.value}
+                <div className="text-[11px] font-medium text-slate-500 mb-0.5">{card.label}</div>
+                <div className="text-xl font-bold text-slate-900">
+                  {loading ? <div className="w-8 h-6 bg-slate-200 rounded animate-pulse" /> : card.value}
                 </div>
               </motion.div>
             );
@@ -124,15 +125,15 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
         </div>
 
         {/* Two column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Quick Actions */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-5">
-                <Zap className="w-5 h-5 text-amber-500" />
-                <h2 className="text-lg font-bold text-slate-900">Quick Actions</h2>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <h2 className="text-sm font-bold text-slate-900">Quick Actions</h2>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {quickActions.map((action, i) => {
                   const Icon = action.icon;
                   return (
@@ -142,16 +143,16 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 + i * 0.05 }}
                       onClick={() => onNavigate(action.tab)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border ${action.color} hover:shadow-md transition-all text-left`}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border ${action.color} hover:shadow-md transition-all text-left`}
                     >
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white shadow-sm">
-                        <Icon className="w-5 h-5" />
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-sm">
+                        <Icon className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-semibold">{action.label}</div>
-                        <div className="text-xs opacity-70">{action.description}</div>
+                        <div className="text-xs font-semibold">{action.label}</div>
+                        <div className="text-[11px] opacity-70">{action.description}</div>
                       </div>
-                      <ArrowRight className="w-4 h-4 opacity-50" />
+                      <ArrowRight className="w-3.5 h-3.5 opacity-50" />
                     </motion.button>
                   );
                 })}
@@ -160,22 +161,22 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
           </div>
 
           {/* AI Insights & Activity Feed */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4">
             {/* AI Insights */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 rounded-2xl border border-indigo-200 shadow-lg p-6"
+              className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 rounded-xl border border-indigo-200 shadow-lg p-4"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Activity className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Activity className="w-3.5 h-3.5 text-white" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">AI Insights</h2>
-                <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">Smart</span>
+                <h2 className="text-sm font-bold text-slate-900">AI Insights</h2>
+                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">Smart</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-indigo-100">
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -228,11 +229,11 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6"
+              className="bg-white rounded-xl border border-slate-200 shadow-lg p-4"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <Warehouse className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-lg font-bold text-slate-900">Operations Pipeline</h2>
+              <div className="flex items-center gap-2 mb-3">
+                <Warehouse className="w-4 h-4 text-indigo-600" />
+                <h2 className="text-sm font-bold text-slate-900">Operations Pipeline</h2>
               </div>
               <div className="flex items-center gap-2">
                 {[
@@ -245,8 +246,8 @@ export function WMSOverviewTab({ onNavigate }: WMSOverviewTabProps) {
                 ].map((stage, i, arr) => (
                   <div key={stage.label} className="flex items-center flex-1">
                     <div className="flex-1 text-center">
-                      <div className={`w-10 h-10 ${stage.color} rounded-xl flex items-center justify-center mx-auto mb-1`}>
-                        <span className="text-white text-sm font-bold">{stage.count}</span>
+                      <div className={`w-8 h-8 ${stage.color} rounded-lg flex items-center justify-center mx-auto mb-1`}>
+                        <span className="text-white text-xs font-bold">{stage.count}</span>
                       </div>
                       <div className="text-xs text-slate-500 font-medium">{stage.label}</div>
                     </div>

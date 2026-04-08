@@ -47,6 +47,10 @@ type Product = {
   deployment: string;
   projectManager?: string;
   internalSKU?: string;
+  htsCode?: string;
+  htsBaseRate?: string;
+  htsSection301?: boolean;
+  sizeVariants?: string[];
   targetMargin?: string;
   image: string;
 };
@@ -163,6 +167,10 @@ export function ProductPipeline() {
             type: selectedProduct.type || 'Both',
             internalSKU: selectedProduct.internalSKU || '',
             projectManager: selectedProduct.projectManager || '',
+            htsCode: selectedProduct.htsCode || '',
+            htsBaseRate: selectedProduct.htsBaseRate || '',
+            htsSection301: selectedProduct.htsSection301 || false,
+            sizeVariants: selectedProduct.sizeVariants || [],
             image: selectedProduct.image,
             competitorName: selectedProduct.competitorName || '',
             competitorLink: selectedProduct.competitorLink || '',
@@ -181,6 +189,10 @@ export function ProductPipeline() {
                       type: updatedInfo.type,
                       internalSKU: updatedInfo.internalSKU,
                       projectManager: updatedInfo.projectManager,
+                      htsCode: updatedInfo.htsCode,
+                      htsBaseRate: updatedInfo.htsBaseRate,
+                      htsSection301: updatedInfo.htsSection301,
+                      sizeVariants: updatedInfo.sizeVariants,
                       image: updatedInfo.image,
                     }
                   : p
@@ -391,25 +403,25 @@ export function ProductPipeline() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header Section - matches Customers */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-8">
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-slate-700 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
-                <Package className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
+                <Package className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-3xl font-bold text-slate-900 mb-0.5 sm:mb-1">Pipeline</h1>
-                <p className="text-xs sm:text-base text-slate-500 hidden sm:block">Track and manage product development stages</p>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Pipeline</h1>
+                <p className="text-xs text-slate-500 hidden sm:block">Track and manage product development stages</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsDrawerOpen(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add Product</span>
               <span className="sm:hidden">Add</span>
             </motion.button>
@@ -418,26 +430,26 @@ export function ProductPipeline() {
       </div>
 
       {/* KPI Cards - matches Customers */}
-      <div className="px-4 sm:px-8 mt-4 sm:mt-6 mb-4 sm:mb-6 relative z-10">
+      <div className="px-6 mt-4 mb-4 relative z-10">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200 shadow-xl"
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
             >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <Package className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Package className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 mb-0.5 sm:mb-1">New Product</p>
+              <p className="text-[11px] font-medium text-slate-600 mb-0.5">New Product</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-xl sm:text-3xl font-bold text-slate-900"
+                className="text-xl font-bold text-slate-900"
               >
                 {newProductCount}
               </motion.h3>
@@ -448,19 +460,19 @@ export function ProductPipeline() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200 shadow-xl"
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
             >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <TrendingUp className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 mb-0.5 sm:mb-1">In Progress</p>
+              <p className="text-[11px] font-medium text-slate-600 mb-0.5">In Progress</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.35 }}
-                className="text-xl sm:text-3xl font-bold text-slate-900"
+                className="text-xl font-bold text-slate-900"
               >
                 {inProgressCount}
               </motion.h3>
@@ -471,19 +483,19 @@ export function ProductPipeline() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200 shadow-xl"
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
             >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <ShoppingCart className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 mb-0.5 sm:mb-1">Ready For Live</p>
+              <p className="text-[11px] font-medium text-slate-600 mb-0.5">Ready For Live</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-xl sm:text-3xl font-bold text-slate-900"
+                className="text-xl font-bold text-slate-900"
               >
                 {readyForLiveCount}
               </motion.h3>
@@ -494,19 +506,19 @@ export function ProductPipeline() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200 shadow-xl"
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
             >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <Package className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Package className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 mb-0.5 sm:mb-1">Live</p>
+              <p className="text-[11px] font-medium text-slate-600 mb-0.5">Live</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.45 }}
-                className="text-xl sm:text-3xl font-bold text-slate-900"
+                className="text-xl font-bold text-slate-900"
               >
                 {liveCount}
               </motion.h3>
@@ -517,19 +529,19 @@ export function ProductPipeline() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200 shadow-xl"
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
             >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <DollarSign className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 mb-0.5 sm:mb-1">Pipeline Value</p>
+              <p className="text-[11px] font-medium text-slate-600 mb-0.5">Pipeline Value</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-xl sm:text-3xl font-bold text-slate-900"
+                className="text-xl font-bold text-slate-900"
               >
                 {(() => {
                   if (totalValue === 0) return '$0';
@@ -545,19 +557,19 @@ export function ProductPipeline() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
               whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
-              className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-slate-200 shadow-xl"
+              className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
             >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg">
-                  <Package className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Package className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <p className="text-[10px] sm:text-xs font-medium text-slate-600 mb-0.5 sm:mb-1">Total Products</p>
+              <p className="text-[11px] font-medium text-slate-600 mb-0.5">Total Products</p>
               <motion.h3
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.55 }}
-                className="text-xl sm:text-3xl font-bold text-slate-900"
+                className="text-xl font-bold text-slate-900"
               >
                 {totalProductsCount}
               </motion.h3>
@@ -567,33 +579,33 @@ export function ProductPipeline() {
       </div>
 
       {/* Filters and Search - matches Customers */}
-      <div className="px-4 sm:px-8 pb-0 shrink-0 overflow-visible relative z-20">
+      <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl p-3 sm:p-6 border border-slate-200 shadow-lg overflow-visible">
-            <div className="flex items-center gap-2 sm:gap-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm sm:text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchProducts}
-                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
             {/* Filters Row */}
-            <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-4 flex-wrap">
+            <div className="flex items-center gap-2 mt-3 flex-wrap">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <Filter className="w-4 h-4" />
                 Filters
@@ -697,14 +709,14 @@ export function ProductPipeline() {
       </div>
 
       {/* Scrollable Table Area - matches Customers */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 pt-4 sm:pt-6 pb-4 sm:pb-8">
+      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left px-4 py-4 w-12">
+                    <th className="text-left px-3 py-3 w-12">
                       <input
                         type="checkbox"
                         className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500/20"
@@ -712,10 +724,10 @@ export function ProductPipeline() {
                         onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Image
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('projectNumber')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -724,7 +736,7 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('name')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -733,7 +745,7 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('client')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -742,10 +754,10 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Vendor
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('status')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -754,19 +766,19 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Progress
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Type
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Internal SKU
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Project Manager
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('priority')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -775,7 +787,7 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('yearlyQty')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -784,7 +796,7 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('pricePerUnit')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -793,7 +805,7 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort('totalValue')}
                         className="flex items-center gap-2 whitespace-nowrap hover:text-green-600 transition-colors"
@@ -802,7 +814,7 @@ export function ProductPipeline() {
                         <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                       </button>
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -841,7 +853,7 @@ export function ProductPipeline() {
                         transition={{ delay: index * 0.03 }}
                         className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group"
                       >
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           <input
                             type="checkbox"
                             className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-2 focus:ring-green-500/20"
@@ -849,34 +861,34 @@ export function ProductPipeline() {
                             onChange={(e) => handleSelectProduct(product.id, e.target.checked)}
                           />
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           {product.image ? (
                             <motion.img
                               whileHover={{ scale: 1.05 }}
                               src={product.image}
                               alt={product.name}
-                              className="w-16 h-12 rounded-lg object-cover border border-slate-200 shadow-sm cursor-pointer"
+                              className="w-14 h-10 rounded-lg object-cover border border-slate-200 shadow-sm cursor-pointer"
                               onClick={() => setImagePopup({ isOpen: true, imageUrl: product.image, productName: product.name })}
                             />
                           ) : (
-                            <div className="w-16 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                            <div className="w-14 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
                               <Package className="w-5 h-5 text-white" />
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${getProjectBadgeStaticClasses(product.projectNumber || '')}`}>{product.projectNumber || '—'}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm font-medium text-slate-900">{product.name}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.client}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.vendor || '—'}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <StatusDropdown
                             currentStatus={product.status}
                             onStatusChange={async (newStatus) => {
@@ -924,7 +936,7 @@ export function ProductPipeline() {
                             }}
                           />
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           {(() => {
                             const completed = (product as any).checklistCompleted || 0;
                             const total = (product as any).checklistTotal || 20;
@@ -940,33 +952,33 @@ export function ProductPipeline() {
                             );
                           })()}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.type || '—'}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.internalSKU || '—'}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-700">{product.projectManager || '—'}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className={getPriorityColor(product.priority)}>{product.priority || '—'}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-900 font-medium">{(product.yearlyQty || 0).toLocaleString()}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-slate-900 font-medium">${(product.pricePerUnit || 0).toFixed(2)}</span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-sm text-green-600 font-medium">${(product.totalValue || 0).toLocaleString()}</span>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                               onClick={() => setSelectedProductId(product.id)}
                               title="View Details"
                             >
@@ -975,7 +987,7 @@ export function ProductPipeline() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                               onClick={() => {
                                 setEditingProduct(product);
                                 setIsDrawerOpen(true);
@@ -987,7 +999,7 @@ export function ProductPipeline() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.95 }}
-                              className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               onClick={() => {
                                 setProductToDelete(product);
                                 setDeleteModalOpen(true);

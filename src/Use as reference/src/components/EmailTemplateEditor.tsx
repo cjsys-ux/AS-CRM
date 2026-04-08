@@ -99,100 +99,100 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
             className="fixed right-0 top-0 h-full w-full max-w-5xl bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-teal-700 via-teal-600 to-cyan-600 px-6 py-5 flex items-center justify-between flex-shrink-0">
+            <div className="bg-gradient-to-r from-teal-700 via-teal-600 to-cyan-600 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-sm font-semibold text-white">
                   {template ? 'Edit Email Template' : 'Create Email Template'}
                 </h2>
-                <p className="text-sm text-teal-100 mt-1">
+                <p className="text-[11px] text-teal-100 mt-0.5">
                   Design beautiful, responsive email templates
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
               >
-                <X className="w-6 h-6 text-white" />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-12 gap-6 p-6">
+              <div className="grid grid-cols-12 gap-4 p-4">
                 {/* Left Panel - Settings */}
-                <div className="col-span-4 space-y-6">
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Template Settings</h3>
+                <div className="col-span-4 space-y-3">
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Template Settings</h3>
                     
                     {/* Template Name */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Template Name</label>
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Template Name</label>
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                         placeholder="e.g., Welcome Email"
                       />
                     </div>
 
                     {/* Category */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Category</label>
                       <div className="relative">
                         <select
                           value={formData.category}
                           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all appearance-none bg-white cursor-pointer"
+                          className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all appearance-none bg-white cursor-pointer"
                         >
                           {categories.map((cat) => (
                             <option key={cat} value={cat}>{cat}</option>
                           ))}
                         </select>
-                        <svg className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </div>
                     </div>
 
                     {/* Subject Line */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Subject Line</label>
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Subject Line</label>
                       <input
                         type="text"
                         value={formData.subject}
                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                         placeholder="e.g., Welcome to {{companyName}}"
                       />
-                      <p className="text-xs text-slate-500 mt-1.5">Use {'{{'} variableName {'}}'} for dynamic content</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Use {'{{'} variableName {'}}'} for dynamic content</p>
                     </div>
 
                     {/* Description */}
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Description</label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={3}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none"
+                        rows={2}
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none"
                         placeholder="Describe when this template is used..."
                       />
                     </div>
                   </div>
 
                   {/* Variables Panel */}
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">Available Variables</h3>
-                    <p className="text-sm text-slate-600 mb-4">Click to insert into template:</p>
-                    <div className="space-y-2">
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-2">Available Variables</h3>
+                    <p className="text-[11px] text-slate-600 mb-2">Click to insert into template:</p>
+                    <div className="space-y-1">
                       {commonVariables.map((variable) => (
                         <motion.button
                           key={variable}
-                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileHover={{ scale: 1.02, x: 2 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => insertVariable(variable)}
-                          className="w-full px-3 py-2 bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-lg text-left text-sm font-mono text-slate-700 hover:text-teal-700 transition-all"
+                          className="w-full px-2 py-1.5 bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-md text-left text-[11px] font-mono text-slate-700 hover:text-teal-700 transition-all"
                         >
                           {'{{' + variable + '}}'}
                         </motion.button>
@@ -202,29 +202,29 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                 </div>
 
                 {/* Right Panel - Editor */}
-                <div className="col-span-8 space-y-6">
+                <div className="col-span-8 space-y-3">
                   {/* View Mode Toggle */}
-                  <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+                  <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg w-fit">
                     <button
                       onClick={() => setViewMode('code')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         viewMode === 'code'
                           ? 'bg-white text-teal-700 shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <Code className="w-4 h-4" />
+                      <Code className="w-3.5 h-3.5" />
                       HTML Code
                     </button>
                     <button
                       onClick={() => setViewMode('preview')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
                         viewMode === 'preview'
                           ? 'bg-white text-teal-700 shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5" />
                       Preview
                     </button>
                   </div>
@@ -232,19 +232,19 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                   {/* Editor Area */}
                   {viewMode === 'code' ? (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">HTML Template</label>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">HTML Template</label>
                       <textarea
                         id="html-content"
                         value={formData.htmlContent}
                         onChange={(e) => setFormData({ ...formData, htmlContent: e.target.value })}
-                        className="w-full h-[600px] px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none font-mono text-sm bg-slate-900 text-green-400"
+                        className="w-full h-[500px] px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all resize-none font-mono text-xs bg-slate-900 text-green-400"
                         placeholder="Enter your HTML template here..."
                       />
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email Preview</label>
-                      <div className="bg-slate-100 rounded-xl border-2 border-slate-300 p-6 h-[600px] overflow-y-auto">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Email Preview</label>
+                      <div className="bg-slate-100 rounded-lg border border-slate-300 p-4 h-[500px] overflow-y-auto">
                         <div className="bg-white rounded-lg shadow-lg max-w-2xl mx-auto">
                           <div
                             dangerouslySetInnerHTML={{
@@ -270,12 +270,12 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
             </div>
 
             {/* Footer */}
-            <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex gap-3 flex-shrink-0">
+            <div className="border-t border-slate-200 px-4 py-3 bg-slate-50 flex gap-2 flex-shrink-0">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 font-medium text-xs rounded-lg hover:bg-slate-100 transition-all"
               >
                 Cancel
               </motion.button>
@@ -283,9 +283,9 @@ export function EmailTemplateEditor({ isOpen, onClose, template, onSave }: Email
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
-                className="flex-1 px-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 transition-all shadow-lg flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2 bg-teal-600 text-white font-medium text-xs rounded-lg hover:bg-teal-700 transition-all shadow-sm flex items-center justify-center gap-1.5"
               >
-                <Save className="w-5 h-5" />
+                <Save className="w-3.5 h-3.5" />
                 Save Template
               </motion.button>
             </div>

@@ -613,22 +613,22 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
   return (
     <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
       {/* Header Section */}
-      <div className="bg-white border-b border-slate-200 px-8 py-8">
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
-                <ShoppingCart className="w-7 h-7 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-1">Purchasing</h1>
-                <p className="text-slate-500 text-sm">Manage purchase orders and vendor pricing</p>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Purchasing</h1>
+                <p className="text-xs text-slate-500">Manage purchase orders and vendor pricing</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
             >
               <Plus className="w-5 h-5" />
               New Purchase Order
@@ -638,90 +638,80 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
       </div>
 
       {/* Stats Cards */}
-      <div className="px-8 mt-6 mb-6">
+      <div className="px-6 mt-4 mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <ShoppingCart className="w-6 h-6 text-white" />
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
+                <ShoppingCart className="w-5 h-5 text-white" />
               </div>
-              <div className="text-sm text-slate-500 mb-1">Total Orders</div>
-              <div className="text-2xl font-bold text-slate-900">{totalOrders}</div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Total Orders</p>
+              <h3 className="text-xl font-bold text-slate-900">{totalOrders}</h3>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-2">
+                <DollarSign className="w-5 h-5 text-white" />
               </div>
-              <div className="text-sm text-slate-500 mb-1">Total Spend</div>
-              <div className="text-2xl font-bold text-slate-900">${totalSpend.toFixed(2)}</div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Total Spend</p>
+              <h3 className="text-xl font-bold text-slate-900">${totalSpend.toFixed(2)}</h3>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-2">
+                <Clock className="w-5 h-5 text-white" />
               </div>
-              <div className="text-sm text-slate-500 mb-1">Pending</div>
-              <div className="text-2xl font-bold text-slate-900">{createdOrders}</div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Pending</p>
+              <h3 className="text-xl font-bold text-slate-900">{createdOrders}</h3>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <div className="text-sm text-slate-500 mb-1">Approved</div>
-              <div className="text-2xl font-bold text-slate-900">{approvedOrders}</div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Approved</p>
+              <h3 className="text-xl font-bold text-slate-900">{approvedOrders}</h3>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-white" />
-                </div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2">
+                <CheckCircle className="w-5 h-5 text-white" />
               </div>
-              <div className="text-sm text-slate-500 mb-1">Delivered</div>
-              <div className="text-2xl font-bold text-slate-900">{deliveredOrders}</div>
+              <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Delivered</p>
+              <h3 className="text-xl font-bold text-slate-900">{deliveredOrders}</h3>
             </motion.div>
           </div>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="px-8 pb-0 shrink-0 mb-6">
+      <div className="px-6 pb-0 shrink-0 mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search by PO number, vendor, or project..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchPurchaseOrders}
-                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-2 mt-3">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <Filter className="w-4 h-4" />
                 Filters
@@ -741,7 +731,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => { setStatusFilter('All Status'); setVendorFilter('All Vendors'); setPriorityFilter('All Priority'); }}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear
@@ -762,26 +752,26 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
                   <tr>
-                    {isColVisible('poDate') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO Date</th>}
-                    {isColVisible('poNumber') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO Number</th>}
-                    {isColVisible('projectNumber') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project #</th>}
-                    {isColVisible('project') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project</th>}
-                    {isColVisible('vendor') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Vendor</th>}
-                    {isColVisible('customer') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Customer</th>}
-                    {isColVisible('contact') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Contact</th>}
-                    {isColVisible('status') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Status</th>}
-                    {isColVisible('shipDate') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Ship Date</th>}
-                    {isColVisible('inHands') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">In-Hands</th>}
-                    {isColVisible('shipping') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Shipping</th>}
-                    {isColVisible('total') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Total</th>}
-                    {isColVisible('actions') && <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Actions</th>}
+                    {isColVisible('poDate') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO Date</th>}
+                    {isColVisible('poNumber') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO Number</th>}
+                    {isColVisible('projectNumber') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project #</th>}
+                    {isColVisible('project') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project</th>}
+                    {isColVisible('vendor') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Vendor</th>}
+                    {isColVisible('customer') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Customer</th>}
+                    {isColVisible('contact') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Contact</th>}
+                    {isColVisible('status') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Status</th>}
+                    {isColVisible('shipDate') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Ship Date</th>}
+                    {isColVisible('inHands') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">In-Hands</th>}
+                    {isColVisible('shipping') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Shipping</th>}
+                    {isColVisible('total') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Total</th>}
+                    {isColVisible('actions') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -807,17 +797,17 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                         className="hover:bg-slate-50/50 transition-colors"
                       >
                         {isColVisible('poDate') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm text-slate-600">{order.poDate}</span>
                           </td>
                         )}
                         {isColVisible('poNumber') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm font-semibold text-slate-900">{order.poNumber}</span>
                           </td>
                         )}
                         {isColVisible('projectNumber') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             {order.projectNumber ? (
                               <button
                                 onClick={() => {
@@ -834,7 +824,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           </td>
                         )}
                         {isColVisible('project') && (
-                          <td className="px-4 py-4">
+                          <td className="px-3 py-3">
                             <span className="text-sm text-slate-700 truncate block">{order.project}</span>
                           </td>
                         )}
@@ -845,7 +835,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           const resolvedVendorLogo = vendorById?.logo || vendorLogoMap[resolvedVendorName.trim().toLowerCase()] || '';
                           const vendorType = vendorById?.type || '';
                           return (
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-3 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2 min-w-0">
                                 {resolvedVendorLogo ? (
                                   <div className="w-8 h-7 rounded-md flex items-center justify-center overflow-hidden border border-slate-200 bg-white shrink-0">
@@ -867,7 +857,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           );
                         })()}
                         {isColVisible('customer') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2 min-w-0">
                               {customerLogoMap[(order.customer || '').trim().toLowerCase()] ? (
                                 <div className="w-8 h-7 rounded-md flex items-center justify-center overflow-hidden border border-slate-200 bg-white shrink-0">
@@ -889,7 +879,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           const resolvedCompany = contactById?.company || '';
                           const hasContact = resolvedContactName && resolvedContactName !== 'Select...';
                           return (
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-3 py-3 whitespace-nowrap">
                               {hasContact ? (
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -907,7 +897,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           );
                         })()}
                         {isColVisible('status') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-1.5">
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusColor(order.status)}`}>
                                 {order.status}
@@ -921,17 +911,17 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           </td>
                         )}
                         {isColVisible('shipDate') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm text-slate-600">{order.shipDate || '—'}</span>
                           </td>
                         )}
                         {isColVisible('inHands') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm text-slate-600">{order.inHandsDate || '—'}</span>
                           </td>
                         )}
                         {isColVisible('shipping') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             {order.shippingMethod && order.shippingMethod !== 'Not Set' ? (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-200">
                                 <Truck className="w-3 h-3 mr-1 shrink-0" />
@@ -943,18 +933,18 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                           </td>
                         )}
                         {isColVisible('total') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm font-bold text-green-600">${(parseFloat(String(order.total)) || 0).toFixed(2)}</span>
                           </td>
                         )}
                         {isColVisible('actions') && (
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1">
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleViewOrder(order.id)}
-                                className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                               >
                                 <Eye className="w-4 h-4" />
                               </motion.button>
@@ -962,7 +952,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleEditOrder(order)}
-                                className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                               >
                                 <Edit className="w-4 h-4" />
                               </motion.button>
@@ -973,7 +963,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                                   setOrderToDelete(order);
                                   setDeleteModalOpen(true);
                                 }}
-                                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </motion.button>

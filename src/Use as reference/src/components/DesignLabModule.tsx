@@ -349,16 +349,16 @@ export function DesignLabModule() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-8">
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-slate-700 rounded-2xl flex items-center justify-center">
-                <Palette className="w-7 h-7 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                <Palette className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-1">Design Lab</h1>
-                <p className="text-slate-500 text-sm">Art & mockup workflow — items auto-populate from orders</p>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Design Lab</h1>
+                <p className="text-xs text-slate-500">Art & mockup workflow — items auto-populate from orders</p>
               </div>
             </div>
           </div>
@@ -366,24 +366,22 @@ export function DesignLabModule() {
       </div>
 
       {/* Stats */}
-      <div className="px-8 mt-6 mb-6">
+      <div className="px-6 mt-4 mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {[
-              { label: 'Total Tasks', value: totalTasks, icon: <Palette className="w-6 h-6 text-white" />, gradient: 'from-blue-500 to-blue-600' },
-              { label: 'Pending Design', value: pendingDesign, icon: <Clock className="w-6 h-6 text-white" />, gradient: 'from-slate-500 to-slate-600' },
-              { label: 'Design Ready', value: designReady, icon: <Eye className="w-6 h-6 text-white" />, gradient: 'from-purple-500 to-purple-600' },
-              { label: 'Revision Requested', value: revisionRequested, icon: <AlertTriangle className="w-6 h-6 text-white" />, gradient: 'from-amber-500 to-amber-600' },
-              { label: 'Design Approved', value: approved, icon: <CheckCircle className="w-6 h-6 text-white" />, gradient: 'from-green-500 to-green-600' },
+              { label: 'Total Tasks', value: totalTasks, icon: <Palette className="w-5 h-5 text-white" />, gradient: 'from-blue-500 to-blue-600' },
+              { label: 'Pending Design', value: pendingDesign, icon: <Clock className="w-5 h-5 text-white" />, gradient: 'from-slate-500 to-slate-600' },
+              { label: 'Design Ready', value: designReady, icon: <Eye className="w-5 h-5 text-white" />, gradient: 'from-purple-500 to-purple-600' },
+              { label: 'Revision Requested', value: revisionRequested, icon: <AlertTriangle className="w-5 h-5 text-white" />, gradient: 'from-amber-500 to-amber-600' },
+              { label: 'Design Approved', value: approved, icon: <CheckCircle className="w-5 h-5 text-white" />, gradient: 'from-green-500 to-green-600' },
             ].map((stat, i) => (
-              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center`}>
-                    {stat.icon}
-                  </div>
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+                <div className={`w-10 h-10 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center mb-2`}>
+                  {stat.icon}
                 </div>
-                <div className="text-sm text-slate-500 mb-1">{stat.label}</div>
-                <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
+                <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">{stat.label}</p>
+                <h3 className="text-xl font-bold text-slate-900">{stat.value}</h3>
               </motion.div>
             ))}
           </div>
@@ -391,31 +389,31 @@ export function DesignLabModule() {
       </div>
 
       {/* Search & Filters */}
-      <div className="px-8 pb-0 shrink-0 mb-6">
+      <div className="px-6 pb-0 shrink-0 mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search by item, customer, order, vendor, or SKU..."
                   value={searchTerm}
                   onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-500 transition-all"
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchTasks}
-                className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-2 mt-3">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <Filter className="w-4 h-4" />
                 Filters
@@ -431,7 +429,7 @@ export function DesignLabModule() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setStatusFilter('All Status')}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                   Clear
@@ -451,15 +449,15 @@ export function DesignLabModule() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-6 pt-0 pb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1300px]">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
                   <tr>
                     {designColumns.map(col => (
-                      <th key={col.key} className={`text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap ${isColVisible(col.key) ? '' : 'hidden'}`}>
+                      <th key={col.key} className={`text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap ${isColVisible(col.key) ? '' : 'hidden'}`}>
                         {col.label}
                       </th>
                     ))}
@@ -499,9 +497,9 @@ export function DesignLabModule() {
                       >
                         {/* Product */}
                         {isColVisible('product') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
-                              <div className="w-14 h-14 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200">
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200">
                                 {task.imageUrl ? (
                                   <img src={task.mockupUrl || task.imageUrl} alt={task.itemName} className="w-full h-full object-contain" />
                                 ) : (
@@ -517,20 +515,20 @@ export function DesignLabModule() {
                         )}
                         {/* Task ID */}
                         {isColVisible('taskId') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm font-mono text-slate-700">{task.id}</span>
                           </td>
                         )}
                         {/* Order */}
                         {isColVisible('order') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <div className="text-sm font-medium text-slate-900">{task.orderName || task.orderId}</div>
                             <div className="text-xs text-slate-400">{task.orderId}</div>
                           </td>
                         )}
                         {/* Customer */}
                         {isColVisible('customer') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               {customerLogoMap[(task.customer || '').trim().toLowerCase()] ? (
                                 <div className="w-8 h-7 rounded-md flex items-center justify-center overflow-hidden border border-slate-200 bg-white shrink-0">
@@ -554,7 +552,7 @@ export function DesignLabModule() {
                           const resolvedVendorLogo = vendorLogoMap[resolvedVendorName.trim().toLowerCase()] || '';
                           
                           return (
-                            <td className="px-4 py-3.5 whitespace-nowrap">
+                            <td className="px-3 py-3 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 {resolvedVendorLogo ? (
                                   <div className="w-8 h-7 rounded-md flex items-center justify-center overflow-hidden border border-slate-200 bg-white shrink-0">
@@ -572,7 +570,7 @@ export function DesignLabModule() {
                         })()}
                         {/* Status */}
                         {isColVisible('status') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${getStatusColor(task.status)}`}>
                               {getStatusIcon(task.status)}
                               {task.status}
@@ -581,7 +579,7 @@ export function DesignLabModule() {
                         )}
                         {/* Art File */}
                         {isColVisible('art') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             {task.artFileName ? (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                                 <ImageIcon className="w-3 h-3" />
@@ -594,7 +592,7 @@ export function DesignLabModule() {
                         )}
                         {/* Mockup */}
                         {isColVisible('mockup') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             {task.mockupFileName ? (
                               <span className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
                                 <ImageIcon className="w-3 h-3" />
@@ -607,7 +605,7 @@ export function DesignLabModule() {
                         )}
                         {/* Revisions */}
                         {isColVisible('revisions') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className={`text-sm font-bold ${task.currentRevision > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
                               {task.currentRevision || 0}
                             </span>
@@ -615,19 +613,19 @@ export function DesignLabModule() {
                         )}
                         {/* Due Date */}
                         {isColVisible('dueDate') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <span className="text-sm text-slate-600">{task.dueDate || '—'}</span>
                           </td>
                         )}
                         {/* Actions */}
                         {isColVisible('actions') && (
-                          <td className="px-4 py-3.5 whitespace-nowrap">
+                          <td className="px-3 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-1">
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
-                                className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                               >
                                 <Eye className="w-4 h-4" />
                               </motion.button>
@@ -635,7 +633,7 @@ export function DesignLabModule() {
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }}
-                                className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </motion.button>

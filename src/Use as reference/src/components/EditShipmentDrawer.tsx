@@ -175,10 +175,10 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
     onClose();
   };
 
-  const inputClass = "w-full px-3 py-2.5 text-sm bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all";
-  const selectClass = "w-full px-3 py-2.5 text-sm bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all";
-  const readonlyClass = "w-full px-3 py-2.5 text-sm bg-slate-100 border-2 border-slate-200 rounded-xl text-slate-500 cursor-not-allowed";
-  const labelClass = "block text-sm font-semibold text-slate-700 mb-1.5";
+  const inputClass = "w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all";
+  const selectClass = "w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all";
+  const readonlyClass = "w-full px-3.5 py-2 text-sm bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed";
+  const labelClass = "block text-[11px] font-semibold text-slate-700 mb-1";
 
   // Build destination display string
   const destinationDisplay = [formData.destinationAddress, formData.destinationCity, formData.destinationState, formData.destinationZip]
@@ -207,36 +207,28 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
             className="fixed right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-emerald-600 px-6 py-5 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-emerald-500 to-teal-600 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Truck className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                  <Truck className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Edit Shipment</h2>
-                  <p className="text-emerald-100 text-sm">{shipment?.id || 'Update shipment details'}</p>
+                  <h2 className="text-lg font-bold text-white">Edit Shipment</h2>
+                  <p className="text-xs text-emerald-100">{shipment?.id || 'Update shipment details'}</p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
-              >
-                <X className="w-5 h-5" />
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
             {/* Form Content */}
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto bg-slate-50 drawer-scroll">
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-5">
 
                 {/* Tracking & Identification */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
-                      <Package className="w-5 h-5 text-white" />
-                    </div>
-                    Tracking & Identification
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Tracking & Identification</h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -289,13 +281,8 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                 </div>
 
                 {/* Order Details */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-white" />
-                    </div>
-                    Order Details
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Order Details</h3>
                   <div className="space-y-3">
                     <div>
                       <label className={labelClass}>Customer</label>
@@ -370,13 +357,8 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                 </div>
 
                 {/* Carrier & Service */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <Truck className="w-5 h-5 text-white" />
-                    </div>
-                    Carrier & Service
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Carrier & Service</h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -441,13 +423,8 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                 </div>
 
                 {/* Dates */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-amber-500 rounded-lg flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-white" />
-                    </div>
-                    Dates
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Dates</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelClass}>Ship Date</label>
@@ -469,17 +446,14 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                 </div>
 
                 {/* Shipping Address (Read-only) */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-cyan-500 rounded-lg flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-white" />
-                    </div>
-                    Shipping Address
-                    <span className="ml-auto flex items-center gap-1 text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Shipping Address</h3>
+                    <span className="flex items-center gap-1 text-xs font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
                       <Lock className="w-3 h-3" />
                       Read Only
                     </span>
-                  </h3>
+                  </div>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -505,13 +479,8 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                 </div>
 
                 {/* Financial */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-green-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">$</span>
-                    </div>
-                    Financial
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Financial</h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-3 gap-3">
                       <div>
@@ -549,13 +518,8 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                 </div>
 
                 {/* Package Details */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-rose-500 rounded-lg flex items-center justify-center">
-                      <Boxes className="w-5 h-5 text-white" />
-                    </div>
-                    Package Details
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Package Details</h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -594,19 +558,21 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
               </div>
 
               {/* Footer */}
-              <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex items-center gap-3">
+              <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center gap-3">
                 <button
                   type="button"
                   onClick={onClose}
                   disabled={saving}
-                  className="flex-1 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  className="flex-1 px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
-                <button
+                <motion.button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex-1 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {saving ? (
                     <>
@@ -619,7 +585,7 @@ export function EditShipmentDrawer({ isOpen, onClose, shipment, onSave }: EditSh
                       Save Changes
                     </>
                   )}
-                </button>
+                </motion.button>
               </div>
             </form>
           </motion.div>
