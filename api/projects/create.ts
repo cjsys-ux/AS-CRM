@@ -34,8 +34,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getDb();
 
+    // Auto-generate incremental project number (ADP-00001, ADP-00002, ...)
+    const lastProject = await db
+      .collection('product_pipelines')
+      .find({ projectNumber: { $regex: /^ADP-/ } })
+      .sort({ projectNumber: -1 })
+      .limit(1)
+      .toArray();
+
+    let nextNumber = 1;
+    if (lastProject.length > 0 && lastProject[0].projectNumber) {
+      const match = String(lastProject[0].projectNumber).match(/ADP-(\d+)/);
+      if (match) nextNumber = parseInt(match[1], 10) + 1;
+    }
+    const projectNumber = `ADP-${String(nextNumber).padStart(5, '0')}`;
+
     const doc = {
       name,
+      projectNumber,
       client: client ?? null,
       vendor: vendor ?? null,
       description: description ?? null,

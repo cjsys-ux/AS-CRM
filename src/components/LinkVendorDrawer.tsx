@@ -77,8 +77,10 @@ export function LinkVendorDrawer({
 
   const resolveVendorType = (v: GlobalVendor) => v.vendorType || v.type || v.accountType || '';
 
+  const isLinked = (v: GlobalVendor) => existingVendorIds.includes(v.id);
+
   const availableVendors = vendors.filter(v => {
-    const notLinked = !existingVendorIds.includes(v.id);
+    const notLinked = !isLinked(v);
     const term = searchTerm.toLowerCase();
     const matches = !term ||
       v.name?.toLowerCase().includes(term) ||
@@ -87,7 +89,7 @@ export function LinkVendorDrawer({
     return notLinked && matches;
   });
 
-  const alreadyLinkedVendors = vendors.filter(v => existingVendorIds.includes(v.id));
+  const alreadyLinkedVendors = vendors.filter(v => isLinked(v));
 
   const getVendorTypeColor = (type?: string) => {
     const t = (type || '').toLowerCase();
@@ -154,12 +156,13 @@ export function LinkVendorDrawer({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-[380px] bg-white shadow-2xl z-50 flex flex-col"
+            className="fixed right-0 top-0 bottom-0 bg-white shadow-2xl z-50 flex flex-col"
+            style={{ width: '380px' }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-white/20 border border-white/30 rounded-lg flex items-center justify-center">
                   <Building2 className="w-4 h-4 text-white" />
                 </div>
                 <div>
@@ -216,10 +219,10 @@ export function LinkVendorDrawer({
                         key={vendor.id}
                         whileTap={{ scale: 0.99 }}
                         onClick={() => setSelectedVendor(isSelected ? null : vendor)}
-                        className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all ${
+                        className={`w-full text-left px-3 py-2.5 rounded-lg border flex items-center gap-3 transition-all ${
                           isSelected
-                            ? 'bg-blue-50 border border-blue-200'
-                            : 'hover:bg-slate-50 border border-transparent'
+                            ? 'bg-blue-50 border-blue-300'
+                            : 'border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                         }`}
                       >
                         {/* Avatar */}

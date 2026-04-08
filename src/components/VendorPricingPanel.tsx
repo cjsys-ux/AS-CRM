@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Save, DollarSign, Clock, Package, Truck, Pencil, X } from 'lucide-react';
+import { Plus, Trash2, Save, DollarSign, Clock, Package, Truck, Pencil, X, GripVertical } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -59,6 +59,8 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [draggedTierIndex, setDraggedTierIndex] = useState<number | null>(null);
+  const [dragOverTierIndex, setDragOverTierIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setPricingTiers(vendor.pricingTiers || []);
@@ -370,6 +372,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="w-[24px] px-1 py-2.5"></th>
                       <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : 'w-[12%]'}`}>Qty</th>
                       {!isDropship && (
                         <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[14%]">EXW ($)</th>
@@ -386,7 +389,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                       <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[12%]'}`}>
                         {isDropship ? 'Dropship Days' : 'Days'}
                       </th>
-                      <th className="px-2 py-2.5 w-[36px]"></th>
+                      <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[60px]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -397,8 +400,27 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="border-b border-slate-100 last:border-0 group hover:bg-slate-50/50"
+                          draggable
+                          onDragStart={() => setDraggedTierIndex(index)}
+                          onDragOver={(e) => { e.preventDefault(); setDragOverTierIndex(index); }}
+                          onDrop={() => {
+                            if (draggedTierIndex !== null && draggedTierIndex !== index) {
+                              const newTiers = [...pricingTiers];
+                              const [moved] = newTiers.splice(draggedTierIndex, 1);
+                              newTiers.splice(index, 0, moved);
+                              setPricingTiers(newTiers);
+                              setHasChanges(true);
+                            }
+                            setDraggedTierIndex(null); setDragOverTierIndex(null);
+                          }}
+                          onDragEnd={() => { setDraggedTierIndex(null); setDragOverTierIndex(null); }}
+                          className={`border-b border-slate-100 last:border-0 group hover:bg-slate-50/50 transition-colors ${
+                            dragOverTierIndex === index ? 'bg-blue-50/50' : draggedTierIndex === index ? 'opacity-40' : ''
+                          }`}
                         >
+                          <td className="px-1 py-1.5 w-[24px]">
+                            <GripVertical className="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing transition-colors" />
+                          </td>
                           <td className="px-3 py-1.5">
                             {isEditing || hasChanges ? (
                               <input
@@ -482,16 +504,14 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                             )}
                           </td>
                           <td className="px-2 py-1.5">
-                            {(isEditing || hasChanges) && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => removeTier(index)}
-                                className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </motion.button>
-                            )}
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => removeTier(index)}
+                              className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </motion.button>
                           </td>
                         </motion.tr>
                       ))}

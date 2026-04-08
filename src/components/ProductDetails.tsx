@@ -220,10 +220,10 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
   ];
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden relative">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0 sticky top-0 z-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             <motion.button
@@ -269,7 +269,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   {progressPercent}%
                 </span>
               </div>
-              <div className="hidden sm:block">
+              <div>
                 <div className="text-xs font-bold text-slate-700">Progress</div>
                 <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
               </div>
@@ -283,8 +283,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              <span className="hidden sm:inline">Order Sample</span>
-              <span className="sm:hidden">Sample</span>
+              <span>Order Sample</span>
             </motion.button>
           </div>
         </div>
@@ -477,8 +476,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                       onClick={() => setIsLinkVendorDrawerOpen(true)}
                     >
                       <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Link Vendor</span>
-                      <span className="sm:hidden">Link</span>
+                      <span>Link Vendor</span>
                     </motion.button>
                   </div>
 
@@ -613,20 +611,13 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                                   </div>
                                 )}
 
-                                <div className="flex items-center gap-1.5 mt-1" onClick={e => e.stopPropagation()}>
-                                  <button
-                                    onClick={() => { setVendorToEdit(vendor); setIsAddVendorDrawerOpen(true); }}
-                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
-                                  >
-                                    <Edit className="w-3 h-3" />
-                                    Edit
-                                  </button>
+                                <div className="flex items-center gap-1.5 mt-1 border-t border-slate-100 pt-2" onClick={e => e.stopPropagation()}>
                                   <button
                                     onClick={() => setUnlinkConfirm({ open: true, vendorId: vendor.id, vendorName: vendor.name })}
-                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                   >
                                     <Trash2 className="w-3 h-3" />
-                                    Remove
+                                    Unlink
                                   </button>
                                 </div>
                               </motion.div>
