@@ -23,7 +23,7 @@ interface LinkVendorDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   productId: string;
-  existingVendorIds?: string[];
+  existingVendorIds?: string[];  // can be ids, globalVendorIds, or names
   onVendorLinked?: () => void;
 }
 
@@ -81,7 +81,12 @@ export function LinkVendorDrawer({
 
   const resolveVendorType = (v: GlobalVendor) => v.vendorType || v.type || v.accountType || '';
 
-  const isLinked = (v: GlobalVendor) => existingVendorIds.includes(v.id);
+  // Match by id, globalVendorId, OR name — covers all data regardless of how it was stored
+  const resolveName = (v: GlobalVendor) => v.vendorName || v.name || '';
+  const isLinked = (v: GlobalVendor) => {
+    const name = resolveName(v).toLowerCase();
+    return existingVendorIds.some(e => e === v.id || e.toLowerCase() === name);
+  };
 
   const availableVendors = vendors.filter(v => {
     const notLinked = !isLinked(v);

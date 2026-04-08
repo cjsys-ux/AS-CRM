@@ -736,7 +736,11 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
         isOpen={isLinkVendorDrawerOpen}
         onClose={() => setIsLinkVendorDrawerOpen(false)}
         productId={productId}
-        existingVendorIds={vendors.flatMap(v => [(v as any).globalVendorId, v.id].filter(Boolean))}
+        existingVendorIds={vendors.flatMap(v => [
+          (v as any).globalVendorId,
+          v.id,
+          v.name,  // match by name for vendors linked before globalVendorId was stored
+        ].filter(Boolean))}
         onVendorLinked={() => { fetchVendors(); triggerAutoProgress(); }}
       />
 
