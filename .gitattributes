@@ -3,14 +3,14 @@
 
 # Force common source/docs formats as text
 *.md text
-*.ts text
-*.tsx text
-*.js text
-*.jsx text
-*.json text
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
 *.yml text
 *.yaml text
-*.css text
+*.css text eol=lf
 *.html text
 *.sh text
 
