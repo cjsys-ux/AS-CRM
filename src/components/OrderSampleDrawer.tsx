@@ -438,23 +438,26 @@ export function OrderSampleDrawer({
                           transition={{ duration: 0.2 }}
                           className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-lg shadow-xl z-10 overflow-hidden"
                         >
-                          {availableVendors.map((v) => { const vendorOption = v.name; return (
-                            <button
-                              key={vendorOption}
-                              onClick={() => {
-                                setVendor(vendorOption);
-                                setIsVendorDropdownOpen(false);
-                              }}
-                              className="w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
-                            >
-                              <Check 
-                                className={`w-4 h-4 ${vendor === vendorOption ? 'text-slate-900' : 'text-transparent'}`} 
-                              />
-                              <span className={vendor === vendorOption ? 'text-slate-900 font-medium' : 'text-slate-700'}>
-                                {vendorOption}
-                              </span>
-                            </button>
-                          ))}
+                          {availableVendors.map((v) => {
+                            const vendorOption = v.name;
+                            return (
+                              <button
+                                key={vendorOption}
+                                onClick={() => {
+                                  setVendor(vendorOption);
+                                  setIsVendorDropdownOpen(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
+                              >
+                                <Check
+                                  className={`w-4 h-4 ${vendor === vendorOption ? 'text-slate-900' : 'text-transparent'}`}
+                                />
+                                <span className={vendor === vendorOption ? 'text-slate-900 font-medium' : 'text-slate-700'}>
+                                  {vendorOption}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </motion.div>
                       )}
                     </AnimatePresence>
