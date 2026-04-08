@@ -497,9 +497,9 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                       <p className="text-sm text-slate-500">Add your first vendor to start tracking pricing and contact info.</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+                    <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: 'minmax(0,5fr) minmax(0,7fr)' }}>
                       {/* Left: Vendor Cards */}
-                      <div className="lg:col-span-5 space-y-4">
+                      <div className="space-y-4">
                         {vendors.map((vendor, idx) => {
                           const badge = getPriorityBadge(idx);
                           return (
@@ -565,11 +565,11 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                                       <GripVertical className="w-4 h-4 text-slate-300 hover:text-slate-500 transition-colors" />
                                     </div>
                                   )}
-                                  <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {(vendor as any).logo ? (
                                       <img src={(vendor as any).logo} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                       </svg>
                                     )}
@@ -636,7 +636,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                       </div>
 
                       {/* Right: Pricing Panel */}
-                      <div className="lg:col-span-7">
+                      <div>
                         {expandedVendor && vendors.find(v => v.id === expandedVendor) ? (
                           <VendorPricingPanel
                             vendor={vendors.find(v => v.id === expandedVendor)!}
@@ -700,7 +700,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
         isOpen={isLinkVendorDrawerOpen}
         onClose={() => setIsLinkVendorDrawerOpen(false)}
         productId={productId}
-        existingVendorIds={vendors.map(v => (v as any).globalVendorId || v.id)}
+        existingVendorIds={vendors.flatMap(v => [(v as any).globalVendorId, v.id].filter(Boolean))}
         onVendorLinked={() => { fetchVendors(); triggerAutoProgress(); }}
       />
 
