@@ -176,6 +176,8 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       setUploadedImageKey(key);
     } catch (error) {
       console.error('Error uploading image:', error);
+      setUploadedImage(null);
+      setSubmitError('Image upload failed. Please try again before submitting.');
     } finally {
       setIsProcessingImage(false);
     }
@@ -920,13 +922,16 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                 Cancel
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                whileHover={!isProcessingImage ? { scale: 1.01 } : undefined}
+                whileTap={!isProcessingImage ? { scale: 0.99 } : undefined}
                 onClick={handleSubmit}
-                className="flex-1 px-6 py-3.5 bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2"
+                disabled={isProcessingImage}
+                className="flex-1 px-6 py-3.5 bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Package className="w-4 h-4" />
-                {productData?.id ? 'Save Changes' : 'Add Product'}
+                {isProcessingImage
+                  ? 'Uploading image...'
+                  : productData?.id ? 'Save Changes' : 'Add Product'}
               </motion.button>
             </div>
           </motion.div>
