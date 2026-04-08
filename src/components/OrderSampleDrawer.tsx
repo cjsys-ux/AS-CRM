@@ -136,6 +136,13 @@ export function OrderSampleDrawer({
   const totalQuantity = variants.reduce((sum, v) => sum + v.qty, 0);
   const totalCost = variants.reduce((sum, v) => sum + (v.qty * v.costPerUnit), 0);
 
+  // Required: vendor selected, every variant has SKU + color + size + qty >= 1,
+  // every destination has a location selected
+  const isFormValid =
+    vendor.trim() !== '' &&
+    variants.every(v => v.sku.trim() !== '' && v.color.trim() !== '' && v.size.trim() !== '' && Number(v.qty) >= 1) &&
+    destinations.every(d => d.location.trim() !== '');
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
@@ -827,11 +834,15 @@ export function OrderSampleDrawer({
                   Cancel
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="flex-1 px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  whileHover={{ scale: isFormValid && !isSubmitting ? 1.02 : 1 }}
+                  whileTap={{ scale: isFormValid && !isSubmitting ? 0.98 : 1 }}
+                  onClick={isFormValid ? handleSubmit : undefined}
+                  disabled={!isFormValid || isSubmitting}
+                  className={`flex-1 px-6 py-3 font-semibold rounded-xl transition-colors ${
+                    !isFormValid || isSubmitting
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      : 'bg-slate-900 text-white hover:bg-slate-800 cursor-pointer'
+                  }`}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Sample Order'}
                 </motion.button>
