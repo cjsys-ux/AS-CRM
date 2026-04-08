@@ -191,6 +191,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
   };
 
   const getProgressTextColor = () => {
+    if (progressPercent === 0) return 'text-slate-400';
     if (progressPercent >= 70) return 'text-green-600';
     if (progressPercent >= 40) return 'text-orange-600';
     return 'text-red-500';
@@ -247,32 +248,30 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Progress Ring — only shown once checklist has items */}
-            {checklistProgress.total > 0 && (
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
-                <div className="relative w-8 h-8 sm:w-9 sm:h-9">
-                  <svg className="w-8 h-8 sm:w-9 sm:h-9 -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                    <motion.circle
-                      cx="18" cy="18" r="14" fill="none"
-                      stroke={progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
-                      strokeWidth="3" strokeLinecap="round"
-                      strokeDasharray={`${progressPercent * 0.88} 88`}
-                      initial={{ strokeDasharray: '0 88' }}
-                      animate={{ strokeDasharray: `${progressPercent * 0.88} 88` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
-                    />
-                  </svg>
-                  <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${getProgressTextColor()}`}>
-                    {progressPercent}%
-                  </span>
-                </div>
-                <div className="hidden sm:block">
-                  <div className="text-xs font-bold text-slate-700">Progress</div>
-                  <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
-                </div>
+            {/* Progress Ring — always visible */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
+              <div className="relative w-8 h-8 sm:w-9 sm:h-9">
+                <svg className="w-8 h-8 sm:w-9 sm:h-9 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                  <motion.circle
+                    cx="18" cy="18" r="14" fill="none"
+                    stroke={progressPercent === 0 ? '#cbd5e1' : progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
+                    strokeWidth="3" strokeLinecap="round"
+                    strokeDasharray={`${progressPercent * 0.88} 88`}
+                    initial={{ strokeDasharray: '0 88' }}
+                    animate={{ strokeDasharray: `${progressPercent * 0.88} 88` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                  />
+                </svg>
+                <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${getProgressTextColor()}`}>
+                  {progressPercent}%
+                </span>
               </div>
-            )}
+              <div className="hidden sm:block">
+                <div className="text-xs font-bold text-slate-700">Progress</div>
+                <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
+              </div>
+            </div>
 
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -288,23 +287,21 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
           </div>
         </div>
 
-        {/* Overall Progress Bar */}
-        {checklistProgress.total > 0 && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-slate-500">Overall Completion</span>
-              <span className={`text-xs font-bold ${getProgressTextColor()}`}>{progressPercent}%</span>
-            </div>
-            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className={`h-full rounded-full bg-gradient-to-r ${getProgressColor()}`}
-              />
-            </div>
+        {/* Overall Progress Bar — always visible */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-medium text-slate-500">Overall Completion</span>
+            <span className={`text-xs font-bold ${getProgressTextColor()}`}>{progressPercent}%</span>
           </div>
-        )}
+          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className={`h-full rounded-full bg-gradient-to-r ${getProgressColor()}`}
+            />
+          </div>
+        </div>
       </div>
 
       {/* ── Main Content ── */}
@@ -664,7 +661,12 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     </div>
                   )}
 
-                  <ChecklistWidget />
+                  <ChecklistWidget
+                    onUpdate={(items) => {
+                      const completed = items.filter(i => i.completed).length;
+                      setChecklistProgress({ completed, total: items.length });
+                    }}
+                  />
                 </div>
               )}
 
@@ -674,7 +676,12 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
               {activeTab === 'files' && (
                 <div className="space-y-6">
                   <FilesTab productId={productId} />
-                  <ChecklistWidget />
+                  <ChecklistWidget
+                    onUpdate={(items) => {
+                      const completed = items.filter(i => i.completed).length;
+                      setChecklistProgress({ completed, total: items.length });
+                    }}
+                  />
                 </div>
               )}
               {activeTab === 'chat' && <ChatTab productId={productId} />}
@@ -689,6 +696,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
         isOpen={isAddVendorDrawerOpen}
         onClose={() => { setIsAddVendorDrawerOpen(false); setVendorToEdit(null); }}
         productId={productId}
+        mode="pipeline"
         vendorData={vendorToEdit ? {
           id: vendorToEdit.id,
           name: vendorToEdit.name,
