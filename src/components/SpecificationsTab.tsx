@@ -644,12 +644,8 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
 
       {/* Checklist - Moved to Bottom */}
       <ChecklistWidget
-        items={[
-          { id: '1', label: 'Product Dimensions', completed: false },
-          { id: '2', label: 'Material Specifications', completed: false },
-          { id: '3', label: 'Weight & Shipping Info', completed: false },
-          { id: '4', label: 'Compliance Documents', completed: false }
-        ]}
+        productId={productId}
+        tabId="specifications"
       />
 
       {/* Delete Document Modal */}

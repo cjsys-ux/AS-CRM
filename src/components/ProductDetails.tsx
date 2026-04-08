@@ -682,36 +682,9 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                 </div>
               )}
 
-              {activeTab === 'specifications' && (
-                <div className="space-y-6">
-                  <SpecificationsTab productId={productId} />
-                  <ChecklistWidget
-                    productId={productId}
-                    tabId="specifications"
-                    onUpdate={(items) => updateTabProgress('specifications', items)}
-                  />
-                </div>
-              )}
-              {activeTab === 'packaging' && (
-                <div className="space-y-6">
-                  <PackagingTab productId={productId} />
-                  <ChecklistWidget
-                    productId={productId}
-                    tabId="packaging"
-                    onUpdate={(items) => updateTabProgress('packaging', items)}
-                  />
-                </div>
-              )}
-              {activeTab === 'samples' && (
-                <div className="space-y-6">
-                  <SamplesTab productId={productId} />
-                  <ChecklistWidget
-                    productId={productId}
-                    tabId="samples"
-                    onUpdate={(items) => updateTabProgress('samples', items)}
-                  />
-                </div>
-              )}
+              {activeTab === 'specifications' && <SpecificationsTab productId={productId} />}
+              {activeTab === 'packaging' && <PackagingTab productId={productId} />}
+              {activeTab === 'samples' && <SamplesTab productId={productId} />}
               {activeTab === 'files' && (
                 <div className="space-y-6">
                   <FilesTab productId={productId} />

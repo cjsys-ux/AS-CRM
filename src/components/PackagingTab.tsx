@@ -611,12 +611,8 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
 
       {/* Checklist - Moved to Bottom */}
       <ChecklistWidget
-        items={[
-          { id: '1', label: 'Packaging Mockup', completed: false },
-          { id: '2', label: 'Packaging Template', completed: false },
-          { id: '3', label: 'Dieline/CAD Files', completed: false },
-          { id: '4', label: 'Packaging Spec Sheet', completed: false }
-        ]}
+        productId={productId}
+        tabId="packaging"
       />
 
       {/* Delete Document Modal */}
