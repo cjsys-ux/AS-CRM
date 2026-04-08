@@ -31,6 +31,8 @@ interface ProductDetailsProps {
     competitorName?: string;
     competitorLink?: string;
     competitorPrice?: string;
+    htsCode?: string;
+    htsRate?: string;
   };
   onProductUpdate?: (updatedProduct: any) => void;
 }
@@ -86,6 +88,8 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
     competitorName: productData?.competitorName || '',
     competitorLink: productData?.competitorLink || '',
     competitorPrice: productData?.competitorPrice || '',
+    htsCode: productData?.htsCode || '',
+    htsRate: productData?.htsRate || '',
   });
 
   const [checklistProgress, setChecklistProgress] = useState({ completed: 0, total: 0 });
@@ -364,7 +368,8 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     Edit
                   </motion.button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {/* Row 1: Product Name | Customer | Vendor */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Product Name</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.name}</div>
@@ -384,6 +389,10 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                       {productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}
                     </div>
                   </div>
+                </div>
+
+                {/* Row 2: Status | Type | Internal SKU */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Status</div>
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
@@ -401,37 +410,55 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU}</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      {productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}
+                    </div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4 sm:col-span-2 lg:col-span-3">
+                </div>
+
+                {/* Row 3: Project Manager | HTS Code | HTS Rate */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
                     <div className="text-sm font-semibold text-slate-900">
                       {productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}
                     </div>
                   </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      {(productInfo as any).htsCode || <span className="text-slate-400 font-normal">—</span>}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Rate</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      {(productInfo as any).htsRate ? `${(productInfo as any).htsRate}%` : <span className="text-slate-400 font-normal">—</span>}
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Competitor Analysis (conditional) */}
-                  {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
-                    <>
-                      <div className="sm:col-span-2 lg:col-span-3 pt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                          </div>
-                          <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                {/* Competitor Analysis — separate section below the grid */}
+                {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
+                        <div className="text-sm font-semibold text-slate-900">
+                          {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
                         </div>
                       </div>
-                      {productInfo.competitorName && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
-                          <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
-                        </div>
-                      )}
-                      {productInfo.competitorLink && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                        {productInfo.competitorLink ? (
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
                             target="_blank" rel="noopener noreferrer"
@@ -439,17 +466,17 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                           >
                             {productInfo.competitorLink}
                           </a>
+                        ) : <span className="text-slate-400 font-normal text-sm">—</span>}
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
+                        <div className="text-sm font-bold text-emerald-600">
+                          {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
                         </div>
-                      )}
-                      {productInfo.competitorPrice && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
-                          <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

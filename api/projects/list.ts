@@ -41,6 +41,8 @@ type MongoProject = {
   competitorName?: string;
   competitorLink?: string;
   competitorPrice?: string;
+  htsCode?: string;
+  htsRate?: string;
 };
 
 type MongoUpload = {
@@ -184,6 +186,8 @@ function mapProject(
     competitorName: project.competitorName ?? '',
     competitorLink: project.competitorLink ?? '',
     competitorPrice: project.competitorPrice ?? '',
+    htsCode: project.htsCode ?? '',
+    htsRate: project.htsRate ?? '',
   };
 }
 

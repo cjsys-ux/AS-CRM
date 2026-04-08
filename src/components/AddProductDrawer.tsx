@@ -63,21 +63,28 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     image: productData?.image || '',
   });
 
-  // Available customers from Customers module
-  const availableCustomers = [
-    { id: 'CUST-001', name: 'Amazon', logo: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=100' },
-    { id: 'CUST-002', name: 'Test', logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100' },
-    { id: 'CUST-003', name: 'TechCorp Inc', logo: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=100' },
-    { id: 'CUST-004', name: 'Global Retail Co', logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100' },
-    { id: 'CUST-005', name: 'Healthcare Plus', logo: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=100' },
-  ];
+  // Fetch customers, vendors, and project managers from API
+  const [availableCustomers, setAvailableCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [availableVendors, setAvailableVendors] = useState<{ id: string; name: string; type?: string }[]>([]);
+  const [availableManagers, setAvailableManagers] = useState<string[]>([]);
 
-  // Available vendors from Vendors module
-  const availableVendors = [
-    { id: 'VEND-001', name: 'Ergodyne', type: 'Distributor', logo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=100' },
-    { id: 'VEND-002', name: 'SC Promo', type: 'Product Manufacturer', logo: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=100' },
-    { id: 'VEND-003', name: 'TEST', type: 'Distributor', logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=100' },
-  ];
+  useEffect(() => {
+    fetch('/api/customers/list')
+      .then(r => r.json())
+      .then(data => setAvailableCustomers(
+        (data.customers ?? []).map((c: any) => ({ id: c.id || c._id, name: c.name || c.companyName || '' })).filter((c: any) => c.name)
+      )).catch(() => {});
+    fetch('/api/vendors/list')
+      .then(r => r.json())
+      .then(data => setAvailableVendors(
+        (data.vendors ?? []).map((v: any) => ({ id: v.id || v._id, name: v.vendorName || v.name || '', type: v.vendorType || v.type || '' })).filter((v: any) => v.name)
+      )).catch(() => {});
+    fetch('/api/users/list')
+      .then(r => r.json())
+      .then(data => setAvailableManagers(
+        (data.users ?? []).map((u: any) => u.name || (u.firstName ? `${u.firstName} ${u.lastName ?? ''}`.trim() : '')).filter(Boolean)
+      )).catch(() => {});
+  }, []);
 
   // Update form when productData changes (for edit mode)
   useEffect(() => {
@@ -832,7 +839,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                           exit={{ opacity: 0, y: -10 }}
                           className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
                         >
-                          {['John Doe', 'Jane Smith', 'Mike Johnson'].map((pm, i) => (
+                          {availableManagers.map((pm, i) => (
                             <motion.div
                               key={pm}
                               initial={{ opacity: 0, x: -10 }}

@@ -62,6 +62,8 @@ type Product = {
   targetMargin?: string;
   image: string;
   projectNumber?: string;
+  htsCode?: string;
+  htsRate?: string;
 };
 
 type ProjectsApiResponse = {
@@ -182,6 +184,8 @@ const handleOpenColumnPicker = () => {
             competitorName: selectedProduct.competitorName || '',
             competitorLink: selectedProduct.competitorLink || '',
             competitorPrice: selectedProduct.competitorPrice || '',
+            htsCode: selectedProduct.htsCode || '',
+            htsRate: selectedProduct.htsRate || '',
           }}
           onProductUpdate={(updatedInfo) => {
             setProducts(prevProducts => 
