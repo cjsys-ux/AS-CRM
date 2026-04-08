@@ -61,6 +61,7 @@ type Product = {
   internalSKU?: string;
   targetMargin?: string;
   image: string;
+  projectNumber?: string;
 };
 
 type ProjectsApiResponse = {
@@ -168,18 +169,21 @@ const handleOpenColumnPicker = () => {
         <ProductDetails 
           productId={selectedProductId}
           onBack={() => setSelectedProductId(null)}
+          projectNumber={selectedProduct.projectNumber}
           productData={{
             name: selectedProduct.name,
             client: selectedProduct.client,
-            vendor: selectedProduct.vendor || 'SC Promo',
+            vendor: selectedProduct.vendor || '',
             status: selectedProduct.status,
-            type: selectedProduct.type || 'Both',
+            type: selectedProduct.type || '',
             internalSKU: selectedProduct.internalSKU || '',
-            projectManager: selectedProduct.projectManager || 'Mike Johnson',
+            projectManager: selectedProduct.projectManager || '',
             image: selectedProduct.image,
+            competitorName: selectedProduct.competitorName || '',
+            competitorLink: selectedProduct.competitorLink || '',
+            competitorPrice: selectedProduct.competitorPrice || '',
           }}
           onProductUpdate={(updatedInfo) => {
-            // Update the product in the products array
             setProducts(prevProducts => 
               prevProducts.map(p => 
                 p.id === selectedProductId 
@@ -193,6 +197,9 @@ const handleOpenColumnPicker = () => {
                       internalSKU: updatedInfo.internalSKU,
                       projectManager: updatedInfo.projectManager,
                       image: updatedInfo.image,
+                      competitorName: updatedInfo.competitorName,
+                      competitorLink: updatedInfo.competitorLink,
+                      competitorPrice: updatedInfo.competitorPrice,
                     }
                   : p
               )

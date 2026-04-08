@@ -17,6 +17,7 @@ import { VendorPricingPanel } from './VendorPricingPanel';
 interface ProductDetailsProps {
   productId: string;
   onBack: () => void;
+  projectNumber?: string;
   productData?: {
     name: string;
     client: string;
@@ -56,7 +57,7 @@ interface PricingTier {
   leadTime: number;
 }
 
-export function ProductDetails({ productId, onBack, productData, onProductUpdate }: ProductDetailsProps) {
+export function ProductDetails({ productId, onBack, projectNumber, productData, onProductUpdate }: ProductDetailsProps) {
   const [activeTab, setActiveTab] = useState('vendors');
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const [isAddVendorDrawerOpen, setIsAddVendorDrawerOpen] = useState(false);
@@ -231,7 +232,14 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
               <span className="font-medium hidden sm:inline">Back</span>
             </motion.button>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+                {projectNumber && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-lg border bg-green-50 text-green-700 border-green-200 shrink-0">
+                    {projectNumber}
+                  </span>
+                )}
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5 hidden sm:block">
                 Complete product sourcing information and supplier details
               </p>
@@ -284,7 +292,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
         {checklistProgress.total > 0 && (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-slate-500">Overall Completion</span>
+              <span className="text-xs font-medium text-slate-500">Overall Completion</span>
               <span className={`text-xs font-bold ${getProgressTextColor()}`}>{progressPercent}%</span>
             </div>
             <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
@@ -304,9 +312,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
           {/* Product Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
+          <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: '1fr 3fr' }}>
             {/* Image */}
-            <div className="md:col-span-3">
+            <div>
               <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200">
                 {productInfo.image ? (
                   <img
@@ -326,7 +334,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
             </div>
 
             {/* Internal Information */}
-            <div className="md:col-span-9">
+            <div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-slate-500">Internal Information</h3>
@@ -470,8 +478,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       onClick={() => { setVendorToEdit(null); setIsAddVendorDrawerOpen(true); }}
                     >
                       <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Add Vendor</span>
-                      <span className="sm:hidden">Add</span>
+                      <span className="hidden sm:inline">Link Vendor</span>
+                      <span className="sm:hidden">Link</span>
                     </motion.button>
                   </div>
 
