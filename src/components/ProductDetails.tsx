@@ -11,6 +11,7 @@ import { FilesTab } from './FilesTab';
 import { ChatTab } from './ChatTab';
 import { TimelineTab } from './TimelineTab';
 import { AddVendorDrawer } from './AddVendorDrawer';
+import { LinkVendorDrawer } from './LinkVendorDrawer';
 import { EditProductInfoDrawer } from './EditProductInfoDrawer';
 import { VendorPricingPanel } from './VendorPricingPanel';
 
@@ -61,6 +62,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
   const [activeTab, setActiveTab] = useState('vendors');
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const [isAddVendorDrawerOpen, setIsAddVendorDrawerOpen] = useState(false);
+  const [isLinkVendorDrawerOpen, setIsLinkVendorDrawerOpen] = useState(false);
   const [vendorToEdit, setVendorToEdit] = useState<Vendor | null>(null);
   const [isOrderSampleDrawerOpen, setIsOrderSampleDrawerOpen] = useState(false);
   const [isEditProductInfoDrawerOpen, setIsEditProductInfoDrawerOpen] = useState(false);
@@ -472,7 +474,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     <motion.button
                       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-all shadow-lg shrink-0"
-                      onClick={() => { setVendorToEdit(null); setIsAddVendorDrawerOpen(true); }}
+                      onClick={() => setIsLinkVendorDrawerOpen(true)}
                     >
                       <Plus className="w-4 h-4" />
                       <span className="hidden sm:inline">Link Vendor</span>
@@ -692,6 +694,17 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
       </div>
 
       {/* ── Drawers / Modals ── */}
+
+      {/* Link Vendor — picks from existing global vendors */}
+      <LinkVendorDrawer
+        isOpen={isLinkVendorDrawerOpen}
+        onClose={() => setIsLinkVendorDrawerOpen(false)}
+        productId={productId}
+        existingVendorIds={vendors.map(v => (v as any).globalVendorId || v.id)}
+        onVendorLinked={() => { fetchVendors(); triggerAutoProgress(); }}
+      />
+
+      {/* Add/Edit Vendor — used only for editing an existing pipeline vendor */}
       <AddVendorDrawer
         isOpen={isAddVendorDrawerOpen}
         onClose={() => { setIsAddVendorDrawerOpen(false); setVendorToEdit(null); }}
