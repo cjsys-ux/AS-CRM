@@ -89,6 +89,19 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
   });
 
   const [checklistProgress, setChecklistProgress] = useState({ completed: 0, total: 0 });
+  const [tabProgress, setTabProgress] = useState<Record<string, { completed: number; total: number }>>({});
+
+  const updateTabProgress = (tab: string, items: { completed: boolean }[]) => {
+    const completed = items.filter(i => i.completed).length;
+    const total = items.length;
+    setTabProgress(prev => {
+      const next = { ...prev, [tab]: { completed, total } };
+      const allCompleted = Object.values(next).reduce((s, v) => s + v.completed, 0);
+      const allTotal = Object.values(next).reduce((s, v) => s + v.total, 0);
+      setChecklistProgress({ completed: allCompleted, total: allTotal });
+      return next;
+    });
+  };
 
   // ─── Fetch vendors ───────────────────────────────────────────────────────────
   const fetchVendors = useCallback(async () => {
@@ -662,25 +675,50 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   )}
 
                   <ChecklistWidget
-                    onUpdate={(items) => {
-                      const completed = items.filter(i => i.completed).length;
-                      setChecklistProgress({ completed, total: items.length });
-                    }}
+                    productId={productId}
+                    tabId="vendors"
+                    onUpdate={(items) => updateTabProgress('vendors', items)}
                   />
                 </div>
               )}
 
-              {activeTab === 'specifications' && <SpecificationsTab productId={productId} />}
-              {activeTab === 'packaging' && <PackagingTab productId={productId} />}
-              {activeTab === 'samples' && <SamplesTab productId={productId} />}
+              {activeTab === 'specifications' && (
+                <div className="space-y-6">
+                  <SpecificationsTab productId={productId} />
+                  <ChecklistWidget
+                    productId={productId}
+                    tabId="specifications"
+                    onUpdate={(items) => updateTabProgress('specifications', items)}
+                  />
+                </div>
+              )}
+              {activeTab === 'packaging' && (
+                <div className="space-y-6">
+                  <PackagingTab productId={productId} />
+                  <ChecklistWidget
+                    productId={productId}
+                    tabId="packaging"
+                    onUpdate={(items) => updateTabProgress('packaging', items)}
+                  />
+                </div>
+              )}
+              {activeTab === 'samples' && (
+                <div className="space-y-6">
+                  <SamplesTab productId={productId} />
+                  <ChecklistWidget
+                    productId={productId}
+                    tabId="samples"
+                    onUpdate={(items) => updateTabProgress('samples', items)}
+                  />
+                </div>
+              )}
               {activeTab === 'files' && (
                 <div className="space-y-6">
                   <FilesTab productId={productId} />
                   <ChecklistWidget
-                    onUpdate={(items) => {
-                      const completed = items.filter(i => i.completed).length;
-                      setChecklistProgress({ completed, total: items.length });
-                    }}
+                    productId={productId}
+                    tabId="files"
+                    onUpdate={(items) => updateTabProgress('files', items)}
                   />
                 </div>
               )}
