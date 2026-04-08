@@ -758,6 +758,8 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
         productId={productId}
         productInfo={productInfo}
         onSave={handleSaveProductInfo}
+        linkedVendors={vendors.map(v => v.name)}
+        checklistProgress={checklistProgress}
       />
 
       {/* Remove Vendor Confirm */}
