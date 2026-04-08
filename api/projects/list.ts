@@ -37,6 +37,10 @@ type MongoProject = {
   fileKey?: string;
   thumbnail?: string;
   productImage?: string;
+  projectNumber?: string;
+  competitorName?: string;
+  competitorLink?: string;
+  competitorPrice?: string;
 };
 
 type MongoUpload = {
@@ -176,6 +180,10 @@ function mapProject(
     internalSKU: project.internalSKU ?? project.sku ?? '',
     targetMargin: project.targetMargin ? String(project.targetMargin) : '',
     image: resolvedImage.imageUrl,
+    projectNumber: project.projectNumber ?? '',
+    competitorName: project.competitorName ?? '',
+    competitorLink: project.competitorLink ?? '',
+    competitorPrice: project.competitorPrice ?? '',
   };
 }
 
@@ -212,6 +220,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const upload of uploads) {
       if (upload.entityId && !uploadByEntityId.has(upload.entityId)) {
         uploadByEntityId.set(upload.entityId, upload);
+      }
+    }
+
+    // Backfill projectNumber for any products that don't have one yet
+    const projectsNeedingNumber = projects.filter(p => !p.projectNumber);
+    if (projectsNeedingNumber.length > 0) {
+      const allWithNumbers = projects.filter(p => p.projectNumber);
+      let maxNum = 0;
+      for (const p of allWithNumbers) {
+        const match = String(p.projectNumber).match(/ADP-(\d+)/);
+        if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+      }
+      for (const p of projectsNeedingNumber) {
+        maxNum++;
+        const pn = `ADP-${String(maxNum).padStart(5, '0')}`;
+        const id = p._id;
+        if (id) {
+          await db.collection('product_pipelines').updateOne({ _id: id }, { $set: { projectNumber: pn } });
+          p.projectNumber = pn;
+        }
       }
     }
 

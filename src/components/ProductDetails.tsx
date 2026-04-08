@@ -193,7 +193,6 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
   };
 
   const getProgressTextColor = () => {
-    if (progressPercent === 0) return 'text-slate-400';
     if (progressPercent >= 70) return 'text-green-600';
     if (progressPercent >= 40) return 'text-orange-600';
     return 'text-red-500';
@@ -264,7 +263,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
                   <motion.circle
                     cx="18" cy="18" r="14" fill="none"
-                    stroke={progressPercent === 0 ? '#cbd5e1' : progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
+                    stroke={progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
                     strokeWidth="3" strokeLinecap="round"
                     strokeDasharray={`${progressPercent * 0.88} 88`}
                     initial={{ strokeDasharray: '0 88' }}
@@ -272,13 +271,13 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 </svg>
-                <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${getProgressTextColor()}`}>
+                <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${getProgressTextColor()}`}>
                   {progressPercent}%
                 </span>
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-700">Progress</div>
-                <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
+                <div className="text-[10px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
               </div>
             </div>
 
@@ -563,16 +562,14 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                                 }`}
                               >
                                 <div className="flex items-start gap-2.5 mb-2">
-                                  {vendors.length > 1 && (
-                                    <div
-                                      className="mt-0.5 cursor-grab active:cursor-grabbing shrink-0 p-0.5 rounded hover:bg-slate-100 transition-colors"
-                                      draggable
-                                      onDragStart={(e) => { e.stopPropagation(); setDraggedVendorId(vendor.id); }}
-                                      onClick={e => e.stopPropagation()}
-                                    >
-                                      <GripVertical className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
-                                    </div>
-                                  )}
+                                  <div
+                                    className="mt-0.5 cursor-grab active:cursor-grabbing shrink-0 p-0.5 rounded hover:bg-slate-100 transition-colors"
+                                    draggable
+                                    onDragStart={(e) => { e.stopPropagation(); setDraggedVendorId(vendor.id); }}
+                                    onClick={e => e.stopPropagation()}
+                                  >
+                                    <GripVertical className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
+                                  </div>
                                   <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {(vendor as any).logo ? (
                                       <img src={(vendor as any).logo} alt="" className="w-full h-full object-cover" />

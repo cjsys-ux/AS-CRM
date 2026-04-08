@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Search, Building2, MapPin, Check } from 'lucide-react';
+import { X, Search, Building2, MapPin, Check, Star, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -39,11 +39,15 @@ export function LinkVendorDrawer({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedVendor, setSelectedVendor] = useState<GlobalVendor | null>(null);
   const [linking, setLinking] = useState(false);
+  const [priority, setPriority] = useState('Primary');
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setSearchTerm('');
     setSelectedVendor(null);
+    setPriority('Primary');
+    setShowPriorityDropdown(false);
     fetchVendors();
   }, [isOpen]);
 
@@ -120,7 +124,7 @@ export function LinkVendorDrawer({
           website: selectedVendor.website ?? null,
           country: selectedVendor.country ?? null,
           supportsDropShipping: selectedVendor.supportsDropShipping ?? false,
-          priority: existingVendorIds.length,
+          priority: ['Primary','Secondary','Backup','Other'].indexOf(priority) >= 0 ? ['Primary','Secondary','Backup','Other'].indexOf(priority) : existingVendorIds.length,
           moq: null,
           pricingTiers: [],
           globalVendorId: selectedVendor.id,
@@ -192,6 +196,68 @@ export function LinkVendorDrawer({
 
             {/* List */}
             <div className="flex-1 overflow-y-auto px-4 pb-4">
+
+              {/* Selected vendor preview — shown after picking */}
+              {selectedVendor && (
+                <div className="mb-3 mt-2 bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wide">Selected Vendor</span>
+                    </div>
+                    <button onClick={() => setSelectedVendor(null)} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Change</button>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {selectedVendor.logo
+                        ? <img src={selectedVendor.logo} alt="" className="w-full h-full object-cover" />
+                        : <span className="text-white font-bold text-xs">{selectedVendor.name?.charAt(0)?.toUpperCase()}</span>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900">{selectedVendor.name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {selectedVendor.country && <span className="text-xs text-slate-500 flex items-center gap-0.5"><MapPin className="w-3 h-3" />{selectedVendor.country}</span>}
+                        {resolveVendorType(selectedVendor) && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${getVendorTypeColor(resolveVendorType(selectedVendor))}`}>
+                            {resolveVendorType(selectedVendor)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Priority picker */}
+                  <div className="border-t border-blue-200 pt-2">
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Vendor Priority</label>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
+                        className="w-full flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-800 hover:border-slate-300 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Star className={`w-3.5 h-3.5 ${priority === 'Primary' ? 'text-amber-500 fill-amber-500' : priority === 'Secondary' ? 'text-slate-400 fill-slate-400' : 'text-slate-300'}`} />
+                          {priority}
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      </button>
+                      {showPriorityDropdown && (
+                        <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-10 overflow-hidden">
+                          {['Primary', 'Secondary', 'Backup'].map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => { setPriority(p); setShowPriorityDropdown(false); }}
+                              className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-slate-50 transition-colors ${priority === p ? 'bg-blue-50 text-blue-700' : 'text-slate-700'}`}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${p === 'Primary' ? 'text-amber-500 fill-amber-500' : p === 'Secondary' ? 'text-slate-400 fill-slate-400' : 'text-slate-300'}`} />
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Available */}
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider py-3">
@@ -317,7 +383,7 @@ export function LinkVendorDrawer({
                 disabled={!selectedVendor || linking}
                 className={`flex-1 px-4 py-2.5 font-medium rounded-xl transition-all text-sm ${
                   selectedVendor && !linking
-                    ? 'bg-slate-900 hover:bg-slate-800 text-white shadow-sm'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl'
                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
               >
