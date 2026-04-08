@@ -38,7 +38,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
     try {
       const [settingsRes, stateRes] = await Promise.all([
         fetch('/api/pipeline/settings/get'),
-        fetch(\`/api/pipeline/checklist/get?productId=\${encodeURIComponent(productId!)}&tabId=\${encodeURIComponent(tabId!)}\`),
+        fetch(`/api/pipeline/checklist/get?productId=${encodeURIComponent(productId!)}&tabId=${encodeURIComponent(tabId!)}`),
       ]);
 
       let labelItems: string[] = DEFAULT_ITEMS[tabId!] ?? [];
@@ -60,7 +60,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
 
       const merged: ChecklistItem[] = [
         ...labelItems.map((label, i) => ({
-          id: \`setting-\${tabId}-\${i}\`,
+          id: `setting-${tabId}-${i}`,
           label,
           completed: completionMap[label] ?? false,
           isCustom: false as boolean,
@@ -71,7 +71,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
       onUpdate?.(merged);
     } catch {
       const defaults = (DEFAULT_ITEMS[tabId!] ?? []).map((label, i) => ({
-        id: \`default-\${i}\`,
+        id: `default-${i}`,
         label,
         completed: false,
         isCustom: false as boolean,
@@ -101,7 +101,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
       });
     } catch {}
     try {
-      const key = \`product:\${productId}:checklist\`;
+      const key = `product:${productId}:checklist`;
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
       saved[tabId!] = updatedItems;
       localStorage.setItem(key, JSON.stringify(saved));
@@ -118,7 +118,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
   const addCustomItem = () => {
     if (!newItemText.trim()) return;
     const newItem: ChecklistItem = {
-      id: \`custom-\${Date.now()}\`,
+      id: `custom-${Date.now()}`,
       label: newItemText.trim(),
       completed: false,
       isCustom: true,
@@ -155,8 +155,8 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center \${completedCount === totalCount && totalCount > 0 ? 'bg-green-100' : 'bg-slate-100'}`}>
-            <CheckCircle2 className={`w-4 h-4 \${completedCount === totalCount && totalCount > 0 ? 'text-green-600' : 'text-slate-400'}`} />
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${completedCount === totalCount && totalCount > 0 ? 'bg-green-100' : 'bg-slate-100'}`}>
+            <CheckCircle2 className={`w-4 h-4 ${completedCount === totalCount && totalCount > 0 ? 'text-green-600' : 'text-slate-400'}`} />
           </div>
           <h3 className="font-bold text-slate-900 text-sm">{tabLabel} Checklist</h3>
         </div>
@@ -167,9 +167,9 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
         <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `\${progressPercent}%` }}
+            animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.5 }}
-            className={`h-full rounded-full \${progressPercent === 100 ? 'bg-green-500' : progressPercent >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
+            className={`h-full rounded-full ${progressPercent === 100 ? 'bg-green-500' : progressPercent >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
           />
         </div>
       </div>
@@ -193,7 +193,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
                       : <Circle className="w-[18px] h-[18px] text-slate-300" />
                     }
                   </motion.div>
-                  <span className={`text-sm \${item.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                  <span className={`text-sm ${item.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                     {item.label}
                   </span>
                   {item.isCustom && (
