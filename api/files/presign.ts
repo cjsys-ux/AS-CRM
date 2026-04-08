@@ -34,6 +34,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const safeId = normalizePart(entityId as string);
       const ext = safeFileName.includes('.') ? safeFileName.split('.').pop()! : 'jpg';
       key = `profile-images/${safeId}/profile.${ext}`;
+    } else if ((entityType as string) === 'project') {
+      const scopeId = normalizePart(entityId || 'unscoped');
+      key = `pipeline-images/${scopeId}/${Date.now()}-${safeFileName}`;
     } else {
       const scope = normalizePart(entityType || 'general');
       const scopeId = normalizePart(entityId || 'unscoped');

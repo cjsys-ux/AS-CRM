@@ -93,19 +93,25 @@ async function fetchS3ImagesByProjectId(projectIds: Set<string>): Promise<Map<st
   try {
     const s3 = getS3Client();
     const bucket = getS3Bucket();
-    const response = await s3.send(
-      new ListObjectsV2Command({ Bucket: bucket, Prefix: 'uploads/project/', MaxKeys: 1000 })
-    );
-    for (const obj of response.Contents ?? []) {
-      if (!obj.Key) continue;
-      // Key format: uploads/project/{entityId}/{timestamp}-{filename}
-      const parts = obj.Key.split('/');
-      if (parts.length < 4) continue;
-      const entityId = parts[2];
-      if (!entityId || entityId === 'new') continue;
-      if (!projectIds.has(entityId)) continue;
-      // Overwrite to keep lexicographically last key (newest timestamp)
-      s3ImageByProjectId.set(entityId, getProxyImageUrl(obj.Key));
+    // Scan both old (uploads/project/) and new (pipeline-images/) prefixes
+    const prefixes = ['pipeline-images/', 'uploads/project/'];
+    for (const prefix of prefixes) {
+      const response = await s3.send(
+        new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, MaxKeys: 1000 })
+      );
+      for (const obj of response.Contents ?? []) {
+        if (!obj.Key) continue;
+        // Key format: {prefix}{entityId}/{timestamp}-{filename}
+        const parts = obj.Key.split('/');
+        if (parts.length < 3) continue;
+        const entityId = prefix === 'pipeline-images/' ? parts[1] : parts[2];
+        if (!entityId || entityId === 'new') continue;
+        if (!projectIds.has(entityId)) continue;
+        // Keep lexicographically last key (newest timestamp); don't overwrite if already found
+        if (!s3ImageByProjectId.has(entityId)) {
+          s3ImageByProjectId.set(entityId, getProxyImageUrl(obj.Key));
+        }
+      }
     }
   } catch {
     // Non-fatal: return empty map so existing resolution paths continue to work

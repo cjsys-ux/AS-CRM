@@ -16,6 +16,7 @@ export function getS3Client(): S3Client {
   cachedS3Client = new S3Client({
     region,
     credentials: { accessKeyId, secretAccessKey },
+    followRegionRedirects: true,
   });
 
   return cachedS3Client;
