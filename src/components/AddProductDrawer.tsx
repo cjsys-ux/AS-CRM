@@ -137,6 +137,30 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     }
   }, [productData, isOpen]);
 
+  // Resize image to fit within maxDim and return as base64 + mime type
+  const resizeImage = (file: File, maxDim = 1200): Promise<{ base64: string; mimeType: string }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
@@ -147,20 +171,15 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       // Show a local preview immediately
       setUploadedImage(URL.createObjectURL(file));
 
-      // Convert file to base64 for server-side upload
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Resize to keep payload under Vercel's body-size limit
+      const { base64, mimeType } = await resizeImage(file);
 
       const uploadRes = await fetch('/api/files/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
+          fileName: file.name.replace(/\.[^.]+$/, '.jpg'),
+          fileType: mimeType,
           entityType: 'project',
           entityId: productData?.id ?? 'new',
           fileData: base64,
@@ -168,7 +187,8 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       });
 
       if (!uploadRes.ok) {
-        throw new Error('Failed to upload image.');
+        const errBody = await uploadRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `Upload failed (${uploadRes.status})`);
       }
 
       const { key } = await uploadRes.json();
@@ -176,7 +196,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     } catch (error) {
       console.error('Error uploading image:', error);
       setUploadedImage(null);
-      setImageUploadError('Image upload failed. Please try again.');
+      setImageUploadError(error instanceof Error ? error.message : 'Image upload failed. Please try again.');
     } finally {
       setIsProcessingImage(false);
     }
