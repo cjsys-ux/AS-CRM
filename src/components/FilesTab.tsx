@@ -352,9 +352,9 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {isImageType(file.type) && file.fileUrl ? (
+                        {isImageType(file.type) && file.key ? (
                           <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
-                            <img src={file.fileUrl} alt={file.name} className="w-full h-full object-cover" />
+                            <img src={`/api/files/image?key=${encodeURIComponent(file.key)}`} alt={file.name} className="w-full h-full object-cover" />
                           </div>
                         ) : (
                           <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -387,7 +387,8 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                           whileHover={{ scale: 1.15, backgroundColor: 'rgb(219 234 254)' }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
-                            if (file.fileUrl) window.open(file.fileUrl, '_blank');
+                            if (file.key) window.open(`/api/files/image?key=${encodeURIComponent(file.key)}`, '_blank');
+                            else if (file.fileUrl) window.open(file.fileUrl, '_blank');
                           }}
                           className="p-2.5 hover:bg-blue-50 rounded-xl transition-colors group/btn border-2 border-transparent hover:border-blue-200"
                         >
