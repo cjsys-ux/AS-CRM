@@ -17,6 +17,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const requiredVars = ['AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_S3_BUCKET'] as const;
+  const missingVars = requiredVars.filter(v => !process.env[v]);
+  if (missingVars.length > 0) {
+    console.error('Presign: missing env vars:', missingVars.join(', '));
+    return res.status(500).json({ error: `Missing environment variables: ${missingVars.join(', ')}` });
+  }
+
   const { fileName, fileType, entityType, entityId } = req.body ?? {};
 
   if (!fileName || !fileType) {
@@ -57,6 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       expiresIn: PRESIGN_EXPIRY_SECONDS,
     });
   } catch (error) {
+    console.error('Presign error:', error);
     const message = error instanceof Error ? error.message : 'Failed to generate presigned URL.';
     return res.status(500).json({ error: message });
   }
