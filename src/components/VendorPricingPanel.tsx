@@ -35,7 +35,7 @@ interface VendorPricingPanelProps {
   onVendorUpdated: (vendor: Vendor) => void;
 }
 
-const DDP_METHODS = ['Air', 'Sea', 'Express', 'Rail', 'Truck'];
+const DDP_METHODS = ['Air Cargo', 'Express Air', 'Fast Boat', 'Slow Boat', 'Rail', 'FTL'];
 
 const formatCurrency = (val: number | string): string => {
   const num = Number(val);
@@ -61,6 +61,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
   const [isEditing, setIsEditing] = useState(false);
   const [draggedTierIndex, setDraggedTierIndex] = useState<number | null>(null);
   const [dragOverTierIndex, setDragOverTierIndex] = useState<number | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   useEffect(() => {
     setPricingTiers(vendor.pricingTiers || []);
@@ -70,15 +71,16 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
     setIsEditing(false);
   }, [vendor.id]);
 
+  const canDrag = isEditing || hasChanges;
+
   const addTier = () => {
-    const lastTier = pricingTiers[pricingTiers.length - 1];
     const newTier: PricingTier = {
-      quantity: lastTier ? Number(lastTier.quantity) + 500 : moq ? parseInt(moq) : 100,
-      exwPrice: lastTier ? lastTier.exwPrice : 0,
-      fobPrice: lastTier ? lastTier.fobPrice : 0,
-      ddpPrice: lastTier ? lastTier.ddpPrice : 0,
-      ddpMethod: lastTier ? lastTier.ddpMethod : 'Sea',
-      leadTime: lastTier ? lastTier.leadTime : isDropship ? 2 : 30,
+      quantity: '',
+      exwPrice: '',
+      fobPrice: '',
+      ddpPrice: '',
+      ddpMethod: '',
+      leadTime: '',
     };
     setPricingTiers([...pricingTiers, newTier]);
     setHasChanges(true);
@@ -157,7 +159,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 </span>
               )}
             </div>
-            <p className="text-sm text-slate-300">{vendor.country}{vendor.type ? ` · ${vendor.type}` : ''}</p>
+            <p className="text-sm text-slate-300">{vendor.country}{vendor.type ? ` \u00b7 ${vendor.type}` : ''}</p>
           </div>
           <div className="flex items-center gap-2">
             {hasChanges && (
@@ -244,26 +246,37 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <input
                 type="text"
                 value={moq}
-                onChange={(e) => { setMoq(parseQty(e.target.value)); setHasChanges(true); }}
-                className="w-full text-center text-sm font-bold text-slate-900 bg-white border border-slate-200 hover:border-blue-300 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-2 py-1.5"
+                onChange={(e) => {
+                  const raw = parseQty(e.target.value);
+                  setMoq(raw);
+                  setHasChanges(true);
+                }}
+                className="w-full text-center text-sm font-bold text-slate-900 bg-white border border-slate-200 hover:border-blue-300 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-2 py-1.5 cursor-text"
                 placeholder="Set MOQ"
               />
             ) : (
-              <div className="text-sm font-bold text-slate-900">{moq ? formatQty(moq) : '—'}</div>
+              <div className="text-sm font-bold text-slate-900">
+                {moq ? formatQty(moq) : '\u2014'}
+              </div>
             )}
           </div>
           <div className="bg-slate-50 rounded-xl p-3 text-center">
             <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
             <div className="text-xs text-slate-500 mb-1">{isDropship ? 'Best Price' : 'Best FOB'}</div>
-            <div className="text-sm font-bold text-slate-900">{bestFob !== null ? formatCurrency(bestFob) : '—'}</div>
+            <div className="text-sm font-bold text-slate-900">
+              {bestFob !== null ? formatCurrency(bestFob) : '\u2014'}
+            </div>
           </div>
           <div className="bg-slate-50 rounded-xl p-3 text-center">
-            {isDropship
-              ? <Truck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-              : <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-            }
+            {isDropship ? (
+              <Truck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+            ) : (
+              <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+            )}
             <div className="text-xs text-slate-500 mb-1">{isDropship ? 'Dropship Days' : 'Lead Time'}</div>
-            <div className="text-sm font-bold text-slate-900">{bestLeadTime !== null ? `${bestLeadTime} days` : '—'}</div>
+            <div className="text-sm font-bold text-slate-900">
+              {bestLeadTime !== null ? `${bestLeadTime} days` : '\u2014'}
+            </div>
           </div>
         </div>
 
@@ -319,7 +332,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                     !isEditing && !hasChanges ? 'opacity-60 cursor-not-allowed' : ''
                   } ${isDropship ? 'bg-emerald-500 focus:ring-emerald-300' : 'bg-slate-300 focus:ring-slate-300'}`}
                 >
-                  <motion.span
+                  <motion.div
                     layout
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm ${isDropship ? 'translate-x-[18px]' : 'translate-x-[3px]'}`}
@@ -346,7 +359,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
             <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg mb-3">
               <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <p className="text-xs text-emerald-700">
-                <span className="font-semibold">Dropship vendor</span> — DDP and Ship Method columns are hidden. Lead times shown as Dropship Days.
+                <span className="font-semibold">Dropship vendor</span> — DDP and Ship Method columns are hidden since items ship directly from the vendor. Lead times shown as Dropship Days.
               </p>
             </div>
           )}
@@ -372,12 +385,12 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="w-[24px] px-1 py-2.5"></th>
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : 'w-[12%]'}`}>Qty</th>
+                      <th className="px-1 py-2.5 w-[28px]"></th>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : 'w-[18%]'}`}>Qty</th>
                       {!isDropship && (
-                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[14%]">EXW ($)</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[12%]">EXW ($)</th>
                       )}
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[14%]'}`}>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[12%]'}`}>
                         {isDropship ? 'Price ($)' : 'FOB ($)'}
                       </th>
                       {!isDropship && (
@@ -386,10 +399,10 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                           <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[16%]">Ship</th>
                         </>
                       )}
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[12%]'}`}>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'w-[12%] text-slate-500'}`}>
                         {isDropship ? 'Dropship Days' : 'Days'}
                       </th>
-                      <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[60px]">Actions</th>
+                      <th className="px-2 py-2.5 w-[36px] text-[11px] font-bold text-slate-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -400,7 +413,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0, height: 0 }}
-                          draggable
+                          draggable={canDrag}
                           onDragStart={() => setDraggedTierIndex(index)}
                           onDragOver={(e) => { e.preventDefault(); setDragOverTierIndex(index); }}
                           onDrop={() => {
@@ -414,19 +427,30 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                             setDraggedTierIndex(null); setDragOverTierIndex(null);
                           }}
                           onDragEnd={() => { setDraggedTierIndex(null); setDragOverTierIndex(null); }}
-                          className={`border-b border-slate-100 last:border-0 group hover:bg-slate-50/50 transition-colors ${
-                            dragOverTierIndex === index ? 'bg-blue-50/50' : draggedTierIndex === index ? 'opacity-40' : ''
+                          className={`border-b border-slate-100 last:border-0 group transition-colors ${
+                            draggedTierIndex === index ? 'opacity-40 bg-blue-50' : dragOverTierIndex === index ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'
                           }`}
                         >
-                          <td className="px-1 py-1.5 w-[24px]">
-                            <GripVertical className="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing transition-colors" />
+                          {/* Drag handle */}
+                          <td className="px-1 py-1.5 w-[28px]">
+                            {canDrag ? (
+                              <div className="flex items-center justify-center cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 transition-colors">
+                                <GripVertical className="w-3.5 h-3.5" />
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center p-0.5 text-slate-200">
+                                <GripVertical className="w-3.5 h-3.5" />
+                              </div>
+                            )}
                           </td>
                           <td className="px-3 py-1.5">
                             {isEditing || hasChanges ? (
                               <input
                                 type="text"
-                                value={tier.quantity}
+                                value={focusedField === `quantity-${index}` ? String(tier.quantity) : (String(tier.quantity) ? formatQty(tier.quantity) : '')}
                                 onChange={(e) => updateTier(index, 'quantity', parseQty(e.target.value))}
+                                onFocus={() => setFocusedField(`quantity-${index}`)}
+                                onBlur={() => setFocusedField(null)}
                                 className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-semibold text-slate-900 focus:outline-none transition-all"
                               />
                             ) : (
@@ -438,9 +462,14 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                               {isEditing || hasChanges ? (
                                 <input
                                   type="text"
-                                  value={tier.exwPrice}
+                                  value={focusedField === `exwPrice-${index}` ? String(tier.exwPrice) : (String(tier.exwPrice) ? formatCurrency(tier.exwPrice) : '')}
                                   onChange={(e) => updateTier(index, 'exwPrice', parseCurrency(e.target.value))}
-                                  onBlur={() => { const n = Number(tier.exwPrice); if (!isNaN(n)) updateTier(index, 'exwPrice', n.toFixed(2)); }}
+                                  onFocus={() => setFocusedField(`exwPrice-${index}`)}
+                                  onBlur={() => {
+                                    setFocusedField(null);
+                                    const n = Number(tier.exwPrice);
+                                    if (!isNaN(n)) updateTier(index, 'exwPrice', n.toFixed(2));
+                                  }}
                                   className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
                                 />
                               ) : (
@@ -452,9 +481,14 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                             {isEditing || hasChanges ? (
                               <input
                                 type="text"
-                                value={tier.fobPrice}
+                                value={focusedField === `fobPrice-${index}` ? String(tier.fobPrice) : (String(tier.fobPrice) ? formatCurrency(tier.fobPrice) : '')}
                                 onChange={(e) => updateTier(index, 'fobPrice', parseCurrency(e.target.value))}
-                                onBlur={() => { const n = Number(tier.fobPrice); if (!isNaN(n)) updateTier(index, 'fobPrice', n.toFixed(2)); }}
+                                onFocus={() => setFocusedField(`fobPrice-${index}`)}
+                                onBlur={() => {
+                                  setFocusedField(null);
+                                  const n = Number(tier.fobPrice);
+                                  if (!isNaN(n)) updateTier(index, 'fobPrice', n.toFixed(2));
+                                }}
                                 className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
                               />
                             ) : (
@@ -467,9 +501,14 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                                 {isEditing || hasChanges ? (
                                   <input
                                     type="text"
-                                    value={tier.ddpPrice}
+                                    value={focusedField === `ddpPrice-${index}` ? String(tier.ddpPrice) : (String(tier.ddpPrice) ? formatCurrency(tier.ddpPrice) : '')}
                                     onChange={(e) => updateTier(index, 'ddpPrice', parseCurrency(e.target.value))}
-                                    onBlur={() => { const n = Number(tier.ddpPrice); if (!isNaN(n)) updateTier(index, 'ddpPrice', n.toFixed(2)); }}
+                                    onFocus={() => setFocusedField(`ddpPrice-${index}`)}
+                                    onBlur={() => {
+                                      setFocusedField(null);
+                                      const n = Number(tier.ddpPrice);
+                                      if (!isNaN(n)) updateTier(index, 'ddpPrice', n.toFixed(2));
+                                    }}
                                     className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
                                   />
                                 ) : (
@@ -483,7 +522,10 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                                     onChange={(e) => updateTier(index, 'ddpMethod', e.target.value)}
                                     className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all text-center cursor-pointer"
                                   >
-                                    {DDP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                                    <option value="" disabled>Select</option>
+                                    {DDP_METHODS.map(m => (
+                                      <option key={m} value={m}>{m}</option>
+                                    ))}
                                   </select>
                                 ) : (
                                   <span className="px-2 py-1.5 text-sm text-slate-600 font-medium flex justify-center">{tier.ddpMethod}</span>
@@ -498,20 +540,23 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                                 value={tier.leadTime}
                                 onChange={(e) => updateTier(index, 'leadTime', parseQty(e.target.value))}
                                 className={`w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-medium focus:outline-none transition-all ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}
+                                placeholder={isDropship ? 'e.g. 2' : ''}
                               />
                             ) : (
                               <span className={`px-2 py-1.5 text-sm font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}>{tier.leadTime}</span>
                             )}
                           </td>
-                          <td className="px-2 py-1.5">
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => removeTier(index)}
-                              className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </motion.button>
+                          <td className="px-2 py-1.5 w-[36px]">
+                            {(isEditing || hasChanges) && (
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => removeTier(index)}
+                                className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </motion.button>
+                            )}
                           </td>
                         </motion.tr>
                       ))}
