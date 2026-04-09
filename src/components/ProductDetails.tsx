@@ -390,29 +390,32 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-            <motion.button
-              whileHover={{ x: -2 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onBack}
-              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium hidden sm:inline">Back</span>
-            </motion.button>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
-                {productProjectNumber && (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
-                    {productProjectNumber}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">Complete product sourcing information and supplier details</p>
+        <div className="flex items-center gap-4 sm:gap-6">
+          {/* Back button - left */}
+          <motion.button
+            whileHover={{ x: -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium hidden sm:inline">Back</span>
+          </motion.button>
+
+          {/* Product name + subtitle - center */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+              {productProjectNumber && (
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
+                  {productProjectNumber}
+                </span>
+              )}
             </div>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">Complete product sourcing information and supplier details</p>
           </div>
+
+          {/* Progress + Order Sample - right */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Progress Ring */}
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
