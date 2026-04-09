@@ -1,24 +1,24 @@
+import { ChecklistWidget } from './ChecklistWidget';
 import { motion } from 'motion/react';
 import { ArrowLeft, Plus, Edit, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
 import { SpecificationsTab } from './SpecificationsTab';
 import { PackagingTab } from './PackagingTab';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
 import { SamplesTab } from './SamplesTab';
-import { ChecklistWidget } from './ChecklistWidget';
 import { FilesTab } from './FilesTab';
 import { ChatTab } from './ChatTab';
 import { TimelineTab } from './TimelineTab';
-import { AddVendorDrawer } from './AddVendorDrawer';
 import { LinkVendorDrawer } from './LinkVendorDrawer';
 import { EditProductInfoDrawer } from './EditProductInfoDrawer';
 import { VendorPricingPanel } from './VendorPricingPanel';
+import { ImportCostAnalysis } from './ImportCostAnalysis';
+import { toast } from 'sonner';
+import { getProjectBadgeStaticClasses } from './projectNumberUtils';
 
 interface ProductDetailsProps {
   productId: string;
   onBack: () => void;
-  projectNumber?: string;
   productData?: {
     name: string;
     client: string;
@@ -27,12 +27,15 @@ interface ProductDetailsProps {
     type: string;
     internalSKU?: string;
     projectManager?: string;
+    htsCode?: string;
+    htsRate?: string;
+    htsBaseRate?: string;
+    htsSection301?: boolean;
+    sizeVariants?: string[];
     image: string;
     competitorName?: string;
     competitorLink?: string;
     competitorPrice?: string;
-    htsCode?: string;
-    htsRate?: string;
   };
   onProductUpdate?: (updatedProduct: any) => void;
 }
@@ -41,7 +44,11 @@ interface Vendor {
   id: string;
   name: string;
   country: string;
-  contact?: { name: string; email: string; phone: string };
+  contact?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
   type: string;
   platform: string;
   priority: string;
@@ -60,22 +67,17 @@ interface PricingTier {
   leadTime: number;
 }
 
-export function ProductDetails({ productId, onBack, projectNumber, productData, onProductUpdate }: ProductDetailsProps) {
+export function ProductDetails({ productId, onBack, productData, onProductUpdate }: ProductDetailsProps) {
   const [activeTab, setActiveTab] = useState('vendors');
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const [isAddVendorDrawerOpen, setIsAddVendorDrawerOpen] = useState(false);
-  const [isLinkVendorDrawerOpen, setIsLinkVendorDrawerOpen] = useState(false);
-  const [vendorToEdit, setVendorToEdit] = useState<Vendor | null>(null);
   const [isOrderSampleDrawerOpen, setIsOrderSampleDrawerOpen] = useState(false);
   const [isEditProductInfoDrawerOpen, setIsEditProductInfoDrawerOpen] = useState(false);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [vendorsLoading, setVendorsLoading] = useState(true);
-  const [unlinkConfirm, setUnlinkConfirm] = useState<{ open: boolean; vendorId: string | null; vendorName: string }>({
-    open: false, vendorId: null, vendorName: '',
-  });
+  const [sampleRefreshKey, setSampleRefreshKey] = useState(0);
   const [draggedVendorId, setDraggedVendorId] = useState<string | null>(null);
   const [dragOverVendorId, setDragOverVendorId] = useState<string | null>(null);
 
+  // Product Info State
   const [productInfo, setProductInfo] = useState({
     name: productData?.name || '',
     client: productData?.client || '',
@@ -84,16 +86,28 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
     type: productData?.type || '',
     internalSKU: productData?.internalSKU || '',
     projectManager: productData?.projectManager || '',
+    htsCode: productData?.htsCode || '',
+    htsRate: productData?.htsRate || '',
+    htsBaseRate: productData?.htsBaseRate || '',
+    htsSection301: productData?.htsSection301 || false,
+    sizeVariants: productData?.sizeVariants || [],
     image: productData?.image || '',
     competitorName: productData?.competitorName || '',
     competitorLink: productData?.competitorLink || '',
     competitorPrice: productData?.competitorPrice || '',
-    htsCode: productData?.htsCode || '',
-    htsRate: productData?.htsRate || '',
   });
 
+  // Project number (fetched from full product record)
+  const [productProjectNumber, setProductProjectNumber] = useState<string>('');
+
+  // Checklist progress state
   const [checklistProgress, setChecklistProgress] = useState({ completed: 0, total: 0 });
   const [tabProgress, setTabProgress] = useState<Record<string, { completed: number; total: number }>>({});
+
+  // Fetch product vendors from backend
+  const [productVendors, setProductVendors] = useState<Vendor[]>([]);
+  const [vendorsLoading, setVendorsLoading] = useState(true);
+  const [unlinkConfirm, setUnlinkConfirm] = useState<{ open: boolean; vendorId: string | null; vendorName: string }>({ open: false, vendorId: null, vendorName: '' });
 
   const updateTabProgress = (tab: string, items: { completed: boolean }[]) => {
     const completed = items.filter(i => i.completed).length;
@@ -107,8 +121,37 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
     });
   };
 
-  // ─── Fetch vendors ───────────────────────────────────────────────────────────
-  const fetchVendors = useCallback(async () => {
+  // Fetch project number from full product record
+  useEffect(() => {
+    const fetchProjectNumber = async () => {
+      try {
+        const res = await fetch(`/api/projects/get?id=${productId}`);
+        const data = await res.json();
+        if (data.success && data.product) {
+          if (data.product.projectNumber) {
+            setProductProjectNumber(data.product.projectNumber);
+          }
+          // Sync fields from full product record
+          setProductInfo(prev => ({
+            ...prev,
+            competitorName: data.product.competitorName || prev.competitorName || '',
+            competitorLink: data.product.competitorLink || prev.competitorLink || '',
+            competitorPrice: data.product.competitorPrice || prev.competitorPrice || '',
+            htsCode: data.product.htsCode || prev.htsCode || '',
+            htsRate: data.product.htsRate || prev.htsRate || '',
+            htsBaseRate: data.product.htsBaseRate || prev.htsBaseRate || '',
+            htsSection301: data.product.htsSection301 ?? prev.htsSection301 ?? false,
+            sizeVariants: data.product.sizeVariants || prev.sizeVariants || [],
+          }));
+        }
+      } catch (err) {
+        console.error('Error fetching project number:', err);
+      }
+    };
+    fetchProjectNumber();
+  }, [productId]);
+
+  const fetchProductVendors = useCallback(async () => {
     setVendorsLoading(true);
     try {
       const res = await fetch(`/api/pipeline/vendors/list?productId=${encodeURIComponent(productId)}`);
@@ -136,121 +179,178 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
         fobState: v.fobState,
         productsSupplied: v.productsSupplied,
         notes: v.notes,
+        globalVendorId: v.globalVendorId,
       }));
-      mapped.sort((a, b) => {
+      mapped.sort((a: any, b: any) => {
         const aO = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
         const bO = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
         return aO - bO;
       });
-      setVendors(mapped);
+      setProductVendors(mapped);
       if (mapped.length > 0) setExpandedVendor(prev => prev || mapped[0].id);
     } catch {
-      // silent
+      setProductVendors([]);
     } finally {
       setVendorsLoading(false);
     }
   }, [productId]);
 
-  useEffect(() => { fetchVendors(); }, [fetchVendors]);
-
-  // Auto-sync primary vendor name
   useEffect(() => {
-    if (vendors.length > 0 && vendors[0].name && vendors[0].name !== productInfo.vendor) {
-      setProductInfo(prev => ({ ...prev, vendor: vendors[0].name }));
-      onProductUpdate?.({ ...productInfo, vendor: vendors[0].name });
-    }
-  }, [vendors]);
+    fetchProductVendors();
+  }, [fetchProductVendors]);
 
-  // Auto-progress status
-  const triggerAutoProgress = useCallback(() => {
+  // Auto-sync vendor field in Internal Information with primary vendor (index 0)
+  useEffect(() => {
+    if (productVendors.length > 0) {
+      const primaryVendor = productVendors[0];
+      if (primaryVendor.name && primaryVendor.name !== productInfo.vendor) {
+        setProductInfo(prev => ({ ...prev, vendor: primaryVendor.name }));
+        onProductUpdate?.({ ...productInfo, vendor: primaryVendor.name });
+      }
+    }
+  }, [productVendors]);
+
+  // Auto-update status to "In Progress" on first activity (using localStorage)
+  const triggerAutoProgress = useCallback(async () => {
     if (productInfo.status !== 'New Product') return;
-    const newStatus = 'In Progress';
-    setProductInfo(prev => ({ ...prev, status: newStatus }));
-    onProductUpdate?.({ ...productInfo, status: newStatus });
-    if (productId) localStorage.setItem(`product:${productId}:status`, newStatus);
-    toast.success('Status automatically updated to "In Progress"');
-  }, [productId, productInfo, onProductUpdate]);
-
-  const handleDeleteVendor = async (vendorId: string) => {
+    
     try {
-      const res = await fetch('/api/pipeline/vendors/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: vendorId }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success('Vendor removed');
-      setVendors(prev => prev.filter(v => v.id !== vendorId));
-      if (expandedVendor === vendorId) setExpandedVendor(null);
-      triggerAutoProgress();
-    } catch {
-      toast.error('Failed to remove vendor');
+      // Update status locally without API call
+      const newStatus = 'In Progress';
+      setProductInfo(prev => ({ ...prev, status: newStatus }));
+      onProductUpdate?.({ ...productInfo, status: newStatus });
+      
+      // Save to localStorage for persistence
+      if (productId) {
+        localStorage.setItem(`product:${productId}:status`, newStatus);
+      }
+      
+      toast.success('Status automatically updated to "In Progress"');
+    } catch (err) {
+      console.error('Error auto-updating status:', err);
     }
-  };
+  }, [productId, productInfo, onProductUpdate]);
 
   const handleSaveProductInfo = (updatedInfo: any) => {
     setProductInfo(updatedInfo);
-    if (onProductUpdate) onProductUpdate(updatedInfo);
+    if (onProductUpdate) {
+      onProductUpdate(updatedInfo);
+    }
     triggerAutoProgress();
   };
 
-  const getPriorityBadge = (idx: number) => {
-    if (idx === 0) return { gradient: 'bg-gradient-to-r from-blue-600 to-blue-500', label: 'Primary', icon: true };
-    if (idx === 1) return { gradient: 'bg-gradient-to-r from-slate-600 to-slate-500', label: 'Backup', icon: false };
-    return { gradient: 'bg-gradient-to-r from-slate-500 to-slate-400', label: `Priority #${idx + 1}`, icon: false };
-  };
-
   const progressPercent = checklistProgress.total > 0
-    ? Math.round((checklistProgress.completed / checklistProgress.total) * 100) : 0;
+    ? Math.round((checklistProgress.completed / checklistProgress.total) * 100)
+    : 0;
 
   const getProgressColor = () => {
+    if (progressPercent === 100) return 'from-green-500 to-emerald-500';
     if (progressPercent >= 70) return 'from-green-400 to-green-500';
     if (progressPercent >= 40) return 'from-orange-400 to-amber-500';
     return 'from-red-400 to-red-500';
   };
 
-  const getProgressTextColor = () => {
+  const getProgressBgColor = () => {
+    if (progressPercent === 100) return 'text-green-600';
     if (progressPercent >= 70) return 'text-green-600';
     if (progressPercent >= 40) return 'text-orange-600';
     return 'text-red-500';
   };
 
+  const tabs = [
+    { id: 'vendors', label: 'Vendors' },
+    { id: 'specifications', label: 'Specifications' },
+    { id: 'packaging', label: 'Packaging' },
+    { id: 'samples', label: 'Samples' },
+    { id: 'files', label: 'Files' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'timeline', label: 'Timeline' },
+  ];
+
+  const getTabProgress = (tabId: string) => {
+    const tp = tabProgress[tabId];
+    if (!tp || tp.total === 0) return null;
+    return tp;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'New Product':    return 'bg-slate-100 text-slate-700 border-slate-200';
-      case 'In Progress':    return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'New Product': return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'In Progress': return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'Ready For Live': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'Live':           return 'bg-green-50 text-green-700 border-green-200';
-      default:               return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'Live': return 'bg-green-50 text-green-700 border-green-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
-  const tabs = [
-    { id: 'vendors',        label: 'Vendors' },
-    { id: 'specifications', label: 'Specifications' },
-    { id: 'packaging',      label: 'Packaging' },
-    { id: 'samples',        label: 'Samples' },
-    { id: 'files',          label: 'Files' },
-    { id: 'chat',           label: 'Chat' },
-    { id: 'timeline',       label: 'Timeline' },
-  ];
+  // Reorder vendor priority
+  const reorderVendor = async (vendorId: string, direction: 'up' | 'down') => {
+    const currentIndex = productVendors.findIndex(v => v.id === vendorId);
+    if (currentIndex === -1) return;
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= productVendors.length) return;
+
+    const newOrder = [...productVendors];
+    const [moved] = newOrder.splice(currentIndex, 1);
+    newOrder.splice(targetIndex, 0, moved);
+
+    // Assign sortOrder values and update state optimistically
+    const updatedVendors = newOrder.map((v, i) => ({ ...v, sortOrder: i }));
+    setProductVendors(updatedVendors);
+
+    // Persist sortOrder for both swapped vendors
+    const vendorsToUpdate = [updatedVendors[currentIndex], updatedVendors[targetIndex]];
+    try {
+      await Promise.all(
+        vendorsToUpdate.map(v =>
+          fetch('/api/pipeline/vendors/update', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: v.id, productId, sortOrder: v.sortOrder }),
+          })
+        )
+      );
+      const movedVendor = updatedVendors.find(v => v.id === vendorId);
+      const newPosition = updatedVendors.findIndex(v => v.id === vendorId) + 1;
+      toast.success(`${movedVendor?.name} moved to Priority #${newPosition}`);
+    } catch (err) {
+      console.error('Error persisting vendor order:', err);
+      toast.error('Failed to save vendor order');
+      fetchProductVendors(); // Revert on error
+    }
+  };
+
+  const getPriorityBadge = (idx: number) => {
+    if (idx === 0) {
+      return {
+        gradient: 'bg-gradient-to-r from-blue-600 to-blue-500',
+        label: 'Primary',
+        icon: true,
+      };
+    }
+    if (idx === 1) {
+      return {
+        gradient: 'bg-gradient-to-r from-slate-600 to-slate-500',
+        label: 'Backup',
+        icon: false,
+      };
+    }
+    return {
+      gradient: 'bg-gradient-to-r from-slate-500 to-slate-400',
+      label: `Priority #${idx + 1}`,
+      icon: false,
+    };
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-
-      {/* Blur backdrop when any drawer is open */}
-      {(isLinkVendorDrawerOpen || isAddVendorDrawerOpen || isOrderSampleDrawerOpen || isEditProductInfoDrawerOpen || unlinkConfirm.open) && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-10 pointer-events-none" />
-      )}
-
-      {/* ── Header ── sticky works because parent in App.tsx is overflow-y-auto */}
+      {/* Header */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0 sticky top-0 z-20">
-        {/* Row 1: back + title + right controls all inline */}
         <div className="flex items-center justify-between gap-4">
-          {/* Left: back + product name + project badge */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <motion.button
-              whileHover={{ x: -2 }} whileTap={{ scale: 0.95 }}
+              whileHover={{ x: -2 }}
+              whileTap={{ scale: 0.95 }}
               onClick={onBack}
               className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
             >
@@ -260,19 +360,15 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold text-slate-900 truncate">{productInfo.name}</h1>
-                {projectNumber && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-lg border bg-green-50 text-green-700 border-green-200 shrink-0">
-                    {projectNumber}
+                {productProjectNumber && (
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
+                    {productProjectNumber}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Complete product sourcing information and supplier details
-              </p>
+              <p className="text-xs text-slate-500 mt-0.5">Complete product sourcing information and supplier details</p>
             </div>
           </div>
-
-          {/* Right: progress ring + order sample — always inline */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
               <div className="relative w-9 h-9">
@@ -280,15 +376,16 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
                   <motion.circle
                     cx="18" cy="18" r="14" fill="none"
-                    stroke={progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
-                    strokeWidth="3" strokeLinecap="round"
+                    stroke={progressPercent === 100 ? '#22c55e' : progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
+                    strokeWidth="3"
+                    strokeLinecap="round"
                     strokeDasharray={`${progressPercent * 0.88} 88`}
                     initial={{ strokeDasharray: '0 88' }}
                     animate={{ strokeDasharray: `${progressPercent * 0.88} 88` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 </svg>
-                <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${getProgressTextColor()}`}>
+                <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${getProgressBgColor()}`}>
                   {progressPercent}%
                 </span>
               </div>
@@ -299,7 +396,8 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
             </div>
 
             <motion.button
-              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl flex items-center gap-2 shadow-lg transition-all shrink-0"
               onClick={() => setIsOrderSampleDrawerOpen(true)}
             >
@@ -311,11 +409,11 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
           </div>
         </div>
 
-        {/* Row 2: Overall Progress Bar */}
+        {/* Overall Progress Bar */}
         <div className="mt-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-slate-500">Overall Completion</span>
-            <span className={`text-xs font-bold ${getProgressTextColor()}`}>{progressPercent}%</span>
+            <span className={`text-xs font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
           </div>
           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <motion.div
@@ -328,13 +426,12 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
         </div>
       </div>
 
-      {/* ── Main Content ── */}
-      <div className="p-6">
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-
           {/* Product Overview */}
           <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: '1fr 3fr' }}>
-            {/* Image */}
+            {/* Product Image */}
             <div>
               <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200">
                 {productInfo.image ? (
@@ -342,7 +439,6 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     src={productInfo.image}
                     alt="Product"
                     className="w-full h-32 sm:h-48 object-contain rounded-lg"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 ) : (
                   <div className="w-full h-32 sm:h-48 flex items-center justify-center rounded-lg bg-slate-100">
@@ -360,7 +456,8 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-slate-500">Internal Information</h3>
                   <motion.button
-                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
                     onClick={() => setIsEditProductInfoDrawerOpen(true)}
                   >
@@ -385,12 +482,9 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Vendor</div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}
-                    </div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
                 </div>
-
                 {/* Row 2: Status | Type | Internal SKU */}
                 <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
@@ -410,35 +504,70 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}
-                    </div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
                 </div>
-
-                {/* Row 3: Project Manager | HTS Code | HTS Rate */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {/* Row 3: Project Manager | HTS Code | HTS Duty Rate */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}
-                    </div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {(productInfo as any).htsCode || <span className="text-slate-400 font-normal">—</span>}
-                    </div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Rate</div>
-                    <div className="text-sm font-semibold text-slate-900">
-                      {(productInfo as any).htsRate ? `${(productInfo as any).htsRate}%` : <span className="text-slate-400 font-normal">—</span>}
-                    </div>
+                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Duty Rate</div>
+                    {productInfo.htsBaseRate ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-500">Base Rate</span>
+                          <span className="text-sm font-semibold text-slate-900">{productInfo.htsBaseRate}%</span>
+                        </div>
+                        {productInfo.htsSection301 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                              Section 301
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">ACTIVE</span>
+                            </span>
+                            <span className="text-sm font-semibold text-red-600">+25%</span>
+                          </div>
+                        )}
+                        <div className="border-t border-slate-200 pt-1.5 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-700">Total Rate</span>
+                          <span className="text-sm font-bold text-slate-900">
+                            {productInfo.htsSection301
+                              ? `${(parseFloat(productInfo.htsBaseRate) + 25).toFixed(1)}%`
+                              : `${productInfo.htsBaseRate}%`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic font-normal">—</span>
+                    )}
+                  </div>
+                </div>
+                {/* Row 4: Size Variants */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
+                    {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {productInfo.sizeVariants.map((size: string) => (
+                          <span key={size} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            {size}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic font-normal">No sizes defined</span>
+                    )}
                   </div>
                 </div>
 
-                {/* Competitor Analysis — separate section below the grid */}
+                {/* Competitor Analysis */}
                 {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
                   <div className="mt-4 pt-4 border-t border-slate-200">
                     <div className="flex items-center gap-2 mb-3">
@@ -461,7 +590,8 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                         {productInfo.competitorLink ? (
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
-                            target="_blank" rel="noopener noreferrer"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
                           >
                             {productInfo.competitorLink}
@@ -481,34 +611,49 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
             </div>
           </div>
 
-          {/* ── Tabs ── */}
+          {/* Tabs */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div className="border-b border-slate-200 px-4 sm:px-6 overflow-x-auto">
               <div className="flex gap-4 sm:gap-6 min-w-max">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`py-4 px-2 text-sm font-medium transition-all relative ${
-                      activeTab === tab.id ? 'text-blue-600' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {tab.label}
-                    {activeTab === tab.id && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                      />
-                    )}
-                  </button>
-                ))}
+                {tabs.map((tab) => {
+                  const tabProgress = getTabProgress(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`py-4 px-2 text-sm font-medium transition-all relative flex items-center gap-2 ${
+                        activeTab === tab.id
+                          ? 'text-blue-600'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {tab.label}
+                      {tabProgress && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          tabProgress.completed === tabProgress.total && tabProgress.total > 0
+                            ? 'bg-green-100 text-green-700'
+                            : tabProgress.completed > 0
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {tabProgress.completed}/{tabProgress.total}
+                        </span>
+                      )}
+                      {activeTab === tab.id && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Tab Content */}
             <div className="p-3 sm:p-6">
-
-              {/* Vendors Tab */}
               {activeTab === 'vendors' && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between gap-3">
@@ -519,7 +664,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     <motion.button
                       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-all shadow-lg shrink-0"
-                      onClick={() => setIsLinkVendorDrawerOpen(true)}
+                      onClick={() => setIsAddVendorDrawerOpen(true)}
                     >
                       <Plus className="w-4 h-4" />
                       <span>Link Vendor</span>
@@ -530,7 +675,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     <div className="flex items-center justify-center py-16">
                       <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
                     </div>
-                  ) : vendors.length === 0 ? (
+                  ) : productVendors.length === 0 ? (
                     <div className="text-center py-16">
                       <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
                         <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -544,7 +689,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: 'minmax(0,5fr) minmax(0,7fr)' }}>
                       {/* Left: Vendor Cards */}
                       <div className="space-y-4">
-                        {vendors.map((vendor, idx) => {
+                        {productVendors.map((vendor, idx) => {
                           const badge = getPriorityBadge(idx);
                           return (
                             <div
@@ -553,13 +698,13 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                               onDragOver={(e) => { e.preventDefault(); setDragOverVendorId(vendor.id); }}
                               onDrop={() => {
                                 if (draggedVendorId && draggedVendorId !== vendor.id) {
-                                  const fromIdx = vendors.findIndex(v => v.id === draggedVendorId);
-                                  const toIdx = vendors.findIndex(v => v.id === vendor.id);
-                                  const newOrder = [...vendors];
+                                  const fromIdx = productVendors.findIndex(v => v.id === draggedVendorId);
+                                  const toIdx = productVendors.findIndex(v => v.id === vendor.id);
+                                  const newOrder = [...productVendors];
                                   const [moved] = newOrder.splice(fromIdx, 1);
                                   newOrder.splice(toIdx, 0, moved);
                                   const updatedVendors = newOrder.map((v, i) => ({ ...v, sortOrder: i }));
-                                  setVendors(updatedVendors);
+                                  setProductVendors(updatedVendors);
                                   Promise.all(
                                     updatedVendors.map(v =>
                                       fetch('/api/pipeline/vendors/update', {
@@ -572,7 +717,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                                     const movedV = updatedVendors.find(v => v.id === draggedVendorId);
                                     const newPos = updatedVendors.findIndex(v => v.id === draggedVendorId) + 1;
                                     toast.success(`${movedV?.name} moved to Priority #${newPos}`);
-                                  }).catch(() => { toast.error('Failed to save vendor order'); fetchVendors(); });
+                                  }).catch(() => { toast.error('Failed to save vendor order'); fetchProductVendors(); });
                                 }
                                 setDraggedVendorId(null); setDragOverVendorId(null);
                               }}
@@ -675,15 +820,29 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
 
                       {/* Right: Pricing Panel */}
                       <div>
-                        {expandedVendor && vendors.find(v => v.id === expandedVendor) ? (
-                          <VendorPricingPanel
-                            vendor={vendors.find(v => v.id === expandedVendor)!}
-                            productId={productId}
-                            onVendorUpdated={(updatedVendor) => {
-                              setVendors(prev => prev.map(v => v.id === updatedVendor.id ? { ...v, ...updatedVendor } : v));
-                              triggerAutoProgress();
-                            }}
-                          />
+                        {expandedVendor && productVendors.find(v => v.id === expandedVendor) ? (
+                          <div className="flex flex-col gap-0">
+                            <VendorPricingPanel
+                              vendor={productVendors.find(v => v.id === expandedVendor)!}
+                              productId={productId}
+                              onVendorUpdated={(updatedVendor) => {
+                                setProductVendors(prev => prev.map(v => v.id === updatedVendor.id ? { ...v, ...updatedVendor } : v));
+                                triggerAutoProgress();
+                              }}
+                            />
+                            {(() => {
+                              const vendor = productVendors.find(v => v.id === expandedVendor);
+                              if (!vendor?.pricingTiers || vendor.pricingTiers.length === 0) return null;
+                              return (
+                                <ImportCostAnalysis
+                                  pricingTiers={vendor.pricingTiers}
+                                  htsBaseRate={productInfo.htsBaseRate || ''}
+                                  htsSection301={productInfo.htsSection301 || false}
+                                  vendorName={vendor.name}
+                                />
+                              );
+                            })()}
+                          </div>
                         ) : (
                           <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center h-full min-h-[500px]">
                             <div className="w-24 h-24 bg-slate-200 rounded-2xl flex items-center justify-center mb-4">
@@ -701,6 +860,7 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                     </div>
                   )}
 
+                  {/* Vendors Tab Checklist */}
                   <ChecklistWidget
                     productId={productId}
                     tabId="vendors"
@@ -711,7 +871,14 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
 
               {activeTab === 'specifications' && <SpecificationsTab productId={productId} />}
               {activeTab === 'packaging' && <PackagingTab productId={productId} />}
-              {activeTab === 'samples' && <SamplesTab productId={productId} />}
+
+              {activeTab === 'samples' && (
+                <SamplesTab
+                  productId={productId}
+                  refreshKey={sampleRefreshKey}
+                />
+              )}
+
               {activeTab === 'files' && (
                 <div className="space-y-6">
                   <FilesTab productId={productId} />
@@ -722,89 +889,65 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                   />
                 </div>
               )}
-              {activeTab === 'chat' && <ChatTab productId={productId} />}
-              {activeTab === 'timeline' && <TimelineTab productId={productId} />}
+
+              {activeTab === 'chat' && (
+                <ChatTab productId={productId} />
+              )}
+
+              {activeTab === 'timeline' && (
+                <TimelineTab productId={productId} />
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Drawers / Modals ── */}
-
-      {/* Link Vendor — picks from existing global vendors */}
+      {/* Link Vendor Drawer */}
       <LinkVendorDrawer
-        isOpen={isLinkVendorDrawerOpen}
-        onClose={() => setIsLinkVendorDrawerOpen(false)}
-        productId={productId}
-        existingVendorIds={vendors.flatMap(v => [
-          (v as any).globalVendorId,
-          v.id,
-          v.name,  // match by name for vendors linked before globalVendorId was stored
-        ].filter(Boolean))}
-        onVendorLinked={() => { fetchVendors(); triggerAutoProgress(); }}
-      />
-
-      {/* Add/Edit Vendor — used only for editing an existing pipeline vendor */}
-      <AddVendorDrawer
         isOpen={isAddVendorDrawerOpen}
-        onClose={() => { setIsAddVendorDrawerOpen(false); setVendorToEdit(null); }}
+        onClose={() => setIsAddVendorDrawerOpen(false)}
         productId={productId}
-        mode="pipeline"
-        vendorData={vendorToEdit ? {
-          id: vendorToEdit.id,
-          name: vendorToEdit.name,
-          logo: (vendorToEdit as any).logo,
-          status: (vendorToEdit as any).status,
-          contactName: vendorToEdit.contact?.name,
-          email: vendorToEdit.contact?.email,
-          phone: vendorToEdit.contact?.phone,
-          wechatId: (vendorToEdit as any).wechatId,
-          type: vendorToEdit.type,
-          accountType: vendorToEdit.platform,
-          website: (vendorToEdit as any).website,
-          paymentTerms: (vendorToEdit as any).paymentTerms,
-          accountNumber: (vendorToEdit as any).accountNumber,
-          country: vendorToEdit.country,
-          fobCity: (vendorToEdit as any).fobCity,
-          fobState: (vendorToEdit as any).fobState,
-          productsSupplied: (vendorToEdit as any).productsSupplied,
-          notes: (vendorToEdit as any).notes,
-        } : null}
-        onSuccess={() => { fetchVendors(); triggerAutoProgress(); }}
+        existingVendorIds={productVendors.flatMap(v => [(v as any).globalVendorId, v.id, v.name].filter(Boolean))}
+        onVendorLinked={() => { fetchProductVendors(); triggerAutoProgress(); }}
       />
 
+      {/* Order Sample Drawer */}
       <OrderSampleDrawer
         isOpen={isOrderSampleDrawerOpen}
         onClose={() => setIsOrderSampleDrawerOpen(false)}
         productId={productId}
         productName={productInfo.name}
+        projectNumber={productProjectNumber}
         clientName={productInfo.client}
         competitorLink={productInfo.competitorLink || ''}
-        onSuccess={() => setIsOrderSampleDrawerOpen(false)}
+        onSuccess={() => {
+          setIsOrderSampleDrawerOpen(false);
+          setSampleRefreshKey(prev => prev + 1);
+        }}
       />
 
+      {/* Edit Product Info Drawer */}
       <EditProductInfoDrawer
         isOpen={isEditProductInfoDrawerOpen}
         onClose={() => setIsEditProductInfoDrawerOpen(false)}
         productId={productId}
         productInfo={productInfo}
         onSave={handleSaveProductInfo}
-        linkedVendors={vendors.map(v => v.name)}
+        linkedVendors={productVendors.map(v => v.name)}
         checklistProgress={checklistProgress}
       />
 
-      {/* Remove Vendor Confirm */}
+      {/* Unlink Vendor Confirmation */}
       {unlinkConfirm.open && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 w-96 shadow-2xl">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Remove Vendor</h3>
+          <div className="bg-white rounded-2xl p-8 w-96">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Unlink Vendor</h3>
             <p className="text-sm text-slate-500 mb-6">
-              Are you sure you want to remove{' '}
-              <span className="font-medium text-slate-900">{unlinkConfirm.vendorName}</span> from this product?
+              Are you sure you want to unlink <span className="font-medium">{unlinkConfirm.vendorName}</span> from this product?
             </p>
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-4">
               <button
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
                 onClick={() => setUnlinkConfirm({ open: false, vendorId: null, vendorName: '' })}
               >
                 Cancel
@@ -813,12 +956,22 @@ export function ProductDetails({ productId, onBack, projectNumber, productData, 
                 className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
                 onClick={async () => {
                   if (unlinkConfirm.vendorId) {
-                    await handleDeleteVendor(unlinkConfirm.vendorId);
-                    setUnlinkConfirm({ open: false, vendorId: null, vendorName: '' });
+                    try {
+                      await fetch('/api/pipeline/vendors/delete', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: unlinkConfirm.vendorId, productId }),
+                      });
+                      setProductVendors(prev => prev.filter(v => v.id !== unlinkConfirm.vendorId));
+                      setExpandedVendor(null);
+                      setUnlinkConfirm({ open: false, vendorId: null, vendorName: '' });
+                    } catch (err) {
+                      console.error('Error unlinking vendor:', err);
+                    }
                   }
                 }}
               >
-                Remove
+                Unlink
               </button>
             </div>
           </div>

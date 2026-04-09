@@ -168,24 +168,28 @@ const handleOpenColumnPicker = () => {
   if (selectedProductId && selectedProduct) {
     return (
       <>
-        <ProductDetails 
+        <ProductDetails
           productId={selectedProductId}
-          onBack={() => setSelectedProductId(null)}
-          projectNumber={selectedProduct.projectNumber}
+          onBack={() => {
+            setSelectedProductId(null);
+            fetchProducts();
+          }}
           productData={{
             name: selectedProduct.name,
             client: selectedProduct.client,
             vendor: selectedProduct.vendor || '',
             status: selectedProduct.status,
-            type: selectedProduct.type || '',
+            type: selectedProduct.type || 'Both',
             internalSKU: selectedProduct.internalSKU || '',
             projectManager: selectedProduct.projectManager || '',
+            htsCode: selectedProduct.htsCode || '',
+            htsBaseRate: selectedProduct.htsBaseRate || '',
+            htsSection301: selectedProduct.htsSection301 || false,
+            sizeVariants: selectedProduct.sizeVariants || [],
             image: selectedProduct.image,
             competitorName: selectedProduct.competitorName || '',
             competitorLink: selectedProduct.competitorLink || '',
             competitorPrice: selectedProduct.competitorPrice || '',
-            htsCode: selectedProduct.htsCode || '',
-            htsRate: selectedProduct.htsRate || '',
           }}
           onProductUpdate={(updatedInfo) => {
             setProducts(prevProducts => 
