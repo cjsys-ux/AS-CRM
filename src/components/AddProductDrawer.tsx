@@ -36,6 +36,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
@@ -139,6 +140,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     if (!file) return;
 
     setIsProcessingImage(true);
+    setUploadError(null);
 
     try {
       // Show a local preview immediately
@@ -157,7 +159,8 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       });
 
       if (!presignRes.ok) {
-        throw new Error('Failed to get upload URL.');
+        const errBody = await presignRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `Upload URL request failed (${presignRes.status})`);
       }
 
       const { uploadUrl, key } = await presignRes.json();
@@ -176,6 +179,9 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       setUploadedImageKey(key);
     } catch (error) {
       console.error('Error uploading image:', error);
+      const msg = error instanceof Error ? error.message : 'Image upload failed.';
+      setUploadError(msg);
+      setUploadedImage(null);
     } finally {
       setIsProcessingImage(false);
     }
@@ -390,6 +396,10 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
                       )}
                     </motion.div>
                   </label>
+
+                  {uploadError && (
+                    <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+                  )}
 
                   <div className="flex-1 space-y-3">
                     <motion.button
