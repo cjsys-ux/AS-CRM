@@ -1,6 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Upload, FileText, Image as ImageIcon, Download, Box, Trash2, Save } from 'lucide-react';
+import { Package, Upload, FileText, Image as ImageIcon, Download, Box, Trash2, Save, File } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
+
+const isImageFile = (fileName: string) => {
+  const ext = fileName?.split('.').pop()?.toLowerCase() ?? '';
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+};
+const getProxyUrl = (f: any) => f.key ? `/api/files/image?key=${encodeURIComponent(f.key)}` : f.fileUrl;
 import { UnitDropdown } from './UnitDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
@@ -354,15 +360,21 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-pink-600" />
+                      {isImageFile(f.fileName) && f.key ? (
+                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
+                          <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <FileText className="w-5 h-5 text-pink-600" />
+                      )}
                       <div>
                         <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
                         <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {f.fileUrl && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(f.fileUrl, '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                      {(f.key || f.fileUrl) && (
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
@@ -452,15 +464,21 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-purple-600" />
+                      {isImageFile(f.fileName) && f.key ? (
+                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
+                          <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <FileText className="w-5 h-5 text-purple-600" />
+                      )}
                       <div>
                         <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
                         <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {f.fileUrl && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(f.fileUrl, '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                      {(f.key || f.fileUrl) && (
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
@@ -550,15 +568,21 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-orange-600" />
+                      {isImageFile(f.fileName) && f.key ? (
+                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
+                          <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <FileText className="w-5 h-5 text-orange-600" />
+                      )}
                       <div>
                         <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
                         <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {f.fileUrl && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(f.fileUrl, '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                      {(f.key || f.fileUrl) && (
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
