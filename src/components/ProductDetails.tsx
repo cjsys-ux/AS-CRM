@@ -131,12 +131,17 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
           if (data.product.projectNumber) {
             setProductProjectNumber(data.product.projectNumber);
           }
-          // Sync competitor data from full product record
+          // Sync fields from full product record
           setProductInfo(prev => ({
             ...prev,
             competitorName: data.product.competitorName || prev.competitorName || '',
             competitorLink: data.product.competitorLink || prev.competitorLink || '',
             competitorPrice: data.product.competitorPrice || prev.competitorPrice || '',
+            htsCode: data.product.htsCode || prev.htsCode || '',
+            htsRate: data.product.htsRate || prev.htsRate || '',
+            htsBaseRate: data.product.htsBaseRate || prev.htsBaseRate || '',
+            htsSection301: data.product.htsSection301 ?? prev.htsSection301 ?? false,
+            sizeVariants: data.product.sizeVariants || prev.sizeVariants || [],
           }));
         }
       } catch (err) {
@@ -925,6 +930,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
       <EditProductInfoDrawer
         isOpen={isEditProductInfoDrawerOpen}
         onClose={() => setIsEditProductInfoDrawerOpen(false)}
+        productId={productId}
         productInfo={productInfo}
         onSave={handleSaveProductInfo}
         linkedVendors={productVendors.map(v => v.name)}

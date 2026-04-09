@@ -191,6 +191,7 @@ function DrawerDropdown({ value, onChange, options, placeholder, disabledOptions
 interface EditProductInfoDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  productId?: string;
   productInfo: {
     name: string;
     client: string;
@@ -216,7 +217,7 @@ interface EditProductInfoDrawerProps {
   checklistProgress?: { completed: number; total: number };
 }
 
-export function EditProductInfoDrawer({ isOpen, onClose, productInfo, onSave, linkedVendors, checklistProgress }: EditProductInfoDrawerProps) {
+export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave, linkedVendors, checklistProgress }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
@@ -281,7 +282,38 @@ export function EditProductInfoDrawer({ isOpen, onClose, productInfo, onSave, li
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (productId) {
+      try {
+        const payload: Record<string, unknown> = {
+          id: productId,
+          name: formData.name,
+          client: formData.client,
+          vendor: formData.vendor,
+          status: formData.status,
+          type: formData.type,
+          internalSKU: formData.internalSKU,
+          projectManager: formData.projectManager,
+          competitorName: formData.competitorName,
+          competitorLink: formData.competitorLink,
+          competitorPrice: formData.competitorPrice,
+          htsCode: formData.htsCode,
+          htsRate: formData.htsRate,
+          htsBaseRate: formData.htsBaseRate,
+          htsSection301: formData.htsSection301,
+          sizeVariants: formData.sizeVariants,
+        };
+        const res = await fetch('/api/projects/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Failed to save changes.');
+      } catch (err) {
+        console.error('Error saving product info:', err);
+        return;
+      }
+    }
     onSave(formData);
     onClose();
   };

@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'yearlyQty', 'pricePerUnit', 'totalValue', 'priority', 'deployment',
     'projectManager', 'internalSKU', 'targetMargin', 'imageKey',
     'competitorName', 'competitorLink', 'competitorPrice',
-    'htsCode', 'htsRate',
+    'htsCode', 'htsRate', 'htsBaseRate', 'htsSection301', 'sizeVariants',
   ];
 
   const setPayload: Record<string, unknown> = { updatedAt: new Date() };
