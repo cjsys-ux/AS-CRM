@@ -2,6 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getS3Bucket, getS3Client } from '../_s3';
 
+export const config = {
+  maxDuration: 30,
+};
+
+const MAX_BASE64_SIZE = 6_000_000; // ~4.5 MB decoded
+
 function normalizePart(input: string): string {
   return input
     .toLowerCase()
@@ -18,6 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!fileName || !fileType || !fileData) {
     return res.status(400).json({ error: 'fileName, fileType, and fileData are required.' });
+  }
+
+  if (typeof fileData === 'string' && fileData.length > MAX_BASE64_SIZE) {
+    return res.status(413).json({ error: 'File is too large. Maximum size is ~4.5 MB.' });
   }
 
   try {

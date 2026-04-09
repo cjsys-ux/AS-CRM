@@ -138,6 +138,12 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
+    const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5 MB
+    if (file.size > MAX_FILE_SIZE) {
+      setSubmitError('Image is too large. Maximum size is 4.5 MB.');
+      return;
+    }
+
     setIsProcessingImage(true);
     setSubmitError(null);
 
@@ -167,13 +173,15 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       });
 
       if (!uploadRes.ok) {
-        throw new Error('Failed to upload image.');
+        const errData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to upload image.');
       }
 
       const { key } = await uploadRes.json();
       setUploadedImageKey(key);
-    } catch {
-      setSubmitError('Image upload failed. Please try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Image upload failed.';
+      setSubmitError(msg);
     } finally {
       setIsProcessingImage(false);
     }

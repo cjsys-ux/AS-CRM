@@ -1,4 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 
 let cachedS3Client: S3Client | null = null;
 
@@ -16,6 +17,10 @@ export function getS3Client(): S3Client {
   cachedS3Client = new S3Client({
     region,
     credentials: { accessKeyId, secretAccessKey },
+    requestHandler: new NodeHttpHandler({
+      connectionTimeout: 5_000,
+      requestTimeout: 15_000,
+    }),
   });
 
   return cachedS3Client;
