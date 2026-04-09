@@ -29,14 +29,16 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     buildABox: false,
   });
   const [documents, setDocuments] = useState<{ id: number; name: string; date: string }[]>(product.documents || []);
-
+  
   // Parse leadTime string into productionTimeRange array
   const parseLeadTime = (leadTime: string | undefined): [number, number] => {
     if (!leadTime) return [3, 15];
+    // Handle new format: "14-21 Business Days" or "14-21 Total Days"
     const match = leadTime.match(/(\d+)-(\d+)/);
     if (match) {
       return [parseInt(match[1]), parseInt(match[2])];
     }
+    // Handle single number format: "14 Business Days"
     const singleMatch = leadTime.match(/(\d+)/);
     if (singleMatch) {
       const val = parseInt(singleMatch[1]);
@@ -44,7 +46,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     }
     return [3, 15];
   };
-
+  
   const [productionTimeRange, setProductionTimeRange] = useState<[number, number]>(
     product.productionTimeRange || parseLeadTime(product.leadTime)
   );
@@ -52,11 +54,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const [origin, setOrigin] = useState(product.origin || product.countryOfOrigin || '');
   const [nextDocId, setNextDocId] = useState((product.documents || []).length + 1);
   const KNOWN_VENDOR_TYPES = ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer'];
-  const resolvedVendorType = product.vendorType ||
+  // Initialize vendorType: check vendorType field first, then fall back to category if it's a known vendor type
+  const resolvedVendorType = product.vendorType || 
     (KNOWN_VENDOR_TYPES.includes(product.category) ? product.category : '') ||
     (product.vendor ? 'Promo Supplier' : '');
   const [vendorType, setVendorType] = useState(resolvedVendorType);
-  const resolvedCategory = product.productCategory ||
+  // Initialize category: use productCategory first, then category only if it's NOT a vendor type
+  const resolvedCategory = product.productCategory || 
     (product.category && !KNOWN_VENDOR_TYPES.includes(product.category) ? product.category : 'Apparel');
   const [category, setCategory] = useState(resolvedCategory);
   const productCategoryIsDistributor = resolvedVendorType === 'Product Distributor' || resolvedVendorType === 'Apparel Distributor';
@@ -134,7 +138,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       return a.localeCompare(b);
     });
   };
-
+  
   const generateColorCode = (color: string): string => {
     const codeMap: Record<string, string> = {
       'black': 'BLK', 'white': 'WHT', 'red': 'RED', 'blue': 'BLU', 'green': 'GRN',
@@ -175,11 +179,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   // Tiered Pricing Edit Functions
   const startEditingTieredPricing = () => {
     setEditedTieredPricing(JSON.parse(JSON.stringify(product.tieredPricing || [])));
-    const existingQtys = product.tieredPricing && product.tieredPricing.length > 0
+    const existingQtys = product.tieredPricing && product.tieredPricing.length > 0 
       ? Object.keys(product.tieredPricing[0].prices || {}).map(key => {
           const num = Number(key);
           return isNaN(num) ? key : num;
         }).sort((a, b) => {
+          // Sort numbers numerically, strings by size order
           if (typeof a === 'number' && typeof b === 'number') return a - b;
           if (typeof a === 'string' && typeof b === 'string') {
             const idxA = standardSizes.indexOf(a);
@@ -199,11 +204,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const cancelEditingTieredPricing = () => {
     setIsEditingTieredPricing(false);
     setEditedTieredPricing([]);
-    const existingQtys = product.tieredPricing && product.tieredPricing.length > 0
+    // Reset to original quantities/sizes from product
+    const existingQtys = product.tieredPricing && product.tieredPricing.length > 0 
       ? Object.keys(product.tieredPricing[0].prices || {}).map(key => {
           const num = Number(key);
           return isNaN(num) ? key : num;
         }).sort((a, b) => {
+          // Sort numbers numerically, strings by size order
           if (typeof a === 'number' && typeof b === 'number') return a - b;
           if (typeof a === 'string' && typeof b === 'string') {
             const idxA = standardSizes.indexOf(a);
@@ -256,8 +263,9 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     if (newQty && !isNaN(Number(newQty))) {
       const qty = Number(newQty);
       if (!editedQuantities.includes(qty)) {
-        const newQtys = [...editedQuantities, qty].sort((a, b) => (a as number) - (b as number));
+        const newQtys = [...editedQuantities, qty].sort((a, b) => a - b);
         setEditedQuantities(newQtys);
+        // Add this quantity to all rows
         const updated = editedTieredPricing.map(row => ({
           ...row,
           prices: { ...row.prices, [qty]: '' }
@@ -269,6 +277,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
   const removeQuantityColumn = (qty: number | string) => {
     setEditedQuantities(editedQuantities.filter(q => q !== qty));
+    // Remove this quantity from all rows
     const updated = editedTieredPricing.map(row => {
       const { [qty]: removed, ...rest } = row.prices;
       return { ...row, prices: rest };
@@ -316,12 +325,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   );
 
   const updateVariantPrice = (sku: string, size: string, price: number) => {
+    // Apply price to ALL variants with this size
     if (Math.abs(price - basePrice) < 0.001) {
+      // Reset to base price - remove size override
       setSizePriceOverrides(prev => {
         const next = { ...prev };
         delete next[size];
         return next;
       });
+      // Also clean up any individual SKU overrides for this size
       setSkuPriceOverrides(prev => {
         const next = { ...prev };
         Object.keys(next).forEach(k => {
@@ -331,6 +343,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       });
     } else {
       setSizePriceOverrides(prev => ({ ...prev, [size]: price }));
+      // Clear individual SKU overrides for this size since size-level now handles it
       setSkuPriceOverrides(prev => {
         const next = { ...prev };
         Object.keys(next).forEach(k => {
@@ -380,48 +393,51 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     new Set([...baseProductionDayOptions, productionTimeRange[0], productionTimeRange[1]])
   ).sort((a, b) => a - b);
 
-  // Determine if this is a distributor-type product
-  const isDistributorProduct = vendorType === 'Product Distributor' || vendorType === 'Apparel Distributor' ||
+  // Determine if this is a distributor-type product (no decoration/imprint needed by default)
+  const isDistributorProduct = vendorType === 'Product Distributor' || vendorType === 'Apparel Distributor' || 
     (product.category || '').toLowerCase().includes('distributor');
 
   const decorationMethodsList = [
-    'Screen Print', 'Pad Print', 'Full Color',
+    'Screen Print', 'Pad Print', 'Full Color', 
     'Laser Engrave', 'Embroidery', 'Heat Transfer',
     'Sublimation', 'Deboss', 'UV Print', 'DTF'
   ];
 
   const imprintLocationsList = [
-    'Front', 'Back', 'Bottom', 'Top',
+    'Front', 'Back', 'Bottom', 'Top', 
     'Screen', 'Back Panel', 'Back Neck', 'Side',
     'Left Chest', 'Right Chest', 'Left Sleeve', 'Right Sleeve', 'Collar', 'Hem'
   ];
 
   // Editable pricing structure
   const defaultMarginPct = parseFloat(String(product.margin || '50').replace('%', '')) || 50;
-
+  
   // Helper function to sort apparel sizes in order
   const getSizeSortOrder = (sizeStr: string): number => {
+    // Extract size from "Size XS" or just "XS" format
     const size = sizeStr.replace(/^Size\s+/i, '').trim();
     const sizeOrder: Record<string, number> = {
       'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5,
       '2XL': 6, '3XL': 7, '4XL': 8, '5XL': 9
     };
-    return sizeOrder[size] || 999;
+    return sizeOrder[size] || 999; // Unknown sizes go to end
   };
-
+  
   // Helper function to convert apparel size-based pricing to pricing rows
   const convertApparelPricingToRows = () => {
     if (!product.tieredPricing || product.tieredPricing.length === 0) return [];
-
-    const apparelPricingRow = product.tieredPricing.find((row: any) =>
+    
+    // Check if this is apparel size-based pricing
+    const apparelPricingRow = product.tieredPricing.find((row: any) => 
       row.decorationType === 'Apparel Size' || row.decorationMethod === 'Price'
     );
-
+    
     if (!apparelPricingRow || !apparelPricingRow.prices) return [];
-
+    
+    // Convert each size to a pricing row
     const rows: { id: number; qty: string; blankCost: number; decorationCost: number; margin: number }[] = [];
     let id = 1;
-
+    
     Object.entries(apparelPricingRow.prices).forEach(([size, price]: [string, any]) => {
       if (price && price !== '') {
         rows.push({
@@ -433,86 +449,93 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         });
       }
     });
-
+    
+    // Sort by size order (XS -> 5XL)
     rows.sort((a, b) => getSizeSortOrder(a.qty) - getSizeSortOrder(b.qty));
+    
+    // Reassign IDs after sorting to maintain sequential order
     rows.forEach((row, index) => {
       row.id = index + 1;
     });
-
+    
     return rows;
   };
-
+  
   // Decoration method-aware pricing state
   const [selectedDecorationMethod, setSelectedDecorationMethod] = useState<string>('Embroidery');
-
+  
   // Imprint method-aware pricing state
   const [selectedImprintMethod, setSelectedImprintMethod] = useState<'Embroidery' | 'Screen Print' | 'DTG' | ''>('');
   const [selectedQuantityTier, setSelectedQuantityTier] = useState<string>('Under 6');
   const [embroideryStitchCount, setEmbroideryStitchCount] = useState<string>(product.embroideryStitchCount || 'up to 5000');
   const [screenPrintColors, setScreenPrintColors] = useState<number>(product.screenPrintColors || 1);
   const [dtgFlatRate, setDtgFlatRate] = useState<number>(product.dtgFlatRate || 0);
-
+  
   // Screen Print Contract Pricing Integration
   const [screenPrintVendors, setScreenPrintVendors] = useState<{ id: string; name: string }[]>([]);
   const [selectedScreenPrintVendor, setSelectedScreenPrintVendor] = useState<string>(product.selectedScreenPrintVendor || '');
   const [contractPricingData, setContractPricingData] = useState<any>(null);
   const [loadingContractPricing, setLoadingContractPricing] = useState(false);
   const [showScreenPrintVendorDropdown, setShowScreenPrintVendorDropdown] = useState(false);
-
+  
   // Embroidery rate lookup: stitch count -> quantity tier -> rate
   const [embroideryRates, setEmbroideryRates] = useState<Record<string, Record<string, number>>>(
     product.embroideryRates || {
-      'up to 5000': { 'Under 6': 8.50, '7-14': 7.00, '15-29': 6.00, '30-74': 5.00, '75-149': 4.50, '150-299': 4.00, '300-599': 3.75, '600-999': 3.50 },
-      '6000': { 'Under 6': 9.50, '7-14': 8.00, '15-29': 7.00, '30-74': 6.00, '75-149': 5.50, '150-299': 5.00, '300-599': 4.75, '600-999': 4.50 },
-      '7000': { 'Under 6': 10.50, '7-14': 9.00, '15-29': 8.00, '30-74': 7.00, '75-149': 6.50, '150-299': 6.00, '300-599': 5.75, '600-999': 5.50 },
-      '8000': { 'Under 6': 11.50, '7-14': 10.00, '15-29': 9.00, '30-74': 8.00, '75-149': 7.50, '150-299': 7.00, '300-599': 6.75, '600-999': 6.50 },
-      '9000': { 'Under 6': 12.50, '7-14': 11.00, '15-29': 10.00, '30-74': 9.00, '75-149': 8.50, '150-299': 8.00, '300-599': 7.75, '600-999': 7.50 },
-      '10000': { 'Under 6': 13.50, '7-14': 12.00, '15-29': 11.00, '30-74': 10.00, '75-149': 9.50, '150-299': 9.00, '300-599': 8.75, '600-999': 8.50 },
-      '12000': { 'Under 6': 15.50, '7-14': 14.00, '15-29': 13.00, '30-74': 12.00, '75-149': 11.50, '150-299': 11.00, '300-599': 10.75, '600-999': 10.50 },
+      'up to 5000': { 'Under 6': 8.50, '7–14': 7.00, '15–29': 6.00, '30–74': 5.00, '75–149': 4.50, '150–299': 4.00, '300–599': 3.75, '600–999': 3.50 },
+      '6000': { 'Under 6': 9.50, '7–14': 8.00, '15–29': 7.00, '30–74': 6.00, '75–149': 5.50, '150–299': 5.00, '300–599': 4.75, '600–999': 4.50 },
+      '7000': { 'Under 6': 10.50, '7–14': 9.00, '15–29': 8.00, '30–74': 7.00, '75–149': 6.50, '150–299': 6.00, '300–599': 5.75, '600–999': 5.50 },
+      '8000': { 'Under 6': 11.50, '7–14': 10.00, '15–29': 9.00, '30–74': 8.00, '75–149': 7.50, '150–299': 7.00, '300–599': 6.75, '600–999': 6.50 },
+      '9000': { 'Under 6': 12.50, '7–14': 11.00, '15–29': 10.00, '30–74': 9.00, '75–149': 8.50, '150–299': 8.00, '300–599': 7.75, '600–999': 7.50 },
+      '10000': { 'Under 6': 13.50, '7–14': 12.00, '15–29': 11.00, '30–74': 10.00, '75–149': 9.50, '150–299': 9.00, '300–599': 8.75, '600–999': 8.50 },
+      '12000': { 'Under 6': 15.50, '7–14': 14.00, '15–29': 13.00, '30–74': 12.00, '75–149': 11.50, '150–299': 11.00, '300–599': 10.75, '600–999': 10.50 },
     }
   );
-
+  
   // Screen print rate lookup: color count -> quantity tier -> rate
   const [screenPrintRates, setScreenPrintRates] = useState<Record<number, Record<string, number>>>(
     product.screenPrintRates || {
-      1: { 'Under 6': 6.00, '7-14': 5.00, '15-29': 4.50, '30-74': 4.00, '75-149': 3.50, '150-299': 3.00, '300-599': 2.75, '600-999': 2.50 },
-      2: { 'Under 6': 7.50, '7-14': 6.50, '15-29': 6.00, '30-74': 5.50, '75-149': 5.00, '150-299': 4.50, '300-599': 4.25, '600-999': 4.00 },
-      3: { 'Under 6': 9.00, '7-14': 8.00, '15-29': 7.50, '30-74': 7.00, '75-149': 6.50, '150-299': 6.00, '300-599': 5.75, '600-999': 5.50 },
-      4: { 'Under 6': 10.50, '7-14': 9.50, '15-29': 9.00, '30-74': 8.50, '75-149': 8.00, '150-299': 7.50, '300-599': 7.25, '600-999': 7.00 },
+      1: { 'Under 6': 6.00, '7–14': 5.00, '15–29': 4.50, '30–74': 4.00, '75–149': 3.50, '150–299': 3.00, '300–599': 2.75, '600–999': 2.50 },
+      2: { 'Under 6': 7.50, '7–14': 6.50, '15–29': 6.00, '30–74': 5.50, '75–149': 5.00, '150–299': 4.50, '300–599': 4.25, '600–999': 4.00 },
+      3: { 'Under 6': 9.00, '7–14': 8.00, '15–29': 7.50, '30–74': 7.00, '75–149': 6.50, '150–299': 6.00, '300–599': 5.75, '600–999': 5.50 },
+      4: { 'Under 6': 10.50, '7–14': 9.50, '15–29': 9.00, '30–74': 8.50, '75–149': 8.00, '150–299': 7.50, '300–599': 7.25, '600–999': 7.00 },
     }
   );
-
+  
   // Helper: Extract apparel size pricing from tieredPricing
   const extractApparelSizePricing = (): Record<string, number> => {
+    // First check if we have saved sizeBlankCosts
     if (product.sizeBlankCosts) {
       return product.sizeBlankCosts;
     }
-
+    
+    // Otherwise, extract from tieredPricing
     if (product.tieredPricing && product.tieredPricing.length > 0) {
-      const apparelPricingRow = product.tieredPricing.find((row: any) =>
+      const apparelPricingRow = product.tieredPricing.find((row: any) => 
         row.decorationType === 'Apparel Size' || row.decorationMethod === 'Price'
       );
-
+      
       if (apparelPricingRow && apparelPricingRow.prices) {
         const sizePricing: Record<string, number> = {};
         const sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
-
+        
         sizes.forEach(size => {
           const price = apparelPricingRow.prices[size];
           if (price !== undefined && price !== '') {
             sizePricing[size] = parseFloat(price) || 0;
           } else {
-            const upcharge = ['2XL', '3XL', '4XL'].includes(size)
-              ? parseInt(size.replace('XL', ''))
+            // Fallback to basePrice with upcharge for 2XL+
+            const upcharge = ['2XL', '3XL', '4XL'].includes(size) 
+              ? parseInt(size.replace('XL', '')) 
               : 0;
             sizePricing[size] = (basePrice || 0) + upcharge;
           }
         });
-
+        
         return sizePricing;
       }
     }
-
+    
+    // Final fallback to basePrice with upcharges
     return {
       'XS': basePrice || 0,
       'S': basePrice || 0,
@@ -524,17 +547,18 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       '4XL': (basePrice || 0) + 4,
     };
   };
-
+  
   // Size-based blank costs
   const [sizeBlankCosts, setSizeBlankCosts] = useState<Record<string, number>>(extractApparelSizePricing());
-
+  
   // Helper: Get decoration rate based on current method and config
   const getDecorationRate = (size: string): number | null => {
     if (selectedImprintMethod === 'Embroidery') {
       return embroideryRates[embroideryStitchCount]?.[selectedQuantityTier] || null;
     } else if (selectedImprintMethod === 'Screen Print') {
+      // Use contract pricing data if available
       if (contractPricingData && selectedScreenPrintVendor) {
-        const colorRow = contractPricingData.pricingMatrix?.find((row: any) =>
+        const colorRow = contractPricingData.pricingMatrix?.find((row: any) => 
           row.label === `${screenPrintColors} Color${screenPrintColors > 1 ? 's' : ''}`
         );
         if (colorRow && contractPricingData.quantityBrackets) {
@@ -544,13 +568,14 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
           }
         }
       }
+      // Fallback to screenPrintRates if contract pricing not available
       return screenPrintRates[screenPrintColors]?.[selectedQuantityTier] || null;
     } else if (selectedImprintMethod === 'DTG') {
       return dtgFlatRate;
     }
     return null;
   };
-
+  
   // Helper: Calculate row values
   const calculateRowValues = (size: string) => {
     const blankCost = sizeBlankCosts[size] || 0;
@@ -564,12 +589,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     const margin = defaultMarginPct;
     return { blankCost, decoCost, totalCost, margin, sellPrice };
   };
-
+  
   // Helper: Calculate summary averages
   const calculateSummaryAverages = () => {
     const sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
     let totalBlank = 0, totalDeco = 0, totalCost = 0, totalSell = 0, count = 0;
-
+    
     sizes.forEach(size => {
       const row = calculateRowValues(size);
       if (row.decoCost !== null && row.totalCost !== null && row.sellPrice !== null) {
@@ -580,49 +605,52 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         count++;
       }
     });
-
+    
     if (count === 0) return { avgBlank: 0, avgDeco: 0, avgTotalCost: 0, avgSellPrice: 0, margin: 0 };
-
+    
     const avgBlank = totalBlank / count;
     const avgDeco = totalDeco / count;
     const avgTotalCost = totalCost / count;
     const avgSellPrice = totalSell / count;
     const margin = avgTotalCost > 0 ? ((avgSellPrice - avgTotalCost) / avgSellPrice * 100) : 0;
-
+    
     return { avgBlank, avgDeco, avgTotalCost, avgSellPrice, margin };
   };
-
+  
   // Quantity tiers based on method
   const getQuantityTiersForMethod = (method: 'Embroidery' | 'Screen Print' | 'DTG'): string[] => {
     if (method === 'DTG') return [];
-    return ['Under 6', '7-14', '15-29', '30-74', '75-149', '150-299', '300-599', '600-999'];
+    return ['Under 6', '7–14', '15–29', '30–74', '75–149', '150–299', '300–599', '600–999'];
   };
-
+  
   // Method-specific pricing structure
   type MethodPricingRows = Record<string, { id: number; qty: string; blankCost: number; decorationCost: number; margin: number }[]>;
-
+  
   const initializeMethodPricing = (): MethodPricingRows => {
     const methods = ['Embroidery', 'Screen Print', 'DTG', 'Heat Transfer', 'Sublimation'];
     const methodPricing: MethodPricingRows = {};
-
+    
+    // Check if we have method-specific pricing already saved
     if (product.methodPricingRows) {
       return product.methodPricingRows;
     }
-
+    
+    // Otherwise, initialize empty arrays for each method
     methods.forEach(method => {
       methodPricing[method] = [];
     });
-
+    
+    // If we have apparel pricing, populate it for all methods
     const apparelRows = convertApparelPricingToRows();
     if (apparelRows.length > 0) {
       methods.forEach(method => {
         methodPricing[method] = JSON.parse(JSON.stringify(apparelRows));
       });
     }
-
+    
     return methodPricing;
   };
-
+  
   const [methodPricingRows, setMethodPricingRows] = useState<MethodPricingRows>(initializeMethodPricing());
   const [methodStitchCount, setMethodStitchCount] = useState<Record<string, string>>(
     product.methodStitchCount || { 'Embroidery': '5000', 'Screen Print': '', 'DTG': '', 'Heat Transfer': '', 'Sublimation': '' }
@@ -630,12 +658,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const [methodPoQuantity, setMethodPoQuantity] = useState<Record<string, string>>(
     product.methodPoQuantity || { 'Embroidery': '', 'Screen Print': '', 'DTG': '', 'Heat Transfer': '', 'Sublimation': '' }
   );
-
-  // Initialize pricing rows
+  
+  // Initialize pricing rows - use existing pricingRows or convert from apparel pricing
   const initialPricingRows = product.pricingRows && product.pricingRows.length > 0
     ? product.pricingRows
     : convertApparelPricingToRows();
-
+  
   const [pricingRows, setPricingRows] = useState<{ id: number; qty: string; blankCost: number; decorationCost: number; margin: number }[]>(
     initialPricingRows
   );
@@ -647,7 +675,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     const method = selectedDecorationMethod;
     const currentRows = methodPricingRows[method] || [];
     const newId = currentRows.length > 0 ? Math.max(...currentRows.map(r => r.id)) + 1 : 1;
-
+    
     setMethodPricingRows(prev => ({
       ...prev,
       [method]: [...currentRows, {
@@ -687,15 +715,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   };
 
   const toggleDecorationMethod = (method: string) => {
-    setDecorationMethods(prev =>
-      prev.includes(method)
+    setDecorationMethods(prev => 
+      prev.includes(method) 
         ? prev.filter(m => m !== method)
         : [...prev, method]
     );
   };
 
   // Fetch decorator vendors when embroidery (or similar decoration method) is selected
-  const needsDecorationVendor = decorationMethods.some(m =>
+  const needsDecorationVendor = decorationMethods.some(m => 
     ['Embroidery', 'Screen Print', 'Heat Transfer', 'DTF', 'Sublimation'].includes(m)
   );
   useEffect(() => {
@@ -703,7 +731,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       setDecorationVendors([]);
       return;
     }
-    fetch('/api/vendors')
+    fetch('/api/vendors/list')
       .then(res => res.json())
       .then(data => {
         if (data.success && data.vendors) {
@@ -725,41 +753,47 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     if (decorationMethods.length === 0) {
       setSelectedImprintMethod('');
     } else if (selectedImprintMethod && !decorationMethods.includes(selectedImprintMethod)) {
+      // Clear if the currently selected method was removed
       setSelectedImprintMethod('');
     }
   }, [decorationMethods, selectedImprintMethod]);
 
-  // Fetch screen print vendors
+  // Fetch screen print vendors (vendors tagged with screenprint decoration type)
   useEffect(() => {
     if (selectedImprintMethod !== 'Screen Print') return;
-
-    fetch('/api/vendors')
+    
+    fetch('/api/vendors/list')
       .then(res => res.json())
       .then(data => {
         if (data.success && data.vendors) {
+          // Filter vendors that have screenprint in their decoration types
           const screenPrintVendorsList = data.vendors
             .filter((v: any) => {
               const decorationTypes = v.decorationTypes || v.decorationType || [];
               const decorationTypesArray = Array.isArray(decorationTypes) ? decorationTypes : [decorationTypes];
-
+              
+              // Check if vendor has screen print decoration type
               const hasScreenPrint = decorationTypesArray.some((dt: string) => {
                 const dtLower = (dt || '').toLowerCase();
                 return dtLower.includes('screen') && dtLower.includes('print');
               });
-
+              
+              // Also check if vendor type is Decorator and name/id suggests screen printing
               const isDecorator = (v.type || v.vendorType || '').toLowerCase() === 'decorator';
               const nameIndicatesScreenPrint = (v.name || v.vendorName || v.companyName || '').toLowerCase().includes('screen');
-
+              
               return hasScreenPrint || (isDecorator && nameIndicatesScreenPrint);
             })
             .map((v: any) => ({
               id: v.id || '',
               name: v.name || v.vendorName || v.companyName || 'Unknown',
             }));
-
+          
+          console.log('Screen Print Vendors Found:', screenPrintVendorsList);
           setScreenPrintVendors(screenPrintVendorsList);
-
-          if (product.selectedScreenPrintVendor && screenPrintVendorsList.some((v: any) => v.id === product.selectedScreenPrintVendor)) {
+          
+          // Auto-select if product already has a saved vendor
+          if (product.selectedScreenPrintVendor && screenPrintVendorsList.some(v => v.id === product.selectedScreenPrintVendor)) {
             setSelectedScreenPrintVendor(product.selectedScreenPrintVendor);
           }
         }
@@ -773,18 +807,19 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       setContractPricingData(null);
       return;
     }
-
+    
     setLoadingContractPricing(true);
     fetch(`/api/contractpricing/${selectedScreenPrintVendor}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.items) {
-          const screenPrintSheet = data.items.find((item: any) =>
+          // Find screenprint pricing for 2026 (or latest year)
+          const screenPrintSheet = data.items.find((item: any) => 
             item.decorationType === 'screenprint' && item.year === '2026'
-          ) || data.items.find((item: any) =>
+          ) || data.items.find((item: any) => 
             item.decorationType === 'screenprint'
           );
-
+          
           if (screenPrintSheet) {
             setContractPricingData(screenPrintSheet);
           } else {
@@ -800,8 +835,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   }, [selectedScreenPrintVendor, selectedImprintMethod]);
 
   const toggleImprintLocation = (location: string) => {
-    setImprintLocations(prev =>
-      prev.includes(location)
+    setImprintLocations(prev => 
+      prev.includes(location) 
         ? prev.filter(l => l !== location)
         : [...prev, location]
     );
@@ -814,10 +849,9 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     }
   };
 
-  // Upload an image file using the presign/complete API pattern
+  // Upload a base64 image to Supabase Storage and return a URL
   const uploadImageFile = async (file: File): Promise<string> => {
     try {
-      // Step 1: Get presigned URL
       const presignRes = await fetch('/api/files/presign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -832,15 +866,11 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       if (!presignData.url || !presignData.key) {
         throw new Error('Failed to get presigned URL');
       }
-
-      // Step 2: Upload file to presigned URL
       await fetch(presignData.url, {
         method: 'PUT',
         headers: { 'Content-Type': file.type },
         body: file,
       });
-
-      // Step 3: Mark upload complete
       const completeRes = await fetch('/api/files/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -853,10 +883,10 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         }),
       });
       const completeData = await completeRes.json();
-      return completeData.url || presignData.url?.split('?')[0] || '';
+      if (completeData.url) return completeData.url;
+      return presignData.key;
     } catch (err) {
       console.warn('Product image upload error:', err);
-      // Fallback: create a local object URL so the image still shows
       return URL.createObjectURL(file);
     }
   };
@@ -868,18 +898,16 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     const filesToProcess = Array.from(files).slice(0, remaining);
     filesToProcess.forEach(async (file) => {
       const url = await uploadImageFile(file);
-      if (url) {
-        setProductImages(prev => [...prev, url]);
-        setImageFileNames(prev => [...prev, file.name]);
-      }
+      setProductImages(prev => [...prev, url]);
+      setImageFileNames(prev => [...prev, file.name]);
     });
-    // Reset input so same file can be re-selected
     e.target.value = '';
   };
 
   const handleDeleteImage = (idx: number) => {
     setProductImages(prev => prev.filter((_, i) => i !== idx));
     setImageFileNames(prev => prev.filter((_, i) => i !== idx));
+    // Update lifestyle image index when deleting
     setLifestyleImageIndex(prev => {
       if (prev === null) return null;
       if (prev === idx) return null;
@@ -914,6 +942,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       updated.splice(idx, 0, moved);
       return updated;
     });
+    // Update selected image index to follow the image
     if (selectedImage === draggedIndex) {
       setSelectedImage(idx);
     } else if (draggedIndex < selectedImage && idx >= selectedImage) {
@@ -921,6 +950,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     } else if (draggedIndex > selectedImage && idx <= selectedImage) {
       setSelectedImage(selectedImage + 1);
     }
+    // Update lifestyle image index to follow the image
     if (lifestyleImageIndex !== null) {
       if (lifestyleImageIndex === draggedIndex) {
         setLifestyleImageIndex(idx);
@@ -943,6 +973,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const handleSaveProduct = async () => {
     if (isSaving) return;
 
+    // Validate product name is required
     if (!productName.trim()) {
       toast.error('Product name is required');
       return;
@@ -950,6 +981,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
     setIsSaving(true);
     try {
+      // Upload any remaining base64 images to Supabase Storage before saving
+      // This prevents oversized KV store entries which can cause data loss
+      const uploadedImages = await Promise.all(
+        productImages.map(img => uploadImageToStorage(img))
+      );
+
+      // For pipeline-sourced products, preserve the real pipeline status.
+      // ProductDatabaseModule transforms 'Live' → 'Active' for display,
+      // so we must restore 'Live' when writing back to the pipeline store.
       const statusToSave = product._source === 'pipeline' ? 'Live' : productStatus;
 
       const productData = {
@@ -960,10 +1000,10 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         productLink,
         description: productDescription,
         status: statusToSave,
-        productImages,
+        productImages: uploadedImages,
         imageFileNames,
         lifestyleImageIndex,
-        image: productImages[0] || product.image || '',
+        image: uploadedImages[0] || product.image || '',
         decorationMethods,
         imprintLocations,
         showDecorationMethods,
@@ -995,6 +1035,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         methodPricingRows,
         methodStitchCount,
         methodPoQuantity,
+        // Imprint-method aware pricing
         embroideryStitchCount,
         screenPrintColors,
         dtgFlatRate,
@@ -1004,13 +1045,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         selectedScreenPrintVendor,
       };
 
-      const res = await fetch('/api/projects/update', {
+      const response = await fetch('/api/projects/update', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(productData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: product.id, ...productData }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await response.json();
+      if (data.success) {
         toast.success('Product saved successfully!');
         if (onSave) onSave();
       } else {
@@ -1050,19 +1093,23 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
   const aiSuggestColorsFromImages = () => {
     setAiSuggesting(true);
-
+    
+    // Simulate AI processing with a brief delay for UX
     setTimeout(() => {
       const detectedColors: { color: string; code: string; imageIndex: number }[] = [];
       const existingColorNames = colorGroups.map(g => g.color.toLowerCase());
-
+      
+      // Scan all image filenames and product name for color keywords
       const sources = [
         ...imageFileNames.map((name, idx) => ({ text: name, imageIdx: idx })),
         { text: productName, imageIdx: 0 },
       ];
-
+      
       for (const source of sources) {
         const textLower = source.text.toLowerCase().replace(/[_\-\.]/g, ' ');
+        // Check multi-word colors first, then single-word
         for (const colorName of sortedColorNames) {
+          // Use word boundary matching
           const regex = new RegExp(`(?:^|\\s|[_\\-])${colorName.replace(/\s+/g, '[\\s_\\-]+')}(?:\\s|[_\\-\\.]|$)`, 'i');
           if (regex.test(textLower) || textLower.includes(colorName)) {
             if (!existingColorNames.includes(colorName) && !detectedColors.some(d => d.color.toLowerCase() === colorName)) {
@@ -1093,6 +1140,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         setColorGroups(prev => [...prev, ...newGroups.map(ng => ng.group)]);
         setNextColorId(currentMaxId);
 
+        // Auto-assign images to their detected colors
+        const newVariantMap = { ...variantImageMap };
+        newGroups.forEach(ng => {
+          // We'll set the variant image mapping once sizes are added
+          // For now store a hint in the color-level mapping
+        });
+
         toast.success(`AI detected ${detectedColors.length} color${detectedColors.length > 1 ? 's' : ''}: ${detectedColors.map(d => d.color).join(', ')}`, {
           duration: 5000,
         });
@@ -1101,7 +1155,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
           duration: 5000,
         });
       }
-
+      
       setAiSuggesting(false);
     }, 800);
   };
@@ -1113,13 +1167,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       return;
     }
     const apparelCategories = ['Apparel', 'T-Shirts', 'Hoodies', 'Polos', 'Jackets'];
-    const isApparel = apparelCategories.some(c =>
-      category.toLowerCase().includes(c.toLowerCase()) ||
+    const isApparel = apparelCategories.some(c => 
+      category.toLowerCase().includes(c.toLowerCase()) || 
       subcategory.toLowerCase().includes(c.toLowerCase()) ||
       productName.toLowerCase().includes(c.toLowerCase())
     );
-
-    const suggestedSizes = isApparel
+    
+    const suggestedSizes = isApparel 
       ? ['S', 'M', 'L', 'XL', '2XL']
       : ['One Size'];
 
@@ -1127,7 +1181,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       ...g,
       sizes: g.sizes.length > 0 ? g.sizes : sortSizes([...new Set([...g.sizes, ...suggestedSizes])]),
     })));
-
+    
     toast.success(`AI added ${suggestedSizes.join(', ')} sizes to all color groups`);
   };
 
@@ -1254,7 +1308,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   <h3 className="text-base font-black text-slate-900">Product Gallery</h3>
                   <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">Featured</span>
                 </div>
-
+                
                 {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
@@ -1269,9 +1323,9 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 <div className="relative bg-slate-100 rounded-2xl overflow-hidden mb-4 aspect-square flex items-center justify-center">
                   {productImages.length > 0 ? (
                     <>
-                      <img
-                        src={productImages[selectedImage]}
-                        alt="Product"
+                      <img 
+                        src={productImages[selectedImage]} 
+                        alt="Product" 
                         className="w-full h-full object-contain p-3"
                       />
                       {/* Image type badge */}
@@ -1296,8 +1350,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       <div
                         key={idx}
                         className={`relative group w-20 h-20 rounded-xl overflow-hidden border-3 transition-all cursor-grab active:cursor-grabbing ${
-                          selectedImage === idx
-                            ? 'border-cyan-500 shadow-lg scale-105'
+                          selectedImage === idx 
+                            ? 'border-cyan-500 shadow-lg scale-105' 
                             : 'border-slate-200 opacity-70 hover:opacity-100'
                         } ${dragOverIndex === idx && draggedIndex !== idx ? 'ring-2 ring-cyan-400 ring-offset-2' : ''} ${draggedIndex === idx ? 'opacity-40 scale-95' : ''}`}
                         draggable
@@ -1343,7 +1397,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   </div>
                 )}
 
-                <button
+                <button 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={productImages.length >= 10}
                   className="w-full py-3 border-2 border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 hover:border-cyan-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1364,7 +1418,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
               >
                 <h3 className="text-base font-black text-slate-900 mb-3">Documents & Spec Sheets</h3>
-
+                
                 {/* Hidden document file input */}
                 <input
                   ref={docInputRef}
@@ -1412,7 +1466,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   ))}
                 </div>
 
-                <button
+                <button 
                   onClick={() => docInputRef.current?.click()}
                   className="w-full py-3 border-2 border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 hover:border-cyan-500 transition-all flex items-center justify-center gap-2"
                 >
@@ -1434,12 +1488,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
               >
                 <h3 className="text-base font-black text-slate-900 mb-3">General Information</h3>
-
+                
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-2">Product Name</label>
-                    <input
-                      type="text"
+                    <input 
+                      type="text" 
                       value={productName}
                       onChange={(e) => setProductName(e.target.value)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
@@ -1449,8 +1503,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-2">Base SKU</label>
-                      <input
-                        type="text"
+                      <input 
+                        type="text" 
                         value={productSku}
                         onChange={(e) => { setProductSku(e.target.value); setBaseSku(e.target.value); }}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
@@ -1458,8 +1512,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-2">Brand</label>
-                      <input
-                        type="text"
+                      <input 
+                        type="text" 
                         value={productBrand}
                         onChange={(e) => setProductBrand(e.target.value)}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
@@ -1470,8 +1524,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-2">Product Link</label>
                     <div className="relative">
-                      <input
-                        type="text"
+                      <input 
+                        type="text" 
                         value={productLink}
                         onChange={(e) => setProductLink(e.target.value)}
                         placeholder="www.example.com"
@@ -1483,7 +1537,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-2">Description</label>
-                    <textarea
+                    <textarea 
                       value={productDescription}
                       onChange={(e) => setProductDescription(e.target.value)}
                       rows={4}
@@ -1503,12 +1557,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
               >
                 <h3 className="text-base font-black text-slate-900 mb-3">Categorization</h3>
-
+                
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-2">Category</label>
-                      <select
+                      <select 
                         value={category}
                         onChange={(e) => {
                           const newCat = e.target.value;
@@ -1524,7 +1578,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-2">Subcategory</label>
-                      <select
+                      <select 
                         value={subcategory}
                         onChange={(e) => setSubcategory(e.target.value)}
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
@@ -1559,13 +1613,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
               >
                 <h3 className="text-base font-black text-slate-900 mb-3">Catalog Display Settings</h3>
-
+                
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-3">Where should this product display?</label>
                   <div className="space-y-2">
                     <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
-                      <input
-                        type="checkbox"
+                      <input 
+                        type="checkbox" 
                         checked={catalogDisplays.bulkSwag}
                         onChange={(e) => setCatalogDisplays({...catalogDisplays, bulkSwag: e.target.checked})}
                         className="w-5 h-5 rounded border-2 border-slate-300 text-cyan-600 focus:ring-2 focus:ring-cyan-500/20"
@@ -1573,8 +1627,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       <span className="text-sm font-semibold text-slate-900">Bulk Swag Catalog</span>
                     </label>
                     <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
-                      <input
-                        type="checkbox"
+                      <input 
+                        type="checkbox" 
                         checked={catalogDisplays.buildABox}
                         onChange={(e) => setCatalogDisplays({...catalogDisplays, buildABox: e.target.checked})}
                         className="w-5 h-5 rounded border-2 border-slate-300 text-cyan-600 focus:ring-2 focus:ring-cyan-500/20"
@@ -1606,13 +1660,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       </button>
                     </div>
                   </div>
-
+                  
                   {isDistributorProduct && (
                     <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-                      <p className="text-[11px] text-amber-700 font-medium">Distributor product -- decoration typically not applicable for blanks.</p>
+                      <p className="text-[11px] text-amber-700 font-medium">Distributor product — decoration typically not applicable for blanks.</p>
                     </div>
                   )}
-
+                  
                   <div className="relative mb-3">
                     <button
                       onClick={() => { setDecorationDropdownOpen(!decorationDropdownOpen); setImprintDropdownOpen(false); }}
@@ -1642,12 +1696,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   {decorationMethods.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {decorationMethods.map(method => (
-                        <span
+                        <span 
                           key={method}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 text-white text-xs font-semibold rounded-lg"
                         >
                           {method}
-                          <button
+                          <button 
                             onClick={() => toggleDecorationMethod(method)}
                             className="hover:bg-white/20 rounded-full p-0.5 transition-all"
                           >
@@ -1659,7 +1713,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   ) : (
                     <p className="text-xs text-slate-400 text-center py-2">No methods selected</p>
                   )}
-                  {/* Decoration Vendor Selector */}
+                  {/* Decoration Vendor Selector - shows when embroidery or similar method selected */}
                   {needsDecorationVendor && (
                     <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <label className="block text-xs font-bold text-amber-800 uppercase mb-2">
@@ -1756,7 +1810,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     </span>
                   )}
                 </div>
-
+                
                 <div className="space-y-3">
                   <div className="relative">
                     <label className="block text-xs font-bold text-slate-600 mb-2">Vendor Type</label>
@@ -1840,7 +1894,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Min Days</label>
-                            <select
+                            <select 
                               value={productionTimeRange[0]}
                               onChange={(e) => {
                                 const val = Number(e.target.value);
@@ -1855,7 +1909,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                           </div>
                           <div>
                             <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase">Max Days</label>
-                            <select
+                            <select 
                               value={productionTimeRange[1]}
                               onChange={(e) => {
                                 const val = Number(e.target.value);
@@ -1871,7 +1925,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         </div>
                         <div className="mt-2 px-3 py-2 bg-slate-50 rounded-lg">
                           <span className="text-xs font-semibold text-slate-600">
-                            Estimated: <span className="text-slate-900">{productionTimeRange[0]}--{productionTimeRange[1]} Days</span>
+                            Estimated: <span className="text-slate-900">{productionTimeRange[0]}–{productionTimeRange[1]} Days</span>
                           </span>
                         </div>
                       </>
@@ -1881,10 +1935,10 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   {/* 24 Hour Rush - only for non-distributor types */}
                   {vendorType !== 'Product Distributor' && vendorType !== 'Apparel Distributor' && (
                     <div>
-                      <label
+                      <label 
                         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                          qualifiesForRush
-                            ? 'bg-amber-50 border-2 border-amber-300'
+                          qualifiesForRush 
+                            ? 'bg-amber-50 border-2 border-amber-300' 
                             : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
                         }`}
                         onClick={() => setQualifiesForRush(!qualifiesForRush)}
@@ -1947,7 +2001,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
               >
                 <h3 className="text-base font-black text-slate-900 mb-3">Packaging Specs</h3>
-
+                
                 <div className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -1971,8 +2025,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     <div className="grid grid-cols-3 gap-2">
                       {(['l', 'w', 'h'] as const).map((key, i) => (
                         <div key={key} className="relative">
-                          <input
-                            type="number"
+                          <input 
+                            type="number" 
                             placeholder={i === 0 ? '25' : '10'}
                             value={dims[key] || ''}
                             onChange={(e) => setDims((prev: any) => ({ ...prev, [key]: e.target.value }))}
@@ -2004,8 +2058,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       </div>
                     </div>
                     <div className="relative">
-                      <input
-                        type="number"
+                      <input 
+                        type="number" 
                         placeholder="30"
                         value={caseWeight}
                         onChange={(e) => setCaseWeight(e.target.value)}
@@ -2035,8 +2089,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       </div>
                     </div>
                     <div className="relative">
-                      <input
-                        type="number"
+                      <input 
+                        type="number" 
                         placeholder="0"
                         value={productWeight}
                         onChange={(e) => setProductWeight(e.target.value)}
@@ -2097,13 +2151,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       </button>
                     </div>
                   </div>
-
+                  
                   {isDistributorProduct && (
                     <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
-                      <p className="text-[11px] text-amber-700 font-medium">Distributor product -- imprint locations may not apply for blanks.</p>
+                      <p className="text-[11px] text-amber-700 font-medium">Distributor product — imprint locations may not apply for blanks.</p>
                     </div>
                   )}
-
+                  
                   <div className="relative mb-3">
                     <button
                       onClick={() => { setImprintDropdownOpen(!imprintDropdownOpen); setDecorationDropdownOpen(false); }}
@@ -2133,12 +2187,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   {imprintLocations.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {imprintLocations.map(location => (
-                        <span
+                        <span 
                           key={location}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg"
                         >
                           {location}
-                          <button
+                          <button 
                             onClick={() => toggleImprintLocation(location)}
                             className="hover:bg-white/20 rounded-full p-0.5 transition-all"
                           >
@@ -2392,13 +2446,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         <div key={variant.sku} className="px-3 py-1.5 flex items-center gap-2 hover:bg-slate-50/50 transition-all group relative">
                           {/* Image */}
                           <div className="w-10 shrink-0">
-                            <div
+                            <div 
                               className="w-9 h-9 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:border-cyan-400 transition-all relative"
                               onClick={() => setImagePickerSku(imagePickerSku === variant.sku ? null : variant.sku)}
                             >
-                              <img
-                                src={productImages[variant.imageIndex] || productImages[0]}
-                                alt=""
+                              <img 
+                                src={productImages[variant.imageIndex] || productImages[0]} 
+                                alt="" 
                                 className="w-full h-full object-contain bg-slate-50"
                               />
                             </div>
@@ -2440,7 +2494,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                           <div className="flex-[2.5]">
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-medium text-slate-600">{variant.color}</span>
-                              <span className="text-slate-300">&#183;</span>
+                              <span className="text-slate-300">·</span>
                               <span className="text-xs font-semibold text-slate-800">{variant.size}</span>
                             </div>
                           </div>
@@ -2482,7 +2536,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                                 title={`Click to edit price for all ${variant.size} variants`}
                               >
                                 ${variant.price.toFixed(2)}
-                                {isSizeOverridden && <span className="ml-1 text-[9px] text-amber-500">&#9998; {variant.size}</span>}
+                                {isSizeOverridden && <span className="ml-1 text-[9px] text-amber-500">✎ {variant.size}</span>}
                               </button>
                             )}
                           </div>
@@ -2506,11 +2560,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
           {/* PCNA Tiered Pricing Display - Full Width */}
           {product.tieredPricing && product.tieredPricing.length > 0 && (() => {
+            // Detect if this is apparel pricing (has string keys like 'XS', 'S', etc.)
             const firstTier = product.tieredPricing[0];
             const priceKeys = firstTier?.prices ? Object.keys(firstTier.prices) : [];
             const isApparelPricing = priceKeys.length > 0 && isNaN(Number(priceKeys[0]));
             const columns = isApparelPricing ? sortSizes(priceKeys) : [250, 500, 750, 1125, 1500];
-
+            
             return (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -2532,7 +2587,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     </p>
                   </div>
                 </div>
-
+                
                 {!isEditingTieredPricing ? (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -2599,7 +2654,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         {isApparelPricing ? 'Attribute' : 'Decoration Method'}
                       </th>
                       {(isEditingTieredPricing ? editedQuantities : columns).map((col) => (
-                        <th key={String(col)} className="px-3 py-2 text-center text-xs font-bold text-slate-700 border border-slate-300 relative group">
+                        <th key={col} className="px-3 py-2 text-center text-xs font-bold text-slate-700 border border-slate-300 relative group">
                           {typeof col === 'number' ? col.toLocaleString() : col}
                           {isEditingTieredPricing && !isApparelPricing && editedQuantities.length > 1 && (
                             <button
@@ -2621,18 +2676,22 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   </thead>
                   <tbody>
                     {(() => {
+                      const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
                       const tiersToDisplay = isEditingTieredPricing ? editedTieredPricing : product.tieredPricing;
-
+                      
+                      // For apparel pricing, show a single "Price" row with prices for each size
                       if (isApparelPricing) {
+                        // Create a map of size -> price from the tiered pricing data
                         const sizePriceMap: any = {};
                         tiersToDisplay.forEach((tier: any) => {
                           const size = tier.imprintMethod || tier.decorationMethod || '';
                           if (size && tier.prices) {
+                            // Get the first price value for this size (there should only be one for apparel)
                             const priceValue = Object.values(tier.prices)[0];
                             sizePriceMap[size] = priceValue;
                           }
                         });
-
+                        
                         return (
                           <tr className="hover:bg-slate-50 transition-colors">
                             <td className="px-3 py-2.5 font-semibold text-sm text-slate-900 border border-slate-300">
@@ -2641,14 +2700,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                             {(isEditingTieredPricing ? editedQuantities : columns).map((col) => {
                               const currentPrice = sizePriceMap[col] || basePrice;
                               return (
-                                <td key={String(col)} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
+                                <td key={col} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
                                   {isEditingTieredPricing ? (
                                     <input
                                       type="number"
                                       step="0.01"
                                       value={currentPrice !== undefined && currentPrice !== '' ? currentPrice : basePrice}
                                       onChange={(e) => {
-                                        const tierIndex = editedTieredPricing.findIndex((t: any) =>
+                                        // Find the tier for this size and update it
+                                        const tierIndex = editedTieredPricing.findIndex((t: any) => 
                                           (t.imprintMethod || t.decorationMethod) === col
                                         );
                                         if (tierIndex !== -1) {
@@ -2659,21 +2719,23 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                                       className="w-full px-2 py-1 border border-slate-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                     />
                                   ) : (
-                                    currentPrice ? `$${parseFloat(currentPrice).toFixed(2)}` : '--'
+                                    currentPrice ? `$${parseFloat(currentPrice).toFixed(2)}` : '—'
                                   )}
                                 </td>
                               );
                             })}
                             {isEditingTieredPricing && (
                               <td className="px-3 py-2.5 text-center border border-slate-300">
+                                {/* No delete action for the single Price row */}
                               </td>
                             )}
                           </tr>
                         );
                       }
-
+                      
+                      // For non-apparel pricing, show multiple rows for different decoration methods
                       const sortedTiers = tiersToDisplay;
-
+                      
                       return sortedTiers.map((tier: any, index: number) => (
                         <tr key={index} className="hover:bg-slate-50 transition-colors group">
                           <td className="px-3 py-2.5 font-semibold text-sm text-slate-900 border border-slate-300">
@@ -2690,7 +2752,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                             )}
                           </td>
                           {(isEditingTieredPricing ? editedQuantities : columns).map((col) => (
-                            <td key={String(col)} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
+                            <td key={col} className="px-3 py-2.5 text-center text-sm font-medium text-slate-700 border border-slate-300">
                               {isEditingTieredPricing ? (
                                 <input
                                   type="number"
@@ -2703,7 +2765,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                               ) : (
                                 tier.prices[col] ? (
                                   `$${parseFloat(tier.prices[col]).toFixed(2)}`
-                                ) : '--'
+                                ) : '—'
                               )}
                             </td>
                           ))}
@@ -2749,7 +2811,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
               <div className="flex items-center gap-2">
                 {decorationMethods.length > 0 ? (
                   decorationMethods
-                    .filter((m): m is 'Embroidery' | 'Screen Print' | 'DTG' =>
+                    .filter((m): m is 'Embroidery' | 'Screen Print' | 'DTG' => 
                       ['Embroidery', 'Screen Print', 'DTG'].includes(m)
                     )
                     .map(method => (
@@ -2814,8 +2876,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 )}
               </div>
             </div>
-
-            {/* Screen Print Vendor Selection */}
+            
+            {/* Screen Print Vendor Selection (Required Before Viewing Pricing) */}
             {selectedImprintMethod === 'Screen Print' && screenPrintVendors.length === 0 && (
               <div className="px-6 py-8 bg-slate-50 border-b border-slate-200">
                 <div className="max-w-md mx-auto text-center">
@@ -2865,8 +2927,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 </div>
               </div>
             )}
-
-            {/* Selected Vendor Badge */}
+            
+            {/* Selected Vendor Badge (when vendor is chosen) */}
             {selectedImprintMethod === 'Screen Print' && selectedScreenPrintVendor && screenPrintVendors.length > 0 && (
               <div className="px-6 py-3 bg-amber-50/50 border-b border-amber-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2921,7 +2983,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         {(row.prices || []).map((price: string, idx: number) => (
                           <td key={idx} className="px-4 py-2 text-center">
                             <span className="text-sm font-bold text-amber-600">
-                              {price ? `$${parseFloat(price).toFixed(2)}` : '--'}
+                              {price ? `$${parseFloat(price).toFixed(2)}` : '—'}
                             </span>
                           </td>
                         ))}
@@ -2943,6 +3005,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 </thead>
                 <tbody>
                   {Object.keys(embroideryRates).sort((a, b) => {
+                    // Extract numeric value from stitch count strings
                     const numA = parseInt(a.replace(/[^\d]/g, ''));
                     const numB = parseInt(b.replace(/[^\d]/g, ''));
                     return numA - numB;
@@ -2952,7 +3015,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-1.5">
                             <span className="px-2 py-0.5 bg-blue-50 text-blue-900 text-xs font-bold rounded border border-blue-200">
-                              {stitchCount.replace('up to ', '<=')}
+                              {stitchCount.replace('up to ', '≤')}
                             </span>
                           </div>
                         </td>
@@ -2961,7 +3024,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                           return (
                             <td key={tier} className="px-4 py-2 text-center">
                               <span className="text-sm font-bold text-blue-600">
-                                {rate !== undefined ? `$${rate.toFixed(2)}` : '--'}
+                                {rate !== undefined ? `$${rate.toFixed(2)}` : '—'}
                               </span>
                             </td>
                           );
