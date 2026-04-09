@@ -387,11 +387,11 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+      <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0 sticky top-0 z-20">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <motion.button
               whileHover={{ x: -2 }}
               whileTap={{ scale: 0.95 }}
@@ -399,25 +399,24 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
               className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium hidden sm:inline">Back</span>
+              <span className="font-medium">Back</span>
             </motion.button>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg font-bold text-slate-900 truncate">{productInfo.name}</h1>
                 {productProjectNumber && (
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
                     {productProjectNumber}
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">Complete product sourcing information and supplier details</p>
+              <p className="text-xs text-slate-500 mt-0.5">Complete product sourcing information and supplier details</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Progress Ring */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
-              <div className="relative w-8 h-8 sm:w-9 sm:h-9">
-                <svg className="w-8 h-8 sm:w-9 sm:h-9 -rotate-90" viewBox="0 0 36 36">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+              <div className="relative w-9 h-9">
+                <svg className="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
                   <motion.circle
                     cx="18" cy="18" r="14" fill="none"
@@ -430,38 +429,37 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     transition={{ duration: 0.8, ease: 'easeOut' }}
                   />
                 </svg>
-                <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${getProgressBgColor()}`}>
+                <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${getProgressBgColor()}`}>
                   {progressPercent}%
                 </span>
               </div>
-              <div className="hidden sm:block">
+              <div>
                 <div className="text-xs font-bold text-slate-700">Progress</div>
-                <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
+                <div className="text-[10px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
               </div>
             </div>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl flex items-center gap-1.5 sm:gap-2 shadow-lg transition-all"
+              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl flex items-center gap-2 shadow-lg transition-all shrink-0"
               onClick={() => setIsOrderSampleDrawerOpen(true)}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              <span className="hidden sm:inline">Order Sample</span>
-              <span className="sm:hidden">Sample</span>
+              Order Sample
             </motion.button>
           </div>
         </div>
 
         {/* Overall Progress Bar */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-slate-500">Overall Completion</span>
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-slate-500">Overall Completion</span>
             <span className={`text-xs font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
@@ -473,12 +471,12 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+      <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
           {/* Product Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
+          <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: '1fr 3fr' }}>
             {/* Product Image */}
-            <div className="md:col-span-3">
+            <div>
               <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200">
                 {productInfo.image ? (
                   <img
@@ -497,7 +495,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
             </div>
 
             {/* Internal Information */}
-            <div className="md:col-span-9">
+            <div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-slate-500">Internal Information</h3>
@@ -511,49 +509,50 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     Edit
                   </motion.button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {/* Row 1: Product Name | Customer | Vendor */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Product Name</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.name}</div>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Customer</div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        {productInfo.client}
-                      </span>
-                    </div>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {productInfo.client}
+                    </span>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Vendor</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
+                </div>
+                {/* Row 2: Status | Type | Internal SKU */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Status</div>
-                    <div>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
-                        {productInfo.status}
-                      </span>
-                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
+                      {productInfo.status}
+                    </span>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Type</div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 border border-slate-300">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                        </svg>
-                        {productInfo.type}
-                      </span>
-                    </div>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 border border-slate-300">
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      {productInfo.type}
+                    </span>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU}</div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
+                </div>
+                {/* Row 3: Project Manager | HTS Code | HTS Duty Rate */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
@@ -562,10 +561,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
-
-                  {/* HTS Duty Rate Breakdown */}
-                  <div className="sm:col-span-2 bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-2">HTS Duty Rate</div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Duty Rate</div>
                     {productInfo.htsBaseRate ? (
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -595,8 +592,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <span className="text-sm text-slate-400 italic font-normal">—</span>
                     )}
                   </div>
-
-                  {/* Size Variants */}
+                </div>
+                {/* Row 4: Size Variants */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
                     {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
@@ -611,29 +609,29 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <span className="text-sm text-slate-400 italic font-normal">No sizes defined</span>
                     )}
                   </div>
+                </div>
 
-                  {/* Competitor Analysis Section */}
-                  {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
-                    <>
-                      <div className="sm:col-span-2 lg:col-span-3 pt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                          </div>
-                          <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                {/* Competitor Analysis */}
+                {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
+                        <div className="text-sm font-semibold text-slate-900">
+                          {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
                         </div>
                       </div>
-                      {productInfo.competitorName && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
-                          <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
-                        </div>
-                      )}
-                      {productInfo.competitorLink && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                        {productInfo.competitorLink ? (
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
                             target="_blank"
@@ -642,17 +640,17 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                           >
                             {productInfo.competitorLink}
                           </a>
+                        ) : <span className="text-slate-400 font-normal text-sm">—</span>}
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
+                        <div className="text-sm font-bold text-emerald-600">
+                          {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
                         </div>
-                      )}
-                      {productInfo.competitorPrice && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
-                          <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
