@@ -390,23 +390,56 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
-        {/* Row 1: Back button + action buttons */}
-        <div className="flex items-center justify-between gap-3">
-          <motion.button
-            whileHover={{ x: -2 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back</span>
-          </motion.button>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium rounded-xl transition-all cursor-pointer">
-              <span className={`text-xs font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
-              <span className="hidden sm:inline text-slate-500">{checklistProgress.completed}/{checklistProgress.total}</span>
-              <span className="text-slate-600 font-medium">Progress</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+            <motion.button
+              whileHover={{ x: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onBack}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium hidden sm:inline">Back</span>
+            </motion.button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+                {productProjectNumber && (
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
+                    {productProjectNumber}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">Complete product sourcing information and supplier details</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Progress Ring */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
+              <div className="relative w-8 h-8 sm:w-9 sm:h-9">
+                <svg className="w-8 h-8 sm:w-9 sm:h-9 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                  <motion.circle
+                    cx="18" cy="18" r="14" fill="none"
+                    stroke={progressPercent === 100 ? '#22c55e' : progressPercent >= 70 ? '#22c55e' : progressPercent >= 40 ? '#f97316' : '#ef4444'}
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progressPercent * 0.88} 88`}
+                    initial={{ strokeDasharray: '0 88' }}
+                    animate={{ strokeDasharray: `${progressPercent * 0.88} 88` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                  />
+                </svg>
+                <span className={`absolute inset-0 flex items-center justify-center text-[8px] font-bold ${getProgressBgColor()}`}>
+                  {progressPercent}%
+                </span>
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-xs font-bold text-slate-700">Progress</div>
+                <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
+              </div>
+            </div>
+
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -422,23 +455,20 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
           </div>
         </div>
 
-        {/* Row 2: Product title + badge */}
-        <div className="mt-3">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <h1 className="text-lg sm:text-2xl font-bold text-slate-900">{productInfo.name}</h1>
-            {productProjectNumber && (
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
-                {productProjectNumber}
-              </span>
-            )}
+        {/* Overall Progress Bar */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold text-slate-500">Overall Completion</span>
+            <span className={`text-xs font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">Complete product sourcing information and supplier details</p>
-        </div>
-
-        {/* Row 3: Overall Completion text */}
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500">Overall Completion</span>
-          <span className={`text-xs font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
+          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className={`h-full rounded-full bg-gradient-to-r ${getProgressColor()}`}
+            />
+          </div>
         </div>
       </div>
 
@@ -481,32 +511,13 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     Edit
                   </motion.button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Category</div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 border border-slate-300">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                        </svg>
-                        {productInfo.type}
-                      </span>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Product Name</div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.name}</div>
                   </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Status</div>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
-                        {productInfo.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Item SKU</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Customer</div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Customer</div>
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
                         <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -516,20 +527,78 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       </span>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Project Manager</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">HTS Code</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Vendor</div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Vendor</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Size Variants</div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Status</div>
+                    <div>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
+                        {productInfo.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Type</div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 border border-slate-300">
+                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                        {productInfo.type}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU}</div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
+                    <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
+                  </div>
+
+                  {/* HTS Duty Rate Breakdown */}
+                  <div className="sm:col-span-2 bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-2">HTS Duty Rate</div>
+                    {productInfo.htsBaseRate ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-slate-500">Base Rate</span>
+                          <span className="text-sm font-semibold text-slate-900">{productInfo.htsBaseRate}%</span>
+                        </div>
+                        {productInfo.htsSection301 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                              Section 301
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">ACTIVE</span>
+                            </span>
+                            <span className="text-sm font-semibold text-red-600">+25%</span>
+                          </div>
+                        )}
+                        <div className="border-t border-slate-200 pt-1.5 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-700">Total Rate</span>
+                          <span className="text-sm font-bold text-slate-900">
+                            {productInfo.htsSection301
+                              ? `${(parseFloat(productInfo.htsBaseRate) + 25).toFixed(1)}%`
+                              : `${productInfo.htsBaseRate}%`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic font-normal">—</span>
+                    )}
+                  </div>
+
+                  {/* Size Variants */}
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
                     {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {productInfo.sizeVariants.map((size: string) => (
@@ -543,80 +612,50 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     )}
                   </div>
 
-                  {/* HTS Duty Rate */}
-                  <div className="sm:col-span-2">
-                    <div className="text-xs font-semibold text-slate-400 mb-2">HTS Duty Rate</div>
-                    {productInfo.htsBaseRate ? (
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs text-slate-500">Base Rate</span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700">{productInfo.htsBaseRate}%</span>
-                        </div>
-                        {productInfo.htsSection301 && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-slate-500">Section 301</span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-red-100 text-red-700">+25%</span>
+                  {/* Competitor Analysis Section */}
+                  {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
+                    <>
+                      <div className="sm:col-span-2 lg:col-span-3 pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
                           </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-slate-600">Total</span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-slate-900 text-white">
-                            {productInfo.htsSection301
-                              ? `${(parseFloat(productInfo.htsBaseRate) + 25).toFixed(1)}%`
-                              : `${productInfo.htsBaseRate}%`
-                            }
-                          </span>
+                          <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
                         </div>
                       </div>
-                    ) : (
-                      <span className="text-sm text-slate-400 italic font-normal">—</span>
-                    )}
-                  </div>
+                      {productInfo.competitorName && (
+                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
+                          <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
+                        </div>
+                      )}
+                      {productInfo.competitorLink && (
+                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                          <a
+                            href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
+                          >
+                            {productInfo.competitorLink}
+                          </a>
+                        </div>
+                      )}
+                      {productInfo.competitorPrice && (
+                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
+                          <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Competitor Analysis */}
-          {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-slate-700">Competitor Analysis</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                {productInfo.competitorName && (
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Competitor Product</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
-                  </div>
-                )}
-                {productInfo.competitorLink && (
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Competitor Link</div>
-                    <a
-                      href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
-                    >
-                      {productInfo.competitorLink}
-                    </a>
-                  </div>
-                )}
-                {productInfo.competitorPrice && (
-                  <div>
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Competitor Price</div>
-                    <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Tabs */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
