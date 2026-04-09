@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const allowedFields = [
     'name', 'client', 'vendor', 'description', 'status', 'type',
     'yearlyQty', 'pricePerUnit', 'totalValue', 'priority', 'deployment',
-    'projectManager', 'internalSKU', 'targetMargin', 'imageKey',
+    'projectManager', 'internalSKU', 'targetMargin', 'image', 'imageKey',
     'competitorName', 'competitorLink', 'competitorPrice',
     'htsCode', 'htsRate',
   ];

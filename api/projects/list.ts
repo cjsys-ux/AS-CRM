@@ -118,9 +118,13 @@ function resolveProjectImage(
   uploadByEntityId: Map<string, MongoUpload>,
   s3ImageByProjectId: Map<string, string>
 ): { imageUrl: string; fromMongoImageField: boolean } {
-  // 1. Direct HTTP/HTTPS URL stored in image fields
+  // 1. Direct URL or data URI stored in image fields
   const directImage = project.image ?? project.imageUrl ?? project.thumbnail ?? project.productImage;
-  if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
+  if (
+    directImage?.startsWith('http://') ||
+    directImage?.startsWith('https://') ||
+    directImage?.startsWith('data:')
+  ) {
     return { imageUrl: directImage, fromMongoImageField: true };
   }
 

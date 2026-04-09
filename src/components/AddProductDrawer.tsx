@@ -34,7 +34,6 @@ interface AddProductDrawerProps {
 export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: AddProductDrawerProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
@@ -141,43 +140,19 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
     setIsProcessingImage(true);
 
     try {
-      // Show a local preview immediately
-      setUploadedImage(URL.createObjectURL(file));
-
-      // Convert file to base64
-      const base64Data = await new Promise<string>((resolve, reject) => {
+      // Convert file to base64 data URL and store directly (no S3 dependency)
+      const base64String = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onloadend = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]);
-        };
+        reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
 
-      // Upload server-side to S3 (avoids browser CORS issues with presigned URLs)
-      const uploadRes = await fetch('/api/files/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type,
-          entityType: 'project',
-          entityId: productData?.id ?? 'new',
-          fileData: base64Data,
-        }),
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload image.');
-      }
-
-      const { key } = await uploadRes.json();
-      setUploadedImageKey(key);
+      setUploadedImage(base64String);
+      setFormData(prev => ({ ...prev, image: base64String }));
     } catch (error) {
       console.error('Error uploading image:', error);
       setUploadedImage(null);
-      setUploadedImageKey(null);
     } finally {
       setIsProcessingImage(false);
     }
@@ -230,7 +205,7 @@ export function AddProductDrawer({ isOpen, onClose, productData, onSuccess }: Ad
       projectManager: formData.projectManager,
       internalSKU: formData.internalSKU,
       targetMargin: formData.targetMargin,
-      ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
+      ...(formData.image ? { image: formData.image } : {}),
     };
 
     try {
