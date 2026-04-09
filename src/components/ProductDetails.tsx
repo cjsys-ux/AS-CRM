@@ -389,35 +389,35 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 sm:py-6 flex-shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+      <div className="bg-white border-b border-slate-200 px-[16px] sm:px-[32px] py-[16px] sm:py-[24px] flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[12px] sm:gap-[16px]">
+          <div className="flex items-center gap-[12px] sm:gap-[16px] min-w-0 flex-1">
             <motion.button
               whileHover={{ x: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={onBack}
-              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors shrink-0"
+              className="flex items-center gap-[6px] text-slate-600 hover:text-slate-900 transition-colors shrink-0"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-[20px] h-[20px]" />
               <span className="font-medium hidden sm:inline">Back</span>
             </motion.button>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h1 className="text-base sm:text-xl font-bold text-slate-900 truncate">{productInfo.name}</h1>
+              <div className="flex items-center gap-[8px] sm:gap-[12px] flex-wrap">
+                <h1 className="text-[16px] leading-[24px] sm:text-[20px] sm:leading-[28px] font-bold text-slate-900 truncate">{productInfo.name}</h1>
                 {productProjectNumber && (
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
+                  <span className={`text-[12px] leading-[16px] font-semibold px-[8px] py-[2px] rounded-[8px] border shrink-0 ${getProjectBadgeStaticClasses(productProjectNumber)}`}>
                     {productProjectNumber}
                   </span>
                 )}
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1 hidden sm:block">Complete product sourcing information and supplier details</p>
+              <p className="text-[12px] leading-[16px] sm:text-[14px] sm:leading-[20px] text-slate-500 mt-[2px] sm:mt-[4px] hidden sm:block">Complete product sourcing information and supplier details</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-[8px] sm:gap-[12px] shrink-0">
             {/* Progress Ring */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
-              <div className="relative w-8 h-8 sm:w-9 sm:h-9">
-                <svg className="w-8 h-8 sm:w-9 sm:h-9 -rotate-90" viewBox="0 0 36 36">
+            <div className="flex items-center gap-[8px] bg-slate-50 border border-slate-200 rounded-[12px] px-[10px] sm:px-[12px] py-[6px] sm:py-[8px]">
+              <div className="relative w-[32px] h-[32px] sm:w-[36px] sm:h-[36px]">
+                <svg className="w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
                   <motion.circle
                     cx="18" cy="18" r="14" fill="none"
@@ -435,7 +435,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 </span>
               </div>
               <div className="hidden sm:block">
-                <div className="text-xs font-bold text-slate-700">Progress</div>
+                <div className="text-[12px] leading-[16px] font-bold text-slate-700">Progress</div>
                 <div className="text-[11px] text-slate-500">{checklistProgress.completed}/{checklistProgress.total} items</div>
               </div>
             </div>
@@ -443,10 +443,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl flex items-center gap-1.5 sm:gap-2 shadow-lg transition-all"
+              className="px-[12px] sm:px-[16px] py-[8px] sm:py-[10px] bg-slate-900 hover:bg-slate-800 text-white text-[12px] leading-[16px] sm:text-[14px] sm:leading-[20px] font-medium rounded-[12px] flex items-center gap-[6px] sm:gap-[8px] shadow-lg transition-all"
               onClick={() => setIsOrderSampleDrawerOpen(true)}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-[16px] h-[16px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               <span className="hidden sm:inline">Order Sample</span>
@@ -456,12 +456,12 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
         </div>
 
         {/* Overall Progress Bar */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-slate-500">Overall Completion</span>
-            <span className={`text-xs font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
+        <div className="mt-[16px]">
+          <div className="flex items-center justify-between mb-[6px]">
+            <span className="text-[12px] leading-[16px] font-semibold text-slate-500">Overall Completion</span>
+            <span className={`text-[12px] leading-[16px] font-bold ${getProgressBgColor()}`}>{progressPercent}%</span>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-[8px] bg-slate-200 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
@@ -473,22 +473,22 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex-1 overflow-y-auto p-[16px] sm:p-[32px]">
+        <div className="max-w-7xl mx-auto space-y-[16px] sm:space-y-[24px]">
           {/* Product Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-[16px] sm:gap-[24px]">
             {/* Product Image */}
             <div className="md:col-span-3">
-              <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200">
+              <div className="bg-gradient-to-br from-slate-100 to-slate-50 rounded-[16px] p-[16px] sm:p-[24px] border border-slate-200">
                 {productInfo.image ? (
                   <img
                     src={productInfo.image}
                     alt="Product"
-                    className="w-full h-32 sm:h-48 object-contain rounded-lg"
+                    className="w-full h-[128px] sm:h-[192px] object-contain rounded-[8px]"
                   />
                 ) : (
-                  <div className="w-full h-32 sm:h-48 flex items-center justify-center rounded-lg bg-slate-100">
-                    <svg className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-full h-[128px] sm:h-[192px] flex items-center justify-center rounded-[8px] bg-slate-100">
+                    <svg className="w-[48px] h-[48px] sm:w-[64px] sm:h-[64px] text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
@@ -498,92 +498,92 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
 
             {/* Internal Information */}
             <div className="md:col-span-9">
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-slate-500">Internal Information</h3>
+              <div className="bg-white rounded-[16px] border border-slate-200 p-[16px] sm:p-[24px]">
+                <div className="flex items-center justify-between mb-[16px]">
+                  <h3 className="text-[14px] leading-[20px] font-semibold text-slate-500">Internal Information</h3>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+                    className="flex items-center gap-[8px] px-[16px] py-[8px] bg-slate-900 text-white rounded-[8px] text-[14px] leading-[20px] font-medium hover:bg-slate-800 transition-colors"
                     onClick={() => setIsEditProductInfoDrawerOpen(true)}
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-[16px] h-[16px]" />
                     Edit
                   </motion.button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Product Name</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.name}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[12px] sm:gap-[16px]">
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Product Name</div>
+                    <div className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.name}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Customer</div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Customer</div>
+                    <div className="flex items-center gap-[8px]">
+                      <span className="inline-flex items-center px-[10px] py-[4px] rounded-[8px] text-[12px] leading-[16px] font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                        <svg className="w-[12px] h-[12px] mr-[4px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         {productInfo.client}
                       </span>
                     </div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Vendor</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Vendor</div>
+                    <div className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Status</div>
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Status</div>
                     <div>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
+                      <span className={`inline-flex items-center px-[10px] py-[4px] rounded-[8px] text-[12px] leading-[16px] font-semibold border ${getStatusColor(productInfo.status)}`}>
                         {productInfo.status}
                       </span>
                     </div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Type</div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 border border-slate-300">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Type</div>
+                    <div className="flex items-center gap-[8px]">
+                      <span className="inline-flex items-center px-[10px] py-[4px] rounded-[8px] text-[12px] leading-[16px] font-semibold bg-slate-200 text-slate-700 border border-slate-300">
+                        <svg className="w-[12px] h-[12px] mr-[4px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                         </svg>
                         {productInfo.type}
                       </span>
                     </div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU}</div>
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Internal SKU</div>
+                    <div className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.internalSKU}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Project Manager</div>
+                    <div className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
-                    <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">HTS Code</div>
+                    <div className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
 
                   {/* HTS Duty Rate Breakdown */}
-                  <div className="sm:col-span-2 bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-2">HTS Duty Rate</div>
+                  <div className="sm:col-span-2 bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[8px]">HTS Duty Rate</div>
                     {productInfo.htsBaseRate ? (
-                      <div className="space-y-1.5">
+                      <div className="space-y-[6px]">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-slate-500">Base Rate</span>
-                          <span className="text-sm font-semibold text-slate-900">{productInfo.htsBaseRate}%</span>
+                          <span className="text-[12px] leading-[16px] text-slate-500">Base Rate</span>
+                          <span className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.htsBaseRate}%</span>
                         </div>
                         {productInfo.htsSection301 && (
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <span className="text-[12px] leading-[16px] text-slate-500 flex items-center gap-[4px]">
                               Section 301
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">ACTIVE</span>
+                              <span className="inline-flex items-center px-[6px] py-[2px] rounded-[4px] text-[9px] font-bold bg-red-100 text-red-700 border border-red-200">ACTIVE</span>
                             </span>
-                            <span className="text-sm font-semibold text-red-600">+25%</span>
+                            <span className="text-[14px] leading-[20px] font-semibold text-red-600">+25%</span>
                           </div>
                         )}
-                        <div className="border-t border-slate-200 pt-1.5 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-700">Total Rate</span>
-                          <span className="text-sm font-bold text-slate-900">
+                        <div className="border-t border-slate-200 pt-[6px] flex items-center justify-between">
+                          <span className="text-[12px] leading-[16px] font-semibold text-slate-700">Total Rate</span>
+                          <span className="text-[14px] leading-[20px] font-bold text-slate-900">
                             {productInfo.htsSection301
                               ? `${(parseFloat(productInfo.htsBaseRate) + 25).toFixed(1)}%`
                               : `${productInfo.htsBaseRate}%`
@@ -592,62 +592,62 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                         </div>
                       </div>
                     ) : (
-                      <span className="text-sm text-slate-400 italic font-normal">—</span>
+                      <span className="text-[14px] leading-[20px] text-slate-400 italic font-normal">—</span>
                     )}
                   </div>
 
                   {/* Size Variants */}
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
+                  <div className="bg-slate-50 rounded-[12px] p-[16px]">
+                    <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[8px]">Size Variants</div>
                     {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-[6px]">
                         {productInfo.sizeVariants.map((size: string) => (
-                          <span key={size} className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                          <span key={size} className="inline-flex items-center px-[10px] py-[4px] rounded-[8px] text-[12px] leading-[16px] font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
                             {size}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-sm text-slate-400 italic font-normal">No sizes defined</span>
+                      <span className="text-[14px] leading-[20px] text-slate-400 italic font-normal">No sizes defined</span>
                     )}
                   </div>
 
                   {/* Competitor Analysis Section */}
                   {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
                     <>
-                      <div className="sm:col-span-2 lg:col-span-3 pt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="sm:col-span-2 lg:col-span-3 pt-[8px]">
+                        <div className="flex items-center gap-[8px]">
+                          <div className="w-[24px] h-[24px] bg-gradient-to-br from-purple-500 to-purple-600 rounded-[8px] flex items-center justify-center">
+                            <svg className="w-[14px] h-[14px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
                           </div>
-                          <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                          <span className="text-[12px] leading-[16px] font-semibold text-slate-500">Competitor Analysis</span>
                         </div>
                       </div>
                       {productInfo.competitorName && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
-                          <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
+                        <div className="bg-purple-50/50 rounded-[12px] p-[16px] border border-purple-100">
+                          <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Competitor</div>
+                          <div className="text-[14px] leading-[20px] font-semibold text-slate-900">{productInfo.competitorName}</div>
                         </div>
                       )}
                       {productInfo.competitorLink && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                        <div className="bg-purple-50/50 rounded-[12px] p-[16px] border border-purple-100">
+                          <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Competitor Link</div>
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
+                            className="text-[14px] leading-[20px] font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
                           >
                             {productInfo.competitorLink}
                           </a>
                         </div>
                       )}
                       {productInfo.competitorPrice && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
-                          <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
+                        <div className="bg-purple-50/50 rounded-[12px] p-[16px] border border-purple-100">
+                          <div className="text-[12px] leading-[16px] font-semibold text-slate-500 mb-[4px]">Competitor Price</div>
+                          <div className="text-[14px] leading-[20px] font-bold text-emerald-600">${productInfo.competitorPrice}</div>
                         </div>
                       )}
                     </>
