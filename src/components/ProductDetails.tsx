@@ -1,7 +1,7 @@
-import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
+import { ChecklistWidget } from './ChecklistWidget';
 import { motion } from 'motion/react';
 import { ArrowLeft, Plus, Edit, Trash2, GripVertical } from 'lucide-react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SpecificationsTab } from './SpecificationsTab';
 import { PackagingTab } from './PackagingTab';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
@@ -102,43 +102,24 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
 
   // Checklist progress state
   const [checklistProgress, setChecklistProgress] = useState({ completed: 0, total: 0 });
-  const [allChecklists, setAllChecklists] = useState<Record<string, ChecklistItem[]> | null>(null);
+  const [tabProgress, setTabProgress] = useState<Record<string, { completed: number; total: number }>>({});
 
   // Fetch product vendors from backend
   const [productVendors, setProductVendors] = useState<Vendor[]>([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [unlinkConfirm, setUnlinkConfirm] = useState<{ open: boolean; vendorId: string | null; vendorName: string }>({ open: false, vendorId: null, vendorName: '' });
 
-  // Fetch initial checklist progress from localStorage
-  useEffect(() => {
-    const fetchChecklist = async () => {
-      try {
-        // Load from localStorage instead of API
-        const localStorageKey = `product:${productId}:checklist`;
-        const savedData = localStorage.getItem(localStorageKey);
-        
-        if (savedData) {
-          const data = JSON.parse(savedData);
-          setAllChecklists(data);
-          let total = 0, completed = 0;
-          for (const tabId of Object.keys(data)) {
-            const items = data[tabId];
-            if (Array.isArray(items)) {
-              total += items.length;
-              completed += items.filter((i: any) => i.completed).length;
-            }
-          }
-          setChecklistProgress({ completed, total });
-        } else {
-          // No checklist saved yet — show 0/0 until settings-driven items are loaded
-          setChecklistProgress({ completed: 0, total: 0 });
-        }
-      } catch (err) {
-        console.error('Error loading checklist progress:', err);
-      }
-    };
-    fetchChecklist();
-  }, [productId]);
+  const updateTabProgress = (tab: string, items: { completed: boolean }[]) => {
+    const completed = items.filter(i => i.completed).length;
+    const total = items.length;
+    setTabProgress(prev => {
+      const next = { ...prev, [tab]: { completed, total } };
+      const allCompleted = Object.values(next).reduce((s, v) => s + v.completed, 0);
+      const allTotal = Object.values(next).reduce((s, v) => s + v.total, 0);
+      setChecklistProgress({ completed: allCompleted, total: allTotal });
+      return next;
+    });
+  };
 
   // Fetch project number from full product record
   useEffect(() => {
@@ -168,54 +149,41 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
   const fetchProductVendors = useCallback(async () => {
     setVendorsLoading(true);
     try {
-      const res = await fetch(`/api/pipeline/vendors/list?productId=${productId}`);
+      const res = await fetch(`/api/pipeline/vendors/list?productId=${encodeURIComponent(productId)}`);
+      if (!res.ok) return;
       const data = await res.json();
-      if (data.success && data.vendors) {
-        let enrichedVendors = data.vendors;
-        try {
-          const globalRes = await fetch('/api/vendors/list');
-          const globalData = await globalRes.json();
-          if (globalData.success && globalData.vendors) {
-            const globalMap = new Map<string, any>();
-            globalData.vendors.forEach((gv: any) => {
-              globalMap.set(gv.id, gv);
-            });
-            enrichedVendors = data.vendors.map((pv: any) => {
-              const globalVendor = globalMap.get(pv.globalVendorId || pv.id);
-              if (globalVendor) {
-                // Resolve vendor type: prefer what's already on the product vendor,
-                // then fall back to global vendor fields
-                const resolvedType = pv.type && pv.type !== 'Standalone'
-                  ? pv.type
-                  : (globalVendor.vendorType || globalVendor.type || pv.type || 'Standalone');
-                return {
-                  ...pv,
-                  type: resolvedType,
-                  supportsDropShipping: pv.supportsDropShipping ?? globalVendor.supportsDropShipping ?? false,
-                };
-              }
-              return pv;
-            });
-          }
-        } catch (enrichErr) {
-          console.error('Error enriching vendor data:', enrichErr);
-        }
-        // Sort by sortOrder (vendors without sortOrder go to end, preserving original order)
-        enrichedVendors.sort((a: any, b: any) => {
-          const aOrder = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
-          const bOrder = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
-          return aOrder - bOrder;
-        });
-        setProductVendors(enrichedVendors);
-        // Auto-select first vendor if only one exists
-        if (enrichedVendors.length > 0) {
-          setExpandedVendor(prev => prev || enrichedVendors[0].id);
-        }
-      } else {
-        setProductVendors([]);
-      }
-    } catch (err) {
-      console.error('Error fetching product vendors:', err);
+      const mapped: Vendor[] = (data.vendors ?? []).map((v: any) => ({
+        id: v.id ?? v._id,
+        name: v.vendorName ?? v.name ?? '',
+        country: v.country ?? '',
+        contact: { name: v.contactName ?? '', email: v.email ?? '', phone: v.phone ?? '' },
+        type: v.vendorType ?? v.type ?? '',
+        platform: v.accountType ?? 'Standalone',
+        priority: String(v.priority ?? 99),
+        moq: v.moq ?? 0,
+        pricingTiers: v.pricingTiers ?? [],
+        supportsDropShipping: v.supportsDropShipping ?? false,
+        sortOrder: typeof v.sortOrder === 'number' ? v.sortOrder : (typeof v.priority === 'number' ? v.priority : 9999),
+        logo: v.logo,
+        status: v.status,
+        wechatId: v.wechatId,
+        website: v.website,
+        paymentTerms: v.paymentTerms,
+        accountNumber: v.accountNumber,
+        fobCity: v.fobCity,
+        fobState: v.fobState,
+        productsSupplied: v.productsSupplied,
+        notes: v.notes,
+        globalVendorId: v.globalVendorId,
+      }));
+      mapped.sort((a: any, b: any) => {
+        const aO = typeof a.sortOrder === 'number' ? a.sortOrder : 9999;
+        const bO = typeof b.sortOrder === 'number' ? b.sortOrder : 9999;
+        return aO - bO;
+      });
+      setProductVendors(mapped);
+      if (mapped.length > 0) setExpandedVendor(prev => prev || mapped[0].id);
+    } catch {
       setProductVendors([]);
     } finally {
       setVendorsLoading(false);
@@ -258,20 +226,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     }
   }, [productId, productInfo, onProductUpdate]);
 
-  // Handle checklist changes from any tab
-  const handleChecklistChanged = useCallback((updated: Record<string, ChecklistItem[]>) => {
-    setAllChecklists(updated);
-    let total = 0, completed = 0;
-    for (const tabId of Object.keys(updated)) {
-      const items = updated[tabId];
-      if (Array.isArray(items)) {
-        total += items.length;
-        completed += items.filter(i => i.completed).length;
-      }
-    }
-    setChecklistProgress({ completed, total });
-  }, []);
-
   const handleSaveProductInfo = (updatedInfo: any) => {
     setProductInfo(updatedInfo);
     if (onProductUpdate) {
@@ -308,13 +262,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     { id: 'timeline', label: 'Timeline' },
   ];
 
-  // Get per-tab checklist progress for tab badges
   const getTabProgress = (tabId: string) => {
-    if (!allChecklists) return null;
-    const items = allChecklists[tabId];
-    if (!items || !Array.isArray(items) || items.length === 0) return null;
-    const completed = items.filter(i => i.completed).length;
-    return { completed, total: items.length };
+    const tp = tabProgress[tabId];
+    if (!tp || tp.total === 0) return null;
+    return tp;
   };
 
   const getStatusColor = (status: string) => {
@@ -914,49 +865,31 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                   )}
 
                   {/* Vendors Tab Checklist */}
-                  <ChecklistWidgetWrapper
+                  <ChecklistWidget
                     productId={productId}
                     tabId="vendors"
-                    onChecklistChanged={handleChecklistChanged}
-                    onActivityDetected={triggerAutoProgress}
+                    onUpdate={(items) => updateTabProgress('vendors', items)}
                   />
                 </div>
               )}
 
-              {activeTab === 'specifications' && (
-                <SpecificationsTab
-                  productId={productId}
-                  sizeVariants={productInfo.sizeVariants || []}
-                  onChecklistChanged={handleChecklistChanged}
-                  onActivityDetected={triggerAutoProgress}
-                />
-              )}
-
-              {activeTab === 'packaging' && (
-                <PackagingTab
-                  productId={productId}
-                  onChecklistChanged={handleChecklistChanged}
-                  onActivityDetected={triggerAutoProgress}
-                />
-              )}
+              {activeTab === 'specifications' && <SpecificationsTab productId={productId} />}
+              {activeTab === 'packaging' && <PackagingTab productId={productId} />}
 
               {activeTab === 'samples' && (
                 <SamplesTab
                   productId={productId}
                   refreshKey={sampleRefreshKey}
-                  onChecklistChanged={handleChecklistChanged}
-                  onActivityDetected={triggerAutoProgress}
                 />
               )}
 
               {activeTab === 'files' && (
                 <div className="space-y-6">
-                  <FilesTab productId={productId} onActivityDetected={triggerAutoProgress} />
-                  <ChecklistWidgetWrapper
+                  <FilesTab productId={productId} />
+                  <ChecklistWidget
                     productId={productId}
                     tabId="files"
-                    onChecklistChanged={handleChecklistChanged}
-                    onActivityDetected={triggerAutoProgress}
+                    onUpdate={(items) => updateTabProgress('files', items)}
                   />
                 </div>
               )}
@@ -978,41 +911,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
         isOpen={isAddVendorDrawerOpen}
         onClose={() => setIsAddVendorDrawerOpen(false)}
         productId={productId}
-        existingVendorIds={productVendors.map(v => v.id)}
-        onVendorLinked={async () => {
-          fetchProductVendors();
-          triggerAutoProgress();
-          // Auto-check "Primary Vendor Linked" checklist item using localStorage
-          try {
-            const localStorageKey = `product:${productId}:checklist`;
-            const savedData = localStorage.getItem(localStorageKey);
-            const currentChecklists = savedData ? JSON.parse(savedData) : {};
-            
-            const vendorItems = currentChecklists.vendors || [];
-            // Match by label (case-insensitive) since IDs are dynamically generated from settings
-            const updatedVendorItems = vendorItems.map((item: ChecklistItem) =>
-              item.label.toLowerCase().includes('vendor linked') ? { ...item, completed: true } : item
-            );
-            const updatedChecklists = { ...currentChecklists, vendors: updatedVendorItems };
-            
-            // Save to localStorage
-            localStorage.setItem(localStorageKey, JSON.stringify(updatedChecklists));
-            
-            setAllChecklists(updatedChecklists);
-            let total = 0, completed = 0;
-            for (const tabId of Object.keys(updatedChecklists)) {
-              const items = updatedChecklists[tabId];
-              if (Array.isArray(items)) {
-                total += items.length;
-                completed += items.filter((i: ChecklistItem) => i.completed).length;
-              }
-            }
-            setChecklistProgress({ completed, total });
-            toast.success('✓ "Primary Vendor Linked" auto-checked');
-          } catch (err) {
-            console.error('Error auto-checking vendor linked:', err);
-          }
-        }}
+        existingVendorIds={productVendors.flatMap(v => [(v as any).globalVendorId, v.id, v.name].filter(Boolean))}
+        onVendorLinked={() => { fetchProductVendors(); triggerAutoProgress(); }}
       />
 
       {/* Order Sample Drawer */}
@@ -1081,23 +981,5 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
         </div>
       )}
     </div>
-  );
-}
-
-// Small wrapper component to render ChecklistWidget in tabs that don't have it built-in
-
-function ChecklistWidgetWrapper({ productId, tabId, onChecklistChanged, onActivityDetected }: {
-  productId: string;
-  tabId: string;
-  onChecklistChanged: (all: Record<string, ChecklistItem[]>) => void;
-  onActivityDetected: () => void;
-}) {
-  return (
-    <ChecklistWidget
-      productId={productId}
-      tabId={tabId}
-      onChecklistChanged={onChecklistChanged}
-      onActivityDetected={onActivityDetected}
-    />
   );
 }

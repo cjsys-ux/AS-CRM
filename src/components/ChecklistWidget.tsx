@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, Circle, Plus, Trash2, PartyPopper } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import confetti from 'canvas-confetti';
+import { CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface ChecklistItem {
   id: string;
@@ -10,329 +9,172 @@ export interface ChecklistItem {
   isCustom?: boolean;
 }
 
-// Known checklist tab keys (items are loaded from General Settings, not hardcoded)
-export const DEFAULT_CHECKLISTS: Record<string, ChecklistItem[]> = {
-  vendors: [],
-  specifications: [],
-  packaging: [],
-  samples: [],
-  files: [],
-};
-
 interface ChecklistWidgetProps {
   productId?: string;
   tabId?: string;
-  items?: ChecklistItem[];
   onUpdate?: (items: ChecklistItem[]) => void;
-  onChecklistChanged?: (allChecklists: Record<string, ChecklistItem[]>) => void;
-  onActivityDetected?: () => void;
+  items?: ChecklistItem[];
 }
 
-export function ChecklistWidget({ productId, tabId, items: initialItems, onUpdate, onChecklistChanged, onActivityDetected }: ChecklistWidgetProps) {
-  const [items, setItems] = useState<ChecklistItem[]>(
-    initialItems || []
-  );
+const DEFAULT_ITEMS: Record<string, string[]> = {
+  vendors:        ['Primary Vendor Linked', 'Pricing Confirmed', 'Shipping Terms Agreed', 'Lead Time Confirmed'],
+  specifications: ['Product Dimensions', 'Material Specifications', 'Weight & Shipping Info', 'Compliance Documents'],
+  packaging:      ['Packaging Mockup', 'Packaging Template', 'Dieline/CAD Files', 'Packaging Spec Sheet'],
+  samples:        ['Sample Request Submitted', 'Sample Received', 'Quality Review Completed', 'Sample Documentation'],
+  files:          ['Product Images Uploaded', 'Spec Sheets Uploaded', 'Vendor Quotes Filed', 'Compliance Docs Filed'],
+};
+
+export function ChecklistWidget({ productId, tabId, onUpdate, items: externalItems }: ChecklistWidgetProps) {
+  const [items, setItems] = useState<ChecklistItem[]>(externalItems || []);
   const [newItemText, setNewItemText] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Use a ref to always have the latest allChecklists available (avoids stale closure)
-  const allChecklistsRef = useRef<Record<string, ChecklistItem[]>>({});
+  const isPipelineMode = Boolean(productId && tabId);
 
-  // Helper: build default checklists from settings (no hardcoded fallback)
-  const buildDefaults = useCallback(async (): Promise<Record<string, ChecklistItem[]>> => {
+  const loadChecklist = useCallback(async () => {
+    if (!isPipelineMode) return;
+    setLoading(true);
     try {
-      const res = await fetch(`/api/settings/pipeline-checklists`);
-      const data = await res.json();
-      if (data.success && data.settings) {
-        const settings = data.settings as Record<string, string[]>;
-        const result: Record<string, ChecklistItem[]> = {};
-        for (const [tabKey, labels] of Object.entries(settings)) {
-          result[tabKey] = labels.map((label, idx) => ({
-            id: `${tabKey.charAt(0)}${idx + 1}`,
-            label,
-            completed: false,
-          }));
+      const [settingsRes, stateRes] = await Promise.all([
+        fetch('/api/pipeline/settings/get'),
+        fetch(`/api/pipeline/checklist/get?productId=${encodeURIComponent(productId!)}&tabId=${encodeURIComponent(tabId!)}`),
+      ]);
+
+      let labelItems: string[] = DEFAULT_ITEMS[tabId!] ?? [];
+      if (settingsRes.ok) {
+        const sd = await settingsRes.json();
+        if (sd.checklists?.[tabId!]) labelItems = sd.checklists[tabId!];
+      }
+
+      let completionMap: Record<string, boolean> = {};
+      let customItems: ChecklistItem[] = [];
+      if (stateRes.ok) {
+        const sd = await stateRes.json();
+        const saved: ChecklistItem[] = sd.checklists?.[tabId!] ?? [];
+        for (const item of saved) {
+          completionMap[item.label] = item.completed;
+          if (item.isCustom) customItems.push(item);
         }
-        return result;
       }
-    } catch (err) {
-      console.error('Error loading pipeline checklist settings:', err);
+
+      const merged: ChecklistItem[] = [
+        ...labelItems.map((label, i) => ({
+          id: `setting-${tabId}-${i}`,
+          label,
+          completed: completionMap[label] ?? false,
+          isCustom: false as boolean,
+        })),
+        ...customItems,
+      ];
+      setItems(merged);
+      onUpdate?.(merged);
+    } catch {
+      const defaults = (DEFAULT_ITEMS[tabId!] ?? []).map((label, i) => ({
+        id: `default-${i}`,
+        label,
+        completed: false,
+        isCustom: false as boolean,
+      }));
+      setItems(defaults);
+      onUpdate?.(defaults);
+    } finally {
+      setLoading(false);
     }
-    // No settings saved — return empty checklists (user must configure in General Settings)
-    return {};
-  }, []);
+  }, [productId, tabId]);
 
-  // Merge saved checklist items with the settings template:
-  // - Keep items from settings template (preserving completed status if they existed in saved)
-  // - Preserve custom items the user added to this specific product
-  // - Remove items that were removed from settings (unless custom)
-  const mergeWithTemplate = useCallback((savedItems: ChecklistItem[], templateItems: ChecklistItem[]): ChecklistItem[] => {
-    const savedByLabel = new Map<string, ChecklistItem>();
-    savedItems.forEach(item => savedByLabel.set(item.label, item));
-
-    // Start with template items, preserving completion status from saved
-    const merged: ChecklistItem[] = templateItems.map(templateItem => {
-      const existing = savedByLabel.get(templateItem.label);
-      if (existing) {
-        return { ...templateItem, completed: existing.completed };
-      }
-      return { ...templateItem };
-    });
-
-    // Append any custom items the user added to this product
-    savedItems.forEach(item => {
-      if (item.isCustom) {
-        merged.push(item);
-      }
-    });
-
-    return merged;
-  }, []);
-
-  // Load checklist from backend on mount
   useEffect(() => {
-    if (!productId) {
-      setLoaded(true);
-      return;
+    if (isPipelineMode) {
+      loadChecklist();
+    } else if (externalItems) {
+      setItems(externalItems);
     }
-    const loadChecklist = async () => {
-      try {
-        // Always fetch the settings template first
-        const defaults = await buildDefaults();
+  }, [productId, tabId]);
 
-        // Load from localStorage instead of API
-        const localStorageKey = `product:${productId}:checklist`;
-        const savedData = localStorage.getItem(localStorageKey);
-        
-        if (savedData) {
-          try {
-            const data = JSON.parse(savedData);
-            // Merge each tab's saved checklist with the current settings template
-            const mergedAll: Record<string, ChecklistItem[]> = {};
-            for (const [tab, templateItems] of Object.entries(defaults)) {
-              const savedTabItems = data[tab];
-              if (savedTabItems && Array.isArray(savedTabItems)) {
-                mergedAll[tab] = mergeWithTemplate(savedTabItems, templateItems as ChecklistItem[]);
-              } else {
-                mergedAll[tab] = templateItems as ChecklistItem[];
-              }
-            }
-            // Also keep any tabs in saved that aren't in defaults (edge case)
-            for (const [tab, items] of Object.entries(data)) {
-              if (!mergedAll[tab]) {
-                mergedAll[tab] = items as ChecklistItem[];
-              }
-            }
-
-            allChecklistsRef.current = mergedAll;
-            if (tabId && mergedAll[tabId]) {
-              setItems(mergedAll[tabId]);
-            }
-
-            // Persist the merged result back to localStorage
-            try {
-              localStorage.setItem(localStorageKey, JSON.stringify(mergedAll));
-            } catch (saveErr) {
-              console.error('Error saving merged checklist to localStorage:', saveErr);
-            }
-          } catch (parseErr) {
-            console.error('Error parsing checklist from localStorage:', parseErr);
-            // Use defaults if parse fails
-            allChecklistsRef.current = defaults;
-            if (tabId) {
-              setItems(defaults[tabId] || []);
-            }
-          }
-        } else {
-          // No product-specific checklist: use settings-defined defaults
-          allChecklistsRef.current = defaults;
-          if (tabId) {
-            setItems(defaults[tabId] || []);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading checklist:', err);
-      } finally {
-        setLoaded(true);
-      }
-    };
-    loadChecklist();
-  }, [productId, tabId, buildDefaults, mergeWithTemplate]);
-
-  // Persist checklist to localStorage using the ref (no stale closure)
-  const saveChecklist = useCallback(async (updatedItems: ChecklistItem[]) => {
-    if (!productId || !tabId) return;
-
-    // Always read from ref for latest data
-    const updated = { ...allChecklistsRef.current, [tabId]: updatedItems };
-    allChecklistsRef.current = updated;
-
-    // Notify parent immediately
-    onChecklistChanged?.(updated);
-
+  const saveState = useCallback(async (updatedItems: ChecklistItem[]) => {
+    if (!isPipelineMode) return;
     try {
-      // Save to localStorage instead of API
-      const localStorageKey = `product:${productId}:checklist`;
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
-    } catch (err) {
-      console.error('Error saving checklist to localStorage:', err);
-    }
-  }, [productId, tabId, onChecklistChanged]);
+      await fetch('/api/pipeline/checklist/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, tabId, items: updatedItems }),
+      });
+    } catch {}
+    try {
+      const key = `product:${productId}:checklist`;
+      const saved = JSON.parse(localStorage.getItem(key) || '{}');
+      saved[tabId!] = updatedItems;
+      localStorage.setItem(key, JSON.stringify(saved));
+    } catch {}
+  }, [productId, tabId]);
 
   const toggleItem = (id: string) => {
-    if (!loaded) return; // Prevent saves before data loads
-    const updatedItems = items.map(item =>
-      item.id === id ? { ...item, completed: !item.completed } : item
-    );
-    setItems(updatedItems);
-    onUpdate?.(updatedItems);
-    saveChecklist(updatedItems);
-
-    // Trigger auto-status if toggling ON
-    const toggledItem = items.find(i => i.id === id);
-    if (toggledItem && !toggledItem.completed) {
-      onActivityDetected?.();
-    }
+    const updated = items.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+    setItems(updated);
+    onUpdate?.(updated);
+    saveState(updated);
   };
 
   const addCustomItem = () => {
-    if (!loaded) return; // Prevent saves before data loads
-    if (newItemText.trim()) {
-      const newItem: ChecklistItem = {
-        id: `custom-${Date.now()}`,
-        label: newItemText.trim(),
-        completed: false,
-        isCustom: true,
-      };
-      const updatedItems = [...items, newItem];
-      setItems(updatedItems);
-      onUpdate?.(updatedItems);
-      saveChecklist(updatedItems);
-      setNewItemText('');
-      setIsAddingItem(false);
-    }
+    if (!newItemText.trim()) return;
+    const newItem: ChecklistItem = {
+      id: `custom-${Date.now()}`,
+      label: newItemText.trim(),
+      completed: false,
+      isCustom: true,
+    };
+    const updated = [...items, newItem];
+    setItems(updated);
+    onUpdate?.(updated);
+    saveState(updated);
+    setNewItemText('');
+    setIsAddingItem(false);
   };
 
   const deleteItem = (id: string) => {
-    if (!loaded) return; // Prevent saves before data loads
-    const updatedItems = items.filter(item => item.id !== id);
-    setItems(updatedItems);
-    onUpdate?.(updatedItems);
-    saveChecklist(updatedItems);
+    const updated = items.filter(item => item.id !== id);
+    setItems(updated);
+    onUpdate?.(updated);
+    saveState(updated);
   };
 
-  const completedCount = items.filter(item => item.completed).length;
+  const completedCount = items.filter(i => i.completed).length;
   const totalCount = items.length;
   const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-  const prevProgressRef = useRef<number>(0);
-  const [showCompleteBanner, setShowCompleteBanner] = useState(false);
+  const tabLabel = tabId ? tabId.charAt(0).toUpperCase() + tabId.slice(1) : 'Checklist';
 
-  // Fire confetti when checklist hits 100%
-  useEffect(() => {
-    if (loaded && totalCount > 0 && progressPercent === 100 && prevProgressRef.current < 100) {
-      // Fire confetti burst
-      const duration = 2000;
-      const end = Date.now() + duration;
-
-      const frame = () => {
-        confetti({
-          particleCount: 3,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0, y: 0.7 },
-          colors: ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#3b82f6'],
-        });
-        confetti({
-          particleCount: 3,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1, y: 0.7 },
-          colors: ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#3b82f6'],
-        });
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      };
-      frame();
-
-      // Also fire a big center burst
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'],
-      });
-
-      setShowCompleteBanner(true);
-      setTimeout(() => setShowCompleteBanner(false), 4000);
-    }
-    prevProgressRef.current = progressPercent;
-  }, [progressPercent, loaded, totalCount]);
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6 flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
-      {/* Completion Banner */}
-      <AnimatePresence>
-        {showCompleteBanner && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 px-6 py-3 flex items-center justify-center gap-2 overflow-hidden"
-          >
-            <PartyPopper className="w-5 h-5 text-white" />
-            <span className="text-white font-bold text-sm">
-              🎉 {tabId ? `${tabId.charAt(0).toUpperCase() + tabId.slice(1)}` : ''} Checklist Complete!
-            </span>
-            <PartyPopper className="w-5 h-5 text-white" />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
-          <h3 className="font-bold text-slate-900">
-            {tabId ? `${tabId.charAt(0).toUpperCase() + tabId.slice(1)} Checklist` : 'Checklist'}
-          </h3>
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${completedCount === totalCount && totalCount > 0 ? 'bg-green-100' : 'bg-slate-100'}`}>
+            <CheckCircle2 className={`w-4 h-4 ${completedCount === totalCount && totalCount > 0 ? 'text-green-600' : 'text-slate-400'}`} />
+          </div>
+          <h3 className="font-bold text-slate-900 text-sm">{tabLabel} Checklist</h3>
         </div>
-        <div className="text-sm font-medium text-slate-600">
-          {completedCount}/{totalCount} Complete
-        </div>
+        <div className="text-sm font-medium text-slate-500">{completedCount}/{totalCount} Complete</div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="px-6 py-3 bg-slate-50">
-        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+      <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-100">
+        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.5 }}
-            className={`h-full rounded-full ${
-              progressPercent === 100
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                : progressPercent >= 70
-                ? 'bg-gradient-to-r from-green-400 to-green-500'
-                : progressPercent >= 40
-                ? 'bg-gradient-to-r from-orange-400 to-amber-500'
-                : 'bg-gradient-to-r from-red-400 to-red-500'
-            }`}
+            className={`h-full rounded-full ${progressPercent === 100 ? 'bg-green-500' : progressPercent >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
           />
         </div>
       </div>
 
-      {/* Checklist Items */}
       <div className="divide-y divide-slate-100">
-        {loaded && items.length === 0 && (
-          <div className="px-6 py-8 text-center">
-            <Circle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm text-slate-500">No checklist items configured.</p>
-            <p className="text-xs text-slate-400 mt-1">Set up checklists in General Settings, or add custom items below.</p>
-          </div>
-        )}
         <AnimatePresence>
           {items.map((item, index) => (
             <motion.div
@@ -340,45 +182,31 @@ export function ChecklistWidget({ productId, tabId, items: initialItems, onUpdat
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ delay: index * 0.05 }}
-              className="px-6 py-3 hover:bg-slate-50 transition-colors group"
+              transition={{ delay: index * 0.03 }}
+              className="px-5 py-3 hover:bg-slate-50 transition-colors group"
             >
               <div className="flex items-center justify-between">
-                <div
-                  className="flex items-center gap-3 flex-1 cursor-pointer"
-                  onClick={() => toggleItem(item.id)}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    {item.completed ? (
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-slate-300" />
-                    )}
+                <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleItem(item.id)}>
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    {item.completed
+                      ? <CheckCircle2 className="w-[18px] h-[18px] text-green-500" />
+                      : <Circle className="w-[18px] h-[18px] text-slate-300" />
+                    }
                   </motion.div>
                   <span className={`text-sm ${item.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
                     {item.label}
                   </span>
                   {item.isCustom && (
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
-                      Custom
-                    </span>
+                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-600 text-[10px] font-semibold rounded">Custom</span>
                   )}
                 </div>
                 {item.isCustom && (
                   <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteItem(item.id);
-                    }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Delete custom item"
+                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                    onClick={() => deleteItem(item.id)}
+                    className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </motion.button>
                 )}
               </div>
@@ -387,8 +215,7 @@ export function ChecklistWidget({ productId, tabId, items: initialItems, onUpdat
         </AnimatePresence>
       </div>
 
-      {/* Add Custom Item */}
-      <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
+      <div className="px-5 py-3 border-t border-slate-200 bg-slate-50">
         {isAddingItem ? (
           <div className="flex items-center gap-2">
             <input
@@ -397,38 +224,19 @@ export function ChecklistWidget({ productId, tabId, items: initialItems, onUpdat
               onChange={(e) => setNewItemText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') addCustomItem();
-                if (e.key === 'Escape') {
-                  setIsAddingItem(false);
-                  setNewItemText('');
-                }
+                if (e.key === 'Escape') { setIsAddingItem(false); setNewItemText(''); }
               }}
-              placeholder="Add custom checklist item..."
+              placeholder="Add checklist item..."
               className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
               autoFocus
             />
-            <button
-              onClick={addCustomItem}
-              className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => {
-                setIsAddingItem(false);
-                setNewItemText('');
-              }}
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
+            <button onClick={addCustomItem} className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">Add</button>
+            <button onClick={() => { setIsAddingItem(false); setNewItemText(''); }} className="px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Cancel</button>
           </div>
         ) : (
-          <button
-            onClick={() => setIsAddingItem(true)}
-            className="w-full flex items-center gap-2 text-slate-500 hover:text-slate-700 text-sm transition-colors"
-          >
+          <button onClick={() => setIsAddingItem(true)} className="w-full flex items-center gap-2 text-slate-400 hover:text-slate-600 text-sm transition-colors">
             <Plus className="w-4 h-4" />
-            Add custom checklist item...
+            Add custom item...
           </button>
         )}
       </div>
