@@ -705,22 +705,22 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Top Navigation */}
-      <div className="bg-white border-b border-slate-200 px-8 py-4">
+      <div className="bg-white border-b border-slate-200 px-6 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onBack}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold transition-colors"
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 font-semibold transition-colors text-sm"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
               Back to All POs
             </motion.button>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">Purchase Order #{order.id}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-slate-900">Purchase Order #{order.id}</h1>
               {order.isSample && (
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
                   order.sampleType === 'competitor'
                     ? 'bg-orange-100 text-orange-700'
                     : 'bg-purple-100 text-purple-700'
@@ -731,31 +731,31 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors text-sm"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               Download
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors text-sm"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="w-3.5 h-3.5" />
               Print
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowSendPOModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-sm"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-3.5 h-3.5" />
               Send PO
             </motion.button>
           </div>
@@ -763,15 +763,15 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-8">
-        <div className="max-w-[1400px] mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="max-w-[1400px] mx-auto space-y-4">
           {/* Main PO Details Card */}
           <motion.div
             ref={poContentRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-600 rounded-3xl border-2 border-blue-400 shadow-2xl overflow-hidden relative"
+            className="bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-600 rounded-2xl border-2 border-blue-400 shadow-2xl overflow-hidden relative"
           >
             {/* Blind Ship Badge - Top Left */}
             <AnimatePresence>
@@ -781,7 +781,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                  className="absolute top-4 left-4 z-20 flex items-center gap-2 px-4 py-2 bg-amber-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg border-2 border-amber-400"
+                  className="absolute top-3 left-3 z-20 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg border-2 border-amber-400"
                 >
                   <ShieldAlert className="w-4 h-4" />
                   Blind Ship
@@ -790,21 +790,21 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
             </AnimatePresence>
 
             {/* Header with Company Info */}
-            <div className="relative px-8 py-10 overflow-hidden">
+            <div className="relative px-6 py-6 overflow-hidden">
               <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/20 rounded-full blur-3xl" />
               
               <div className="relative flex items-start justify-between">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div
-                    className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-2xl"
+                    className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-2xl"
                   >
-                    <span className="text-3xl font-bold text-blue-600">AS</span>
+                    <span className="text-xl font-bold text-blue-600">AS</span>
                   </div>
                   <div>
                     {isEditingCompanyInfo && !isLocked ? (
-                      <div className="space-y-1.5">
-                        <input value={companyInfo.name} onChange={e => setCompanyInfo({...companyInfo, name: e.target.value})} className="bg-white/20 backdrop-blur-sm text-white text-xl font-bold rounded-lg px-2 py-1 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 w-64 placeholder:text-blue-200" placeholder="Company Name" />
+                      <div className="space-y-1">
+                        <input value={companyInfo.name} onChange={e => setCompanyInfo({...companyInfo, name: e.target.value})} className="bg-white/20 backdrop-blur-sm text-white text-sm font-bold rounded-lg px-2 py-1 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 w-56 placeholder:text-blue-200" placeholder="Company Name" />
                         <input value={companyInfo.address} onChange={e => setCompanyInfo({...companyInfo, address: e.target.value})} className="bg-white/20 backdrop-blur-sm text-blue-100 text-sm rounded-lg px-2 py-1 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 w-64 placeholder:text-blue-200" placeholder="Address" />
                         <input value={companyInfo.cityStateZip} onChange={e => setCompanyInfo({...companyInfo, cityStateZip: e.target.value})} className="bg-white/20 backdrop-blur-sm text-blue-100 text-sm rounded-lg px-2 py-1 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 w-64 placeholder:text-blue-200" placeholder="City, State ZIP" />
                         <div className="flex items-center gap-2">
@@ -815,10 +815,10 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                       </div>
                     ) : (
                       <div className="group relative">
-                        <h2 className="text-2xl font-bold text-white mb-1">{companyInfo.name}</h2>
-                        <p className="text-blue-100 text-sm">{companyInfo.address}</p>
-                        <p className="text-blue-100 text-sm">{companyInfo.cityStateZip}</p>
-                        <p className="text-blue-100 text-sm">{companyInfo.phone} &bull; {companyInfo.website}</p>
+                        <h2 className="text-lg font-bold text-white mb-0.5">{companyInfo.name}</h2>
+                        <p className="text-blue-100 text-xs">{companyInfo.address}</p>
+                        <p className="text-blue-100 text-xs">{companyInfo.cityStateZip}</p>
+                        <p className="text-blue-100 text-xs">{companyInfo.phone} &bull; {companyInfo.website}</p>
                         <button onClick={() => !isLocked && guardConfirmedEdit(() => setIsEditingCompanyInfo(true))} className={`absolute -top-1 -right-8 p-1 bg-white/20 rounded-lg transition-opacity hover:bg-white/30 ${isLocked ? 'hidden' : 'opacity-0 group-hover:opacity-100'}`}>
                           <Edit className="w-3.5 h-3.5 text-white" />
                         </button>
@@ -826,11 +826,13 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                     )}
                   </div>
                 </div>
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-right shadow-xl">
-                  <p className="text-xs font-semibold text-blue-600 mb-1">PURCHASE ORDER</p>
-                  <p className="text-2xl font-bold text-slate-900">#{order.poNumber}</p>
-                  <div className="mt-2 pt-2 border-t border-slate-200">
-                    <p className="text-xs text-slate-600 mb-2">Date: <span className="font-semibold text-slate-900">{formatDateDisplay(order.poDate)}</span></p>
+                <div className="bg-white/90 backdrop-blur-sm rounded-xl px-5 py-3 shadow-xl flex items-center gap-5">
+                  <div className="text-right border-r border-slate-200 pr-5">
+                    <p className="text-[10px] font-semibold text-blue-600 mb-0.5 uppercase tracking-wider">Purchase Order</p>
+                    <p className="text-lg font-bold text-slate-900">#{order.poNumber}</p>
+                  </div>
+                  <div className="flex flex-col items-start gap-1">
+                    <p className="text-[11px] text-slate-600">Date: <span className="font-semibold text-slate-900">{formatDateDisplay(order.poDate)}</span></p>
                     {/* Status Dropdown */}
                     <ModernDropdown
                       value={status}
@@ -841,31 +843,31 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                           : ['Created', 'Submitted', 'Confirmed', 'In Production', 'Shipped', 'Delivered', 'Issue']
                       }
                     />
-                    {missedInHandsDate && (
-                      <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold shadow-lg shadow-red-200">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        Missed In-Hands Date
-                      </div>
-                    )}
                   </div>
+                  {missedInHandsDate && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600 text-white text-[10px] font-bold shadow-lg shadow-red-200">
+                      <AlertCircle className="w-3 h-3" />
+                      Missed
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Details Grid */}
-            <div className={`bg-white p-8 relative ${isLocked ? 'select-none' : ''}`}>
+            <div className={`bg-white p-5 relative ${isLocked ? 'select-none' : ''}`}>
               {isLocked && (
                 <div className="absolute inset-0 bg-white/40 z-10 cursor-not-allowed rounded-b-3xl" style={{ pointerEvents: 'auto' }} onClick={() => toast.error('This PO is locked. Request approval from Mike Roos to make edits.')} />
               )}
               <div className={`${isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="grid grid-cols-2 gap-5 mb-5">
                 {/* Vendor Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-purple-600" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-4 h-4 text-purple-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900">Vendor/Supplier</h3>
+                    <h3 className="text-sm font-bold text-slate-900">Vendor/Supplier</h3>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
@@ -876,15 +878,15 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                       <Edit className="w-4 h-4 text-slate-400" />
                     </motion.button>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 group/vendor">
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 group/vendor">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-900 text-lg mb-1">{vendor}</p>
+                        <p className="font-bold text-slate-900 text-sm mb-0.5">{vendor}</p>
                         {vendorAddress && (vendorAddress.street1 || vendorAddress.city) ? (
                           <>
-                            {vendorAddress.street1 && <p className="text-sm text-slate-600">{vendorAddress.street1}{vendorAddress.street2 ? `, ${vendorAddress.street2}` : ''}</p>}
+                            {vendorAddress.street1 && <p className="text-xs text-slate-600">{vendorAddress.street1}{vendorAddress.street2 ? `, ${vendorAddress.street2}` : ''}</p>}
                             {vendorAddress.city && (
-                              <p className="text-sm text-slate-600">{[vendorAddress.city, vendorAddress.state].filter(Boolean).join(', ')} {vendorAddress.zip}{vendorAddress.country ? `, ${vendorAddress.country}` : ''}</p>
+                              <p className="text-xs text-slate-600">{[vendorAddress.city, vendorAddress.state].filter(Boolean).join(', ')} {vendorAddress.zip}{vendorAddress.country ? `, ${vendorAddress.country}` : ''}</p>
                             )}
                           </>
                         ) : (
@@ -923,12 +925,12 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                 </div>
 
                 {/* Ship To Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-green-600" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-green-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-900">Ship To</h3>
+                    <h3 className="text-sm font-bold text-slate-900">Ship To</h3>
                     {additionalShipToAddresses.length > 0 && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
                         {1 + additionalShipToAddresses.length} locations
@@ -949,12 +951,12 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                   </div>
                   <div className="space-y-2">
                     {/* Primary address */}
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 group/addr">
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 group/addr">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-slate-900 text-lg mb-1">{shipToAddress.name}</p>
-                          <p className="text-sm text-slate-600">{shipToAddress.address}</p>
-                          <p className="text-sm text-slate-600">{shipToAddress.city}, {shipToAddress.state} {shipToAddress.zip}, {shipToAddress.country}</p>
+                          <p className="font-bold text-slate-900 text-sm mb-0.5">{shipToAddress.name}</p>
+                          <p className="text-xs text-slate-600">{shipToAddress.address}</p>
+                          <p className="text-xs text-slate-600">{shipToAddress.city}, {shipToAddress.state} {shipToAddress.zip}, {shipToAddress.country}</p>
                         </div>
                         <div className="flex items-center gap-2 ml-2">
                           {shipToAddress.contact && (
@@ -980,10 +982,10 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                     </div>
                     {/* Additional addresses */}
                     {additionalShipToAddresses.map((addr, idx) => (
-                      <div key={idx} className="bg-slate-50 rounded-xl p-4 border border-slate-200 group/addr">
+                      <div key={idx} className="bg-slate-50 rounded-xl p-3 border border-slate-200 group/addr">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-slate-900 text-lg mb-1">{addr.name}</p>
+                            <p className="font-bold text-slate-900 text-sm mb-0.5">{addr.name}</p>
                             {addr.address && <p className="text-sm text-slate-600">{addr.address}</p>}
                             {addr.city && (
                               <p className="text-sm text-slate-600">{addr.city}, {addr.state} {addr.zip}, {addr.country}</p>
@@ -1033,8 +1035,8 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
               </div>
 
               {/* Additional Details Grid */}
-              <div className="grid grid-cols-5 gap-6 mb-8">
-                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <div className="grid grid-cols-5 gap-3 mb-5">
+                <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
                   <div className="flex items-center gap-2 mb-2">
                     <User className="w-4 h-4 text-blue-600" />
                     <p className="text-xs font-semibold text-blue-700">Contact{allContacts.length > 1 ? 's' : ''}</p>
@@ -1083,7 +1085,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                   )}
                 </div>
 
-                <div className={`rounded-xl p-4 border ${missedInHandsDate ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-200'}`}>
+                <div className={`rounded-xl p-3 border ${missedInHandsDate ? 'bg-red-50 border-red-300' : 'bg-amber-50 border-amber-200'}`}>
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar className={`w-4 h-4 ${missedInHandsDate ? 'text-red-600' : 'text-amber-600'}`} />
                     <p className={`text-xs font-semibold ${missedInHandsDate ? 'text-red-700' : 'text-amber-700'}`}>Ship Date</p>
@@ -1119,7 +1121,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                   })()}
                 </div>
 
-                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                <div className="bg-red-50 rounded-xl p-3 border border-red-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar className="w-4 h-4 text-red-600" />
                     <p className="text-xs font-semibold text-red-700">In-Hands *</p>
@@ -1135,7 +1137,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                   </motion.button>
                 </div>
 
-                <div className="bg-purple-50 rounded-xl p-4 border border-purple-200">
+                <div className="bg-purple-50 rounded-xl p-3 border border-purple-200">
                   <div className="flex items-center gap-2 mb-2">
                     <Truck className="w-4 h-4 text-purple-600" />
                     <p className="text-xs font-semibold text-purple-700">Shipping</p>
@@ -1151,7 +1153,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                   </motion.button>
                 </div>
 
-                <div className="relative bg-green-50 rounded-xl p-4 border border-green-200">
+                <div className="relative bg-green-50 rounded-xl p-3 border border-green-200">
                   <div className="flex items-center gap-2 mb-2">
                     <FileText className="w-4 h-4 text-green-600" />
                     <p className="text-xs font-semibold text-green-700">Payment Terms</p>
@@ -1207,8 +1209,8 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
               </div>
 
               {/* Blind Ship & Carrier Account */}
-              <div className={`rounded-xl p-4 border mb-8 transition-colors ${isBlindShip ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="flex items-center gap-4">
+              <div className={`rounded-xl p-3 border mb-5 transition-colors ${isBlindShip ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     checked={isBlindShip}
@@ -1316,8 +1318,8 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
               />
 
               {/* Artwork Details Section - Collapsible with Include Toggle */}
-              <div className="mt-8 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                <div className="w-full px-6 py-4 flex items-center justify-between">
+              <div className="mt-5 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                <div className="w-full px-4 py-3 flex items-center justify-between">
                   {/* Left side: Title + Expand toggle */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <motion.button
@@ -1399,7 +1401,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                       transition={{ duration: 0.2 }}
                       className="border-t border-slate-200"
                     >
-                      <div className="p-6 space-y-4">
+                      <div className="p-4 space-y-3">
                         {/* Hidden file input for artwork upload */}
                         <input
                           ref={artworkFileInputRef}
@@ -1960,8 +1962,8 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
               </div>
 
               {/* Questions Section */}
-              <div className="mt-8 bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <div className="flex items-center justify-between mb-4">
+              <div className="mt-5 bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-bold text-slate-900">Questions about this purchase order?</h4>
                   {!isEditingFooterContact && (
                     <button onClick={() => guardConfirmedEdit(() => setIsEditingFooterContact(true))} className="p-1.5 hover:bg-slate-200 rounded-lg transition-colors">

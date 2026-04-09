@@ -737,34 +737,33 @@ export function EditableLineItemsTable({
       )}
 
       {/* Totals */}
-      <div className="flex justify-end mt-6">
-        <div className="w-96 space-y-3">
-          <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
-            <span className="text-sm font-semibold text-slate-700">Subtotal</span>
-            <span className="text-lg font-bold text-slate-900">${subtotal.toFixed(2)}</span>
+      <div className="flex justify-end mt-4">
+        <div className="w-80 bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {/* Subtotal */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+            <span className="text-xs font-medium text-slate-600">Subtotal</span>
+            <span className="text-xs font-semibold text-slate-900">${subtotal.toFixed(2)}</span>
           </div>
           
-          {/* Only show Additional Charges if there are non-shipping custom line items */}
+          {/* Additional Charges - only if present */}
           {customItemsTotal > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-sm font-semibold text-slate-700">Additional Charges</span>
-              <span className="text-lg font-bold text-slate-900">${customItemsTotal.toFixed(2)}</span>
+            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+              <span className="text-xs font-medium text-slate-600">Additional Charges</span>
+              <span className="text-xs font-semibold text-slate-900">${customItemsTotal.toFixed(2)}</span>
             </div>
           )}
           
-          {/* Shipping Cost — editable standalone field */}
-          <div className="px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-blue-700">Shipping Cost</span>
-              </div>
-              <span className="text-lg font-bold text-blue-900">${allShipping.toFixed(2)}</span>
+          {/* Shipping Cost */}
+          <div className="border-b border-slate-100">
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-xs font-medium text-blue-600">Shipping Cost</span>
+              <span className="text-xs font-semibold text-slate-900">${allShipping.toFixed(2)}</span>
             </div>
             {isEditingItems && (
-              <div className="mt-2 pt-2 border-t border-blue-200 flex items-center gap-2">
-                <span className="text-xs font-medium text-blue-600">Enter shipping:</span>
-                <div className="flex items-center gap-1 ml-auto">
-                  <span className="text-xs text-blue-500">$</span>
+              <div className="px-4 pb-2 flex items-center gap-2">
+                <span className="text-[11px] text-blue-500">Enter:</span>
+                <div className="flex items-center gap-0.5 ml-auto">
+                  <span className="text-[11px] text-slate-400">$</span>
                   <input
                     type="number"
                     step="0.01"
@@ -772,46 +771,45 @@ export function EditableLineItemsTable({
                     onFocus={(e) => { if (shippingCost === 0) e.target.value = ''; }}
                     onChange={(e) => onShippingCostChange(parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
-                    className="w-24 px-2 py-1.5 bg-white border border-blue-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-20 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
             )}
           </div>
           
-          {/* Sales Tax - Clean stacked layout */}
-          <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-slate-700">Sales Tax</span>
+          {/* Sales Tax */}
+          <div className="border-b border-slate-100">
+            <div className="flex items-center justify-between px-4 py-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-slate-600">Sales Tax</span>
                 {!isEditingItems && (
-                  <span className="text-xs text-slate-500">
+                  <span className="text-[11px] text-slate-400">
                     {taxOverrideEnabled && '(Override)'}
                     {!taxOverrideEnabled && taxStatus === 'standard' && `(${(salesTaxRate * 100).toFixed(0)}%)`}
-                    {!taxOverrideEnabled && taxStatus === 'oos' && '(OOS - 0%)'}
-                    {!taxOverrideEnabled && taxStatus === 'exempt' && '(Tax Exempt - 0%)'}
+                    {!taxOverrideEnabled && taxStatus === 'oos' && '(OOS)'}
+                    {!taxOverrideEnabled && taxStatus === 'exempt' && '(Exempt)'}
                   </span>
                 )}
               </div>
-              <span className="text-lg font-bold text-slate-900">${salesTax.toFixed(2)}</span>
+              <span className="text-xs font-semibold text-slate-900">${salesTax.toFixed(2)}</span>
             </div>
             
             {isEditingItems && (
-              <div className="mt-3 pt-3 border-t border-slate-200 space-y-2.5">
-                {/* Tax status and rate row */}
-                <div className="flex items-center gap-3">
+              <div className="px-4 pb-2 space-y-2">
+                <div className="flex items-center gap-2">
                   <select
                     value={taxStatus}
                     onChange={(e) => onTaxStatusChange?.(e.target.value as 'standard' | 'oos' | 'exempt')}
                     disabled={taxOverrideEnabled}
-                    className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
                     <option value="standard">Standard</option>
                     <option value="oos">OOS</option>
                     <option value="exempt">Tax Exempt</option>
                   </select>
                   {taxStatus === 'standard' && !taxOverrideEnabled && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-0.5">
                       <input
                         type="number"
                         step="0.01"
@@ -819,15 +817,14 @@ export function EditableLineItemsTable({
                         onChange={(e) => {
                           onSalesTaxRateChange(parseFloat(e.target.value) / 100 || 0);
                         }}
-                        className="w-14 px-2 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-12 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      <span className="text-xs text-slate-600">%</span>
+                      <span className="text-[11px] text-slate-500">%</span>
                     </div>
                   )}
                 </div>
                 
-                {/* Tax override row */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="checkbox"
                     id="taxOverride"
@@ -838,20 +835,20 @@ export function EditableLineItemsTable({
                         setTaxOverrideAmount(calculatedSalesTax);
                       }
                     }}
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-3 h-3 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="taxOverride" className="text-xs font-medium text-slate-600">
-                    Override tax amount
+                  <label htmlFor="taxOverride" className="text-[11px] font-medium text-slate-500">
+                    Override
                   </label>
                   {taxOverrideEnabled && (
-                    <div className="flex items-center gap-1 ml-auto">
-                      <span className="text-xs text-slate-500">$</span>
+                    <div className="flex items-center gap-0.5 ml-auto">
+                      <span className="text-[11px] text-slate-400">$</span>
                       <input
                         type="number"
                         step="0.01"
                         value={taxOverrideAmount}
                         onChange={(e) => setTaxOverrideAmount(parseFloat(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 bg-white border border-amber-300 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        className="w-16 px-2 py-1 bg-white border border-amber-300 rounded-lg text-[11px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                   )}
@@ -860,9 +857,10 @@ export function EditableLineItemsTable({
             )}
           </div>
           
-          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-            <span className="text-base font-bold text-green-700">Total Amount</span>
-            <span className="text-2xl font-bold text-green-900">${total.toFixed(2)}</span>
+          {/* Total */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-green-50 to-emerald-50">
+            <span className="text-xs font-bold text-green-700">Total Amount</span>
+            <span className="text-sm font-bold text-green-900">${total.toFixed(2)}</span>
           </div>
         </div>
       </div>

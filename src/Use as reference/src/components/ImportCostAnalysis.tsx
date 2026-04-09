@@ -22,6 +22,8 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
   const [isExpanded, setIsExpanded] = useState(true);
   const [shippingCosts, setShippingCosts] = useState<Record<number, string>>({});
   const [selectedBasis, setSelectedBasis] = useState<'fob' | 'exw'>('fob');
+  const [showAllRows, setShowAllRows] = useState(false);
+  const MAX_VISIBLE_ROWS = 5;
 
   const totalDutyRate = useMemo(() => {
     const base = parseFloat(htsBaseRate) || 0;
@@ -155,11 +157,12 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
 
                 {/* Analysis Table */}
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full" style={{ minWidth: '880px' }}>
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">Qty</th>
-                        <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">{selectedBasis.toUpperCase()}</th>
+                        <th className={`text-left px-2 py-2 text-[10px] font-bold uppercase ${selectedBasis === 'exw' ? 'text-blue-600 bg-blue-50/50' : 'text-slate-500'}`}>EXW</th>
+                        <th className={`text-left px-2 py-2 text-[10px] font-bold uppercase ${selectedBasis === 'fob' ? 'text-blue-600 bg-blue-50/50' : 'text-slate-500'}`}>FOB</th>
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">Duty/Unit</th>
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase w-[90px]">
                           <div className="flex flex-col">
@@ -175,7 +178,7 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                       </tr>
                     </thead>
                     <tbody>
-                      {analysis.map((row, index) => (
+                      {(showAllRows ? analysis : analysis.slice(0, MAX_VISIBLE_ROWS)).map((row, index) => (
                         <motion.tr
                           key={index}
                           initial={{ opacity: 0, x: -10 }}
@@ -188,8 +191,11 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                           <td className="px-2 py-2 text-sm font-medium text-slate-900">
                             {Number(row.qty).toLocaleString()}
                           </td>
-                          <td className="px-2 py-2 text-sm font-medium text-slate-900">
-                            ${row.basisPrice.toFixed(2)}
+                          <td className={`px-2 py-2 text-sm font-medium ${selectedBasis === 'exw' ? 'text-slate-900 bg-blue-50/20' : 'text-slate-500'}`}>
+                            ${row.exw.toFixed(2)}
+                          </td>
+                          <td className={`px-2 py-2 text-sm font-medium ${selectedBasis === 'fob' ? 'text-slate-900 bg-blue-50/20' : 'text-slate-500'}`}>
+                            ${row.fob.toFixed(2)}
                           </td>
                           <td className="px-2 py-2 text-sm font-medium text-slate-700">
                             {hasDutyRate ? `$${row.dutyPerUnit.toFixed(2)}` : '—'}
@@ -218,10 +224,10 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                           <td className="px-2 py-2 text-sm font-medium text-slate-900">
                             {row.ddp > 0 ? `$${row.ddp.toFixed(2)}` : '—'}
                           </td>
-                          <td className="px-2 py-2 text-xs text-slate-600">
+                          <td className="px-2 py-2 text-xs text-slate-600 whitespace-nowrap">
                             {row.method || '—'}
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
                             {row.recommendation === 'no-data' ? (
                               <span className="text-xs text-slate-400">—</span>
                             ) : row.savings > 0 ? (
@@ -234,16 +240,16 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                               </span>
                             )}
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
                             {row.recommendation === 'no-data' ? (
                               <span className="text-[10px] text-slate-400">N/A</span>
                             ) : row.recommendation === 'self-import' ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">
                                 <CheckCircle className="w-3 h-3" />
                                 Self-Import
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 whitespace-nowrap">
                                 <Ship className="w-3 h-3" />
                                 Use DDP
                               </span>
@@ -253,6 +259,18 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                       ))}
                     </tbody>
                   </table>
+                  {analysis.length > MAX_VISIBLE_ROWS && (
+                    <button
+                      onClick={() => setShowAllRows(!showAllRows)}
+                      className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-50 border-t border-slate-200 transition-colors flex items-center justify-center gap-1"
+                    >
+                      {showAllRows ? (
+                        <>Show Less <ChevronUp className="w-3 h-3" /></>
+                      ) : (
+                        <>Show {analysis.length - MAX_VISIBLE_ROWS} More <ChevronDown className="w-3 h-3" /></>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Summary Cards */}

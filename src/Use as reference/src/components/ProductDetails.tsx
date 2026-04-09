@@ -887,7 +887,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       </div>
 
                       {/* Right Side - Pricing Details */}
-                      <div className="lg:col-span-7">
+                      <div className="lg:col-span-7 lg:overflow-y-auto lg:pr-1" style={{ maxHeight: 'calc(100vh - 220px)' }}>
                         {expandedVendor && productVendors.find(v => v.id === expandedVendor) ? (
                           <div className="flex flex-col gap-0">
                             <VendorPricingPanel
@@ -901,6 +901,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             {(() => {
                               const vendor = productVendors.find(v => v.id === expandedVendor);
                               if (!vendor?.pricingTiers || vendor.pricingTiers.length === 0) return null;
+                              if (vendor.supportsDropShipping) return null;
                               return (
                                 <ImportCostAnalysis
                                   pricingTiers={vendor.pricingTiers}

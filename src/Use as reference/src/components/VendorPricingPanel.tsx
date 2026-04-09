@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Save, DollarSign, Clock, Ship, Package, Truck, Pencil, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, DollarSign, Clock, Ship, Package, Truck, Pencil, X, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { toast } from 'sonner@2.0.3';
@@ -227,7 +227,7 @@ function DraggableTierRow({ tier, index, isEditing, hasChanges, isDropship, upda
               <select
                 value={tier.ddpMethod}
                 onChange={(e) => updateTier(index, 'ddpMethod', e.target.value)}
-                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all text-center cursor-pointer"
+                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all cursor-pointer"
               >
                 <option value="" disabled>Select</option>
                 {DDP_METHODS.map(m => (
@@ -235,7 +235,7 @@ function DraggableTierRow({ tier, index, isEditing, hasChanges, isDropship, upda
                 ))}
               </select>
             ) : (
-              <span className="px-2 py-1.5 text-sm text-slate-600 font-medium flex justify-center">{tier.ddpMethod}</span>
+              <span className="px-2 py-1.5 text-sm text-slate-600 font-medium block text-center whitespace-nowrap">{tier.ddpMethod}</span>
             )}
           </td>
         </>
@@ -281,6 +281,10 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isPricingCollapsed, setIsPricingCollapsed] = useState(false);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [showAllTiers, setShowAllTiers] = useState(false);
+  const MAX_VISIBLE_TIERS = 5;
 
   // Sync when vendor changes
   useEffect(() => {
@@ -373,7 +377,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
       className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden flex flex-col"
     >
       {/* Header */}
-      <div className="px-6 py-4 flex-shrink-0 bg-gradient-to-r from-slate-800 to-slate-700">
+      <div className="px-6 py-4 flex-shrink-0 bg-gradient-to-r from-slate-800 to-slate-700 cursor-pointer" onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -394,7 +398,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 animate={{ scale: 1, opacity: 1 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={savePricing}
+                onClick={(e) => { e.stopPropagation(); savePricing(); }}
                 disabled={isSaving}
                 className={`flex items-center gap-2 px-4 py-2 bg-white font-semibold rounded-xl text-sm shadow-lg transition-all disabled:opacity-50 text-slate-700 hover:bg-slate-50`}
               >
@@ -406,7 +410,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditing(true)}
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                 className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl text-sm transition-all"
               >
                 <Pencil className="w-4 h-4" />
@@ -417,7 +421,8 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsEditing(false);
                   // Reset to original values
                   setPricingTiers(vendor.pricingTiers || []);
@@ -434,7 +439,8 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsEditing(false);
                   setHasChanges(false);
                   setPricingTiers(vendor.pricingTiers || []);
@@ -446,11 +452,23 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 <X className="w-4 h-4" />
               </motion.button>
             )}
+            <div className="text-white/60 ml-1">
+              {isPanelCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-5 overflow-y-auto flex-1">
+      <AnimatePresence>
+        {!isPanelCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="overflow-hidden"
+          >
+      <div className="p-6 space-y-5 flex-1">
         {/* Dropship Info Banner */}
         {isDropship && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
@@ -543,7 +561,13 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
         {/* Pricing Table (editable, scrollable) */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-slate-900">Pricing Tiers</h4>
+            <button
+              onClick={() => setIsPricingCollapsed(!isPricingCollapsed)}
+              className="flex items-center gap-1.5 text-sm font-bold text-slate-900 hover:text-slate-700 transition-colors"
+            >
+              {isPricingCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+              Pricing Tiers
+            </button>
             <div className="flex items-center gap-3">
               {/* Dropship Toggle */}
               <div className="flex items-center gap-2">
@@ -588,6 +612,15 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
             </div>
           </div>
 
+          <AnimatePresence>
+            {!isPricingCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="overflow-hidden"
+              >
           {isDropship && (
             <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg mb-3">
               <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -614,25 +647,25 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="overflow-y-auto max-h-[340px]">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto max-h-[340px]">
+                <table className="w-full text-sm" style={{ minWidth: isDropship ? undefined : '680px' }}>
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-slate-50 border-b border-slate-200">
                       <th className="px-1 py-2.5 w-[28px]"></th>
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : 'w-[18%]'}`}>Qty</th>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : ''}`} style={!isDropship ? { minWidth: '90px' } : undefined}>Qty</th>
                       {!isDropship && (
-                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[12%]">EXW ($)</th>
+                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '85px' }}>EXW ($)</th>
                       )}
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : 'w-[12%]'}`}>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : ''}`} style={!isDropship ? { minWidth: '85px' } : undefined}>
                         {isDropship ? 'Price ($)' : 'FOB ($)'}
                       </th>
                       {!isDropship && (
                         <>
-                          <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[14%]">DDP ($)</th>
-                          <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[16%]">Ship</th>
+                          <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '85px' }}>DDP ($)</th>
+                          <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '120px' }}>Ship</th>
                         </>
                       )}
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'w-[12%] text-slate-500'}`}>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'text-slate-500'}`} style={!isDropship ? { minWidth: '60px' } : undefined}>
                         {isDropship ? 'Dropship Days' : 'Days'}
                       </th>
                       <th className="px-2 py-2.5 w-[36px] text-[11px] font-bold text-slate-500 uppercase">Actions</th>
@@ -640,7 +673,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                   </thead>
                   <tbody>
                     <AnimatePresence>
-                      {pricingTiers.map((tier, index) => (
+                      {(showAllTiers ? pricingTiers : pricingTiers.slice(0, MAX_VISIBLE_TIERS)).map((tier, index) => (
                         <DraggableTierRow
                           key={index}
                           tier={tier}
@@ -663,10 +696,28 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                   </tbody>
                 </table>
               </div>
+              {pricingTiers.length > MAX_VISIBLE_TIERS && (
+                <button
+                  onClick={() => setShowAllTiers(!showAllTiers)}
+                  className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-50 border-t border-slate-200 transition-colors flex items-center justify-center gap-1"
+                >
+                  {showAllTiers ? (
+                    <>Show Less <ChevronUp className="w-3 h-3" /></>
+                  ) : (
+                    <>Show {pricingTiers.length - MAX_VISIBLE_TIERS} More <ChevronDown className="w-3 h-3" /></>
+                  )}
+                </button>
+              )}
             </div>
           )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
     </DndProvider>
   );

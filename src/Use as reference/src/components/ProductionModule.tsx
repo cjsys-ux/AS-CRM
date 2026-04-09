@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Factory, Plus, Search, Filter, Download, Play, CheckCircle, Clock, Eye, Edit2, Trash2, ArrowUpDown, ChevronDown, X, RefreshCw, AlertTriangle, Loader2, Package, Gauge } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { Factory, Plus, Search, Filter, Download, Play, CheckCircle, Clock, Eye, Edit2, Trash2, ArrowUpDown, ChevronDown, X, RefreshCw, AlertTriangle, Loader2, Package, Gauge, Check } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnhancedProductionGanttView } from './EnhancedProductionGanttView';
 import { DeleteProductionOrderModal } from './DeleteProductionOrderModal';
 import { ColumnVisibilityDropdown, ColumnDef } from './ColumnVisibilityDropdown';
@@ -26,37 +26,260 @@ interface ProductionOrder {
   createdAt?: string;
 }
 
+const STATUSES = ['Pending', 'In Progress', 'Quality Check', 'Completed', 'On Hold', 'Cancelled'];
+const PRIORITIES = ['Low', 'Medium', 'High'];
+
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'Completed':
-      return 'bg-green-100 text-green-700 border-green-200';
-    case 'In Progress':
-      return 'bg-blue-100 text-blue-700 border-blue-200';
-    case 'Quality Check':
-      return 'bg-purple-100 text-purple-700 border-purple-200';
-    case 'Pending':
-      return 'bg-orange-100 text-orange-700 border-orange-200';
-    case 'On Hold':
-      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'Cancelled':
-      return 'bg-red-100 text-red-700 border-red-200';
-    default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
+    case 'In Progress': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'Quality Check': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'On Hold': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+};
+
+const getStatusDot = (status: string) => {
+  switch (status) {
+    case 'Completed': return 'bg-green-500';
+    case 'In Progress': return 'bg-blue-500';
+    case 'Quality Check': return 'bg-purple-500';
+    case 'Pending': return 'bg-amber-500';
+    case 'On Hold': return 'bg-yellow-500';
+    case 'Cancelled': return 'bg-red-500';
+    default: return 'bg-slate-400';
   }
 };
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case 'High':
-      return 'bg-red-100 text-red-700 border-red-200';
-    case 'Medium':
-      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'Low':
-      return 'bg-slate-100 text-slate-700 border-slate-200';
-    default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'High': return 'bg-red-100 text-red-700 border-red-200';
+    case 'Medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Low': return 'bg-slate-100 text-slate-700 border-slate-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
   }
 };
+
+const getPriorityDot = (priority: string) => {
+  switch (priority) {
+    case 'High': return 'bg-red-500';
+    case 'Medium': return 'bg-yellow-500';
+    case 'Low': return 'bg-slate-400';
+    default: return 'bg-slate-400';
+  }
+};
+
+// ========= CUSTOM DROPDOWN COMPONENT =========
+function CustomDropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+  showDot,
+  getDotColor,
+  fullWidth = false,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  showDot?: boolean;
+  getDotColor?: (val: string) => string;
+  fullWidth?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedLabel = options.find(o => o.value === value)?.label || placeholder || 'Select...';
+
+  return (
+    <div ref={ref} className={`relative ${fullWidth ? 'w-full' : ''}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center justify-between gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-slate-300 transition-all ${fullWidth ? 'w-full' : ''} ${isOpen ? 'border-slate-400 ring-2 ring-slate-200' : ''}`}
+      >
+        <div className="flex items-center gap-2">
+          {showDot && getDotColor && value && (
+            <span className={`w-2 h-2 rounded-full ${getDotColor(value)}`} />
+          )}
+          <span className={value ? 'text-slate-900' : 'text-slate-400'}>{selectedLabel}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden max-h-60 overflow-y-auto"
+          >
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-3.5 py-2.5 text-left transition-all flex items-center justify-between text-sm ${
+                  value === option.value
+                    ? 'bg-slate-50 text-slate-900 font-semibold'
+                    : 'hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {showDot && getDotColor && (
+                    <span className={`w-2 h-2 rounded-full ${getDotColor(option.value)}`} />
+                  )}
+                  <span>{option.label}</span>
+                </div>
+                {value === option.value && (
+                  <Check className="w-4 h-4 text-slate-800" />
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ========= SEARCHABLE DROPDOWN =========
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  loading,
+  icon,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string; subtitle?: string }[];
+  placeholder: string;
+  loading?: boolean;
+  icon?: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o =>
+    o.label.toLowerCase().includes(search.toLowerCase()) ||
+    (o.subtitle || '').toLowerCase().includes(search.toLowerCase()) ||
+    o.value.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedLabel = options.find(o => o.value === value)?.label || '';
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+        className={`w-full flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-left transition-all ${
+          isOpen ? 'border-slate-400 ring-2 ring-slate-200' : 'hover:border-slate-300'
+        }`}
+      >
+        {icon && <span className="text-slate-400 shrink-0">{icon}</span>}
+        <span className={`flex-1 text-sm truncate ${value ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+          {selectedLabel || placeholder}
+        </span>
+        {loading ? (
+          <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />
+        ) : (
+          <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
+          >
+            <div className="p-2 border-b border-slate-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  autoFocus
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400"
+                />
+              </div>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="py-6 text-center text-sm text-slate-400">No results found</div>
+              ) : (
+                filtered.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onMouseDown={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                    className={`w-full px-3.5 py-2.5 text-left transition-all flex items-center justify-between ${
+                      value === option.value
+                        ? 'bg-slate-50 font-semibold text-slate-900'
+                        : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm">{option.label}</div>
+                      {option.subtitle && <div className="text-[11px] text-slate-400">{option.subtitle}</div>}
+                    </div>
+                    {value === option.value && <Check className="w-4 h-4 text-slate-800 shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 // ========= ADD / EDIT PRODUCTION ORDER DRAWER =========
 function AddProductionOrderDrawer({
@@ -83,6 +306,58 @@ function AddProductionOrderDrawer({
     assignedTo: '',
     quality: 0,
   });
+
+  // Existing orders for search
+  const [existingOrders, setExistingOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  // Customers for search
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+
+  // Fetch existing orders from Orders module
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/orders`, {
+          headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+        });
+        const data = await res.json();
+        if (data.success && data.orders) {
+          setExistingOrders(data.orders);
+        }
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [isOpen]);
+
+  // Fetch customers
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchCustomers = async () => {
+      setCustomersLoading(true);
+      try {
+        const res = await fetch(`${API_URL}/customers`, {
+          headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+        });
+        const data = await res.json();
+        if (data.success && data.customers) {
+          setCustomers(data.customers);
+        }
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+      } finally {
+        setCustomersLoading(false);
+      }
+    };
+    fetchCustomers();
+  }, [isOpen]);
 
   useEffect(() => {
     if (editOrder) {
@@ -114,6 +389,20 @@ function AddProductionOrderDrawer({
     }
   }, [editOrder, isOpen]);
 
+  // When user selects an existing order, auto-populate client
+  const handleOrderSelect = (orderId: string) => {
+    const order = existingOrders.find(o => o.id === orderId);
+    if (order) {
+      setForm(p => ({
+        ...p,
+        orderName: order.orderName || order.name || orderId,
+        client: order.client || order.customerName || p.client,
+      }));
+    } else {
+      setForm(p => ({ ...p, orderName: orderId }));
+    }
+  };
+
   const handleSave = async () => {
     if (!form.orderName.trim()) { toast.error('Order name is required'); return; }
     if (!form.client.trim()) { toast.error('Client is required'); return; }
@@ -124,14 +413,13 @@ function AddProductionOrderDrawer({
       const url = isEdit ? `${API_URL}/production/${editOrder.id}` : `${API_URL}/production`;
       const method = isEdit ? 'PUT' : 'POST';
 
-      const body = isEdit ? { ...form } : { ...form };
       const response = await fetch(url, {
         method,
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...form }),
       });
       const data = await response.json();
       if (data.success) {
@@ -158,8 +446,29 @@ function AddProductionOrderDrawer({
     </div>
   );
 
-  const inputCls = "w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
-  const selectCls = "w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all";
+  const inputCls = "w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all";
+
+  // Build order options for searchable select
+  const orderOptions = existingOrders.map(o => ({
+    value: o.id,
+    label: o.orderName || o.name || o.id,
+    subtitle: `${o.id}${o.client || o.customerName ? ' · ' + (o.client || o.customerName) : ''}`,
+  }));
+  // Also allow typed value as fallback
+  const currentOrderOption = form.orderName && !orderOptions.find(o => o.label === form.orderName)
+    ? [{ value: form.orderName, label: form.orderName, subtitle: 'Custom entry' }, ...orderOptions]
+    : orderOptions;
+
+  // Build customer options
+  const customerOptions = customers.map(c => ({
+    value: c.company || c.name || c.id,
+    label: c.company || c.name || c.id,
+    subtitle: c.email || c.contactName || '',
+  }));
+  // Allow typed value as fallback
+  const currentCustomerOption = form.client && !customerOptions.find(o => o.value === form.client)
+    ? [{ value: form.client, label: form.client, subtitle: 'Custom entry' }, ...customerOptions]
+    : customerOptions;
 
   return (
     <AnimatePresence>
@@ -180,14 +489,14 @@ function AddProductionOrderDrawer({
             className="fixed top-0 right-0 bottom-0 w-full max-w-xl bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-orange-500 to-red-600">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-700">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-white/15 backdrop-blur-sm rounded-lg flex items-center justify-center">
                   <Factory className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">{editOrder ? 'Edit Production Order' : 'New Production Order'}</h2>
-                  <p className="text-xs text-orange-100">{editOrder ? `Editing ${editOrder.id}` : 'Create a new production order'}</p>
+                  <p className="text-xs text-slate-300">{editOrder ? `Editing ${editOrder.id}` : 'Create a new production order'}</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
@@ -202,28 +511,57 @@ function AddProductionOrderDrawer({
                 <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Order Information</h3>
                 <div className="space-y-3">
                   <InputField label="Order Name" required>
-                    <input type="text" value={form.orderName} onChange={e => setForm(p => ({ ...p, orderName: e.target.value }))} placeholder="e.g. Custom T-Shirt Run" className={inputCls} />
+                    <SearchableSelect
+                      value={form.orderName}
+                      onChange={handleOrderSelect}
+                      options={currentOrderOption}
+                      placeholder="Search order name or number..."
+                      loading={ordersLoading}
+                      icon={<Search className="w-4 h-4" />}
+                    />
+                    {/* Also allow free-text entry */}
+                    {!existingOrders.find(o => (o.orderName || o.name || o.id) === form.orderName) && form.orderName === '' && (
+                      <input
+                        type="text"
+                        value={form.orderName}
+                        onChange={e => setForm(p => ({ ...p, orderName: e.target.value }))}
+                        placeholder="Or type a new order name..."
+                        className={`${inputCls} mt-2`}
+                      />
+                    )}
                   </InputField>
                   <InputField label="Client" required>
-                    <input type="text" value={form.client} onChange={e => setForm(p => ({ ...p, client: e.target.value }))} placeholder="e.g. Tech Startup Inc." className={inputCls} />
+                    <SearchableSelect
+                      value={form.client}
+                      onChange={(val) => setForm(p => ({ ...p, client: val }))}
+                      options={currentCustomerOption}
+                      placeholder="Search customers..."
+                      loading={customersLoading}
+                      icon={<Search className="w-4 h-4" />}
+                    />
                   </InputField>
                   <div className="grid grid-cols-2 gap-3">
                     <InputField label="Status">
-                      <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className={selectCls}>
-                        <option>Pending</option>
-                        <option>In Progress</option>
-                        <option>Quality Check</option>
-                        <option>Completed</option>
-                        <option>On Hold</option>
-                        <option>Cancelled</option>
-                      </select>
+                      <CustomDropdown
+                        value={form.status}
+                        onChange={(val) => setForm(p => ({ ...p, status: val }))}
+                        options={STATUSES.map(s => ({ value: s, label: s }))}
+                        placeholder="Select status..."
+                        showDot
+                        getDotColor={getStatusDot}
+                        fullWidth
+                      />
                     </InputField>
                     <InputField label="Priority">
-                      <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))} className={selectCls}>
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                      </select>
+                      <CustomDropdown
+                        value={form.priority}
+                        onChange={(val) => setForm(p => ({ ...p, priority: val }))}
+                        options={PRIORITIES.map(p => ({ value: p, label: p }))}
+                        placeholder="Select priority..."
+                        showDot
+                        getDotColor={getPriorityDot}
+                        fullWidth
+                      />
                     </InputField>
                   </div>
                 </div>
@@ -274,7 +612,7 @@ function AddProductionOrderDrawer({
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-red-700 transition-all flex items-center gap-2 disabled:opacity-60"
+                className="px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white font-semibold rounded-xl hover:from-slate-700 hover:to-slate-600 transition-all flex items-center gap-2 disabled:opacity-60"
               >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {isSaving ? 'Saving...' : (editOrder ? 'Update Order' : 'Create Order')}
@@ -284,6 +622,91 @@ function AddProductionOrderDrawer({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+// ========= FILTER DROPDOWN (for table filters) =========
+function TableFilterDropdown({
+  value,
+  onChange,
+  options,
+  label,
+  showDot,
+  getDotColor,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  label: string;
+  showDot?: boolean;
+  getDotColor?: (val: string) => string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedOption = options.find(o => o.value === value);
+  const displayText = selectedOption ? selectedOption.label : label;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-slate-300 transition-all ${isOpen ? 'border-slate-400 ring-2 ring-slate-200' : ''}`}
+      >
+        {showDot && getDotColor && value !== 'all' && (
+          <span className={`w-2 h-2 rounded-full ${getDotColor(value)}`} />
+        )}
+        <span>{displayText}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-[100] top-full left-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden min-w-[160px]"
+          >
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-3.5 py-2.5 text-left transition-all flex items-center justify-between text-sm ${
+                  value === option.value
+                    ? 'bg-slate-50 text-slate-900 font-semibold'
+                    : 'hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {showDot && getDotColor && option.value !== 'all' && (
+                    <span className={`w-2 h-2 rounded-full ${getDotColor(option.value)}`} />
+                  )}
+                  <span>{option.label}</span>
+                </div>
+                {value === option.value && <Check className="w-4 h-4 text-slate-800" />}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -450,7 +873,7 @@ export function ProductionModule() {
         />
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header Section - matches Customers */}
+          {/* Header Section */}
           <div className="bg-white border-b border-slate-200 px-6 py-4">
             <div className="max-w-[1800px] mx-auto">
               <div className="flex items-center justify-between">
@@ -476,7 +899,7 @@ export function ProductionModule() {
             </div>
           </div>
 
-          {/* KPI Cards - matches Customers pattern exactly */}
+          {/* KPI Cards */}
           <div className="px-6 mt-4 mb-4 relative z-10">
             <div className="max-w-[1800px] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -486,16 +909,11 @@ export function ProductionModule() {
                   whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
                   className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center mb-2">
                     <Factory className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Total Orders</p>
-                  <motion.h3
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-xl font-bold text-slate-900"
-                  >
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-xl font-bold text-slate-900">
                     {totalOrders}
                   </motion.h3>
                 </motion.div>
@@ -507,16 +925,11 @@ export function ProductionModule() {
                   whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
                   className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
                     <Play className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">In Progress</p>
-                  <motion.h3
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.35 }}
-                    className="text-xl font-bold text-slate-900"
-                  >
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="text-xl font-bold text-slate-900">
                     {inProgressCount}
                   </motion.h3>
                 </motion.div>
@@ -532,12 +945,7 @@ export function ProductionModule() {
                     <CheckCircle className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Completed</p>
-                  <motion.h3
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-xl font-bold text-slate-900"
-                  >
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-xl font-bold text-slate-900">
                     {completedCount}
                   </motion.h3>
                 </motion.div>
@@ -553,12 +961,7 @@ export function ProductionModule() {
                     <Gauge className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Avg Quality Score</p>
-                  <motion.h3
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.45 }}
-                    className="text-xl font-bold text-slate-900"
-                  >
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="text-xl font-bold text-slate-900">
                     {avgQuality > 0 ? `${avgQuality.toFixed(1)}%` : '—'}
                   </motion.h3>
                 </motion.div>
@@ -566,7 +969,7 @@ export function ProductionModule() {
             </div>
           </div>
 
-          {/* Filters and Search - matches Customers pattern */}
+          {/* Filters and Search */}
           <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
             <div className="max-w-[1800px] mx-auto">
               <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
@@ -578,7 +981,7 @@ export function ProductionModule() {
                       placeholder="Search orders, clients, or IDs..."
                       value={searchTerm}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all"
                     />
                   </div>
                   <motion.button
@@ -598,45 +1001,43 @@ export function ProductionModule() {
                     <Filter className="w-4 h-4" />
                     Filters
                     {activeFilters > 0 && (
-                      <span className="w-5 h-5 bg-orange-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilters}</span>
+                      <span className="w-5 h-5 bg-slate-800 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilters}</span>
                     )}
                   </div>
 
-                  <select
+                  <TableFilterDropdown
                     value={selectedStatus}
-                    onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-                    className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  >
-                    <option value="all">Status: All</option>
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Quality Check">Quality Check</option>
-                    <option value="Completed">Completed</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
+                    onChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}
+                    options={[
+                      { value: 'all', label: 'Status: All' },
+                      ...STATUSES.map(s => ({ value: s, label: s })),
+                    ]}
+                    label="Status: All"
+                    showDot
+                    getDotColor={getStatusDot}
+                  />
 
-                  <select
+                  <TableFilterDropdown
                     value={selectedPriority}
-                    onChange={(e) => { setSelectedPriority(e.target.value); setCurrentPage(1); }}
-                    className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  >
-                    <option value="all">Priority: All</option>
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
+                    onChange={(val) => { setSelectedPriority(val); setCurrentPage(1); }}
+                    options={[
+                      { value: 'all', label: 'Priority: All' },
+                      ...PRIORITIES.map(p => ({ value: p, label: p })),
+                    ]}
+                    label="Priority: All"
+                    showDot
+                    getDotColor={getPriorityDot}
+                  />
 
-                  <select
+                  <TableFilterDropdown
                     value={selectedLine}
-                    onChange={(e) => { setSelectedLine(e.target.value); setCurrentPage(1); }}
-                    className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  >
-                    <option value="all">Line: All</option>
-                    {uniqueLines.map(line => (
-                      <option key={line} value={line}>{line}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => { setSelectedLine(val); setCurrentPage(1); }}
+                    options={[
+                      { value: 'all', label: 'Line: All' },
+                      ...uniqueLines.map(l => ({ value: l, label: l })),
+                    ]}
+                    label="Line: All"
+                  />
 
                   {activeFilters > 0 && (
                     <motion.button
@@ -657,7 +1058,7 @@ export function ProductionModule() {
                       columns={productionColumns}
                       visibleColumns={columnVisibility}
                       onChange={setColumnVisibility}
-                      accentColor="orange"
+                      accentColor="slate"
                     />
                   </div>
                 </div>
@@ -685,7 +1086,7 @@ export function ProductionModule() {
                           )}
                           {isColVisible('orderName') && (
                             <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                              <button onClick={() => handleSort('orderName')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
+                              <button onClick={() => handleSort('orderName')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
                                 Order Name
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                               </button>
@@ -693,7 +1094,7 @@ export function ProductionModule() {
                           )}
                           {isColVisible('client') && (
                             <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                              <button onClick={() => handleSort('client')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
+                              <button onClick={() => handleSort('client')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
                                 Client
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                               </button>
@@ -701,7 +1102,7 @@ export function ProductionModule() {
                           )}
                           {isColVisible('status') && (
                             <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                              <button onClick={() => handleSort('status')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
+                              <button onClick={() => handleSort('status')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
                                 Status
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                               </button>
@@ -719,7 +1120,7 @@ export function ProductionModule() {
                           )}
                           {isColVisible('quality') && (
                             <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                              <button onClick={() => handleSort('quality')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
+                              <button onClick={() => handleSort('quality')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
                                 Quality
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                               </button>
@@ -727,7 +1128,7 @@ export function ProductionModule() {
                           )}
                           {isColVisible('dueDate') && (
                             <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
-                              <button onClick={() => handleSort('dueDate')} className="flex items-center gap-2 whitespace-nowrap hover:text-orange-600 transition-colors">
+                              <button onClick={() => handleSort('dueDate')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
                                 Due Date
                                 <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
                               </button>
@@ -759,7 +1160,7 @@ export function ProductionModule() {
                                   whileHover={{ scale: 1.05 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => { setEditOrder(null); setDrawerOpen(true); }}
-                                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold rounded-xl"
+                                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white font-semibold rounded-xl"
                                 >
                                   <Plus className="w-4 h-4" />
                                   New Production Order
@@ -821,7 +1222,7 @@ export function ProductionModule() {
                                             : progress >= 50
                                             ? 'bg-blue-500'
                                             : progress > 0
-                                            ? 'bg-orange-500'
+                                            ? 'bg-slate-500'
                                             : 'bg-slate-300'
                                         }`}
                                       />
@@ -904,7 +1305,7 @@ export function ProductionModule() {
                     </table>
                   </div>
 
-                  {/* Pagination - inside table card, matches Customers */}
+                  {/* Pagination */}
                   <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
                     <div className="text-sm text-slate-600">
                       Page {currentPage} of {Math.max(1, totalPages)} · Showing {sortedOrders.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, sortedOrders.length)} of {sortedOrders.length}
@@ -914,7 +1315,7 @@ export function ProductionModule() {
                       <select
                         value={rowsPerPage}
                         onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>

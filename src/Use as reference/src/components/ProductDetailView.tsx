@@ -1194,22 +1194,22 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
       {/* Top Bar */}
-      <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm">
+      <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between shadow-sm">
         <motion.button
           whileHover={{ x: -4 }}
           whileTap={{ scale: 0.95 }}
           onClick={onBack}
-          className="flex items-center gap-2 text-slate-700 hover:text-slate-900 font-semibold transition-colors"
+          className="flex items-center gap-1.5 text-slate-700 hover:text-slate-900 font-semibold transition-colors text-sm"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-4 h-4" />
           Back to Products
         </motion.button>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onBack}
-            className="px-6 py-2.5 border-2 border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
+            className="px-4 py-1.5 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all text-sm"
           >
             Cancel
           </motion.button>
@@ -1218,80 +1218,50 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
             whileTap={{ scale: 0.98 }}
             onClick={handleSaveProduct}
             disabled={isSaving}
-            className="px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all shadow-lg disabled:opacity-60 flex items-center gap-2"
+            className="px-4 py-1.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-60 flex items-center gap-1.5 text-sm"
           >
-            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {isSaving ? 'Saving...' : 'Save Changes'}
           </motion.button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="px-8 py-4 bg-white border-b border-slate-200">
-        <div className="max-w-[1800px] mx-auto grid grid-cols-4 gap-3">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 border-2 border-blue-200"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
-              </div>
+      <div className="px-6 py-2.5 bg-white border-b border-slate-200">
+        <div className="max-w-[1800px] mx-auto grid grid-cols-4 gap-2.5">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-2.5 border border-blue-200">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-blue-500 rounded-lg flex items-center justify-center"><Package className="w-3.5 h-3.5 text-white" /></div>
               <div>
-                <div className="text-xs font-semibold text-blue-700">Total Variants</div>
-                <div className="text-xl font-black text-blue-900">{allVariants.length}</div>
+                <div className="text-[10px] font-semibold text-blue-700">Total Variants</div>
+                <div className="text-base font-black text-blue-900">{allVariants.length}</div>
               </div>
             </div>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 border-2 border-purple-200"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-purple-500 rounded-xl flex items-center justify-center">
-                <Box className="w-4 h-4 text-white" />
-              </div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-2.5 border border-purple-200">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-purple-500 rounded-lg flex items-center justify-center"><Box className="w-3.5 h-3.5 text-white" /></div>
               <div>
-                <div className="text-xs font-semibold text-purple-700">Color Options</div>
-                <div className="text-xl font-black text-purple-900">{colorGroups.length}</div>
+                <div className="text-[10px] font-semibold text-purple-700">Color Options</div>
+                <div className="text-base font-black text-purple-900">{colorGroups.length}</div>
               </div>
             </div>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border-2 border-green-200"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-base">$</span>
-              </div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-2.5 border border-green-200">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-green-500 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-xs">$</span></div>
               <div>
-                <div className="text-xs font-semibold text-green-700">Base Price</div>
-                <div className="text-xl font-black text-green-900">${basePrice.toFixed(2)}</div>
+                <div className="text-[10px] font-semibold text-green-700">Base Price</div>
+                <div className="text-base font-black text-green-900">${basePrice.toFixed(2)}</div>
               </div>
             </div>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 border-2 border-orange-200"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
-                <Star className="w-4 h-4 text-white" />
-              </div>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-2.5 border border-orange-200">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-orange-500 rounded-lg flex items-center justify-center"><Star className="w-3.5 h-3.5 text-white" /></div>
               <div>
-                <div className="text-xs font-semibold text-orange-700">Starting At</div>
-                <div className="text-xl font-black text-orange-900">${allVariants.length > 0 ? Math.min(...allVariants.map(v => v.price)).toFixed(2) : basePrice.toFixed(2)}</div>
+                <div className="text-[10px] font-semibold text-orange-700">Starting At</div>
+                <div className="text-base font-black text-orange-900">${allVariants.length > 0 ? Math.min(...allVariants.map(v => v.price)).toFixed(2) : basePrice.toFixed(2)}</div>
               </div>
             </div>
           </motion.div>
@@ -1300,19 +1270,19 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1800px] mx-auto p-6">
-          <div className="grid grid-cols-3 gap-5">
+        <div className="max-w-[1800px] mx-auto p-4">
+          <div className="grid grid-cols-3 gap-3">
             {/* Left Column */}
-            <div className="space-y-5">
+            <div className="space-y-3">
               {/* Product Gallery */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-black text-slate-900">Product Gallery</h3>
-                  <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">Featured</span>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-slate-900">Product Gallery</h3>
+                  <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full">Featured</span>
                 </div>
                 
                 {/* Hidden file input */}
@@ -1326,7 +1296,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 />
 
                 {/* Main Image */}
-                <div className="relative bg-slate-100 rounded-2xl overflow-hidden mb-4 aspect-square flex items-center justify-center">
+                <div className="relative bg-slate-100 rounded-xl overflow-hidden mb-3 aspect-square flex items-center justify-center">
                   {productImages.length > 0 ? (
                     <>
                       <img 
@@ -1351,11 +1321,11 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
                 {/* Thumbnails with drag-to-reorder and delete */}
                 {productImages.length > 0 && (
-                  <div className="flex gap-2 mb-4 flex-wrap">
+                  <div className="flex gap-1.5 mb-3 flex-wrap">
                     {productImages.map((img, idx) => (
                       <div
                         key={idx}
-                        className={`relative group w-20 h-20 rounded-xl overflow-hidden border-3 transition-all cursor-grab active:cursor-grabbing ${
+                        className={`relative group w-16 h-16 rounded-lg overflow-hidden border-2 transition-all cursor-grab active:cursor-grabbing ${
                           selectedImage === idx 
                             ? 'border-cyan-500 shadow-lg scale-105' 
                             : 'border-slate-200 opacity-70 hover:opacity-100'
@@ -1406,12 +1376,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 <button 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={productImages.length >= 10}
-                  className="w-full py-3 border-2 border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 hover:border-cyan-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-slate-600 font-medium hover:bg-slate-50 hover:border-cyan-500 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   Add Image
                 </button>
-                <p className="text-xs text-slate-500 text-center mt-2">
+                <p className="text-[10px] text-slate-400 text-center mt-1.5">
                   Drag & drop or click to add up to 10 images ({productImages.length}/10)
                 </p>
               </motion.div>
@@ -1421,9 +1391,9 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <h3 className="text-base font-black text-slate-900 mb-3">Documents & Spec Sheets</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">Documents & Spec Sheets</h3>
                 
                 {/* Hidden document file input */}
                 <input
@@ -1445,21 +1415,21 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   }}
                 />
 
-                <div className="space-y-2 mb-4">
+                <div className="space-y-1.5 mb-3">
                   {documents.length === 0 && (
-                    <div className="text-center py-6 text-slate-400">
-                      <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm font-medium">No documents yet</p>
+                    <div className="text-center py-4 text-slate-400">
+                      <FileText className="w-6 h-6 mx-auto mb-1.5 opacity-50" />
+                      <p className="text-xs font-medium">No documents yet</p>
                     </div>
                   )}
                   {documents.map(doc => (
-                    <div key={doc.id} className="group flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                    <div key={doc.id} className="group flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg hover:bg-slate-100 transition-all">
+                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4 text-blue-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-slate-900 truncate">{doc.name}</div>
-                        <div className="text-xs text-slate-500">{doc.date}</div>
+                        <div className="text-xs font-semibold text-slate-900 truncate">{doc.name}</div>
+                        <div className="text-[10px] text-slate-500">{doc.date}</div>
                       </div>
                       <button
                         onClick={() => setDocuments(prev => prev.filter(d => d.id !== doc.id))}
@@ -1474,83 +1444,83 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
 
                 <button 
                   onClick={() => docInputRef.current?.click()}
-                  className="w-full py-3 border-2 border-slate-300 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 hover:border-cyan-500 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2 border border-dashed border-slate-300 rounded-lg text-slate-600 font-medium hover:bg-slate-50 hover:border-cyan-500 transition-all flex items-center justify-center gap-1.5 text-xs"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   Add Document
                 </button>
-                <p className="text-xs text-slate-500 text-center mt-2">
+                <p className="text-[10px] text-slate-400 text-center mt-1.5">
                   Upload spec sheets, certifications, and documents
                 </p>
               </motion.div>
             </div>
 
             {/* Middle Column */}
-            <div className="space-y-5">
+            <div className="space-y-3">
               {/* General Information */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <h3 className="text-base font-black text-slate-900 mb-3">General Information</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-2.5">General Information</h3>
                 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Product Name</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Product Name</label>
                     <input 
                       type="text" 
                       value={productName}
                       onChange={(e) => setProductName(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-2">Base SKU</label>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Base SKU</label>
                       <input 
                         type="text" 
                         value={productSku}
                         onChange={(e) => { setProductSku(e.target.value); setBaseSku(e.target.value); }}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-2">Brand</label>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Brand</label>
                       <input 
                         type="text" 
                         value={productBrand}
                         onChange={(e) => setProductBrand(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Product Link</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Product Link</label>
                     <div className="relative">
                       <input 
                         type="text" 
                         value={productLink}
                         onChange={(e) => setProductLink(e.target.value)}
                         placeholder="www.example.com"
-                        className="w-full px-4 py-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                        className="w-full px-3 py-2 pr-8 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                       />
-                      <ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <ExternalLink className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Description</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Description</label>
                     <textarea 
                       value={productDescription}
                       onChange={(e) => setProductDescription(e.target.value)}
-                      rows={4}
-                      style={{ resize: 'vertical', minHeight: '80px', maxHeight: '400px' }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-colors"
+                      rows={3}
+                      style={{ resize: 'vertical', minHeight: '60px', maxHeight: '300px' }}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-colors"
                     />
-                    <p className="text-[10px] text-slate-400 mt-1">Drag bottom edge to resize</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Drag bottom edge to resize</p>
                   </div>
                 </div>
               </motion.div>
@@ -1560,14 +1530,14 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <h3 className="text-base font-black text-slate-900 mb-3">Categorization</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-2.5">Categorization</h3>
                 
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-2">Category</label>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Category</label>
                       <select 
                         value={category}
                         onChange={(e) => {
@@ -1575,7 +1545,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                           setCategory(newCat);
                           setSubcategory((categorySubcategories[newCat] || [])[0] || '');
                         }}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
                       >
                         {Object.keys(categorySubcategories).map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
@@ -1583,11 +1553,11 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-600 mb-2">Subcategory</label>
+                      <label className="block text-[11px] font-bold text-slate-500 mb-1">Subcategory</label>
                       <select 
                         value={subcategory}
                         onChange={(e) => setSubcategory(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
                       >
                         {(categorySubcategories[category] || []).map(subcat => (
                           <option key={subcat} value={subcat}>{subcat}</option>
@@ -1597,8 +1567,8 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Status</label>
-                    <select value={productStatus} onChange={(e) => setProductStatus(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Status</label>
+                    <select value={productStatus} onChange={(e) => setProductStatus(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none">
                       <option value="Active">Active</option>
                       <option value="Low Stock">Low Stock</option>
                       <option value="Out of Stock">Out of Stock</option>
@@ -1616,30 +1586,30 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <h3 className="text-base font-black text-slate-900 mb-3">Catalog Display Settings</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-2">Catalog Display Settings</h3>
                 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-3">Where should this product display?</label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
+                  <label className="block text-[11px] font-bold text-slate-500 mb-2">Where should this product display?</label>
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-all">
                       <input 
                         type="checkbox" 
                         checked={catalogDisplays.bulkSwag}
                         onChange={(e) => setCatalogDisplays({...catalogDisplays, bulkSwag: e.target.checked})}
-                        className="w-5 h-5 rounded border-2 border-slate-300 text-cyan-600 focus:ring-2 focus:ring-cyan-500/20"
+                        className="w-4 h-4 rounded border-2 border-slate-300 text-cyan-600 focus:ring-2 focus:ring-cyan-500/20"
                       />
-                      <span className="text-sm font-semibold text-slate-900">Bulk Swag Catalog</span>
+                      <span className="text-xs font-semibold text-slate-900">Bulk Swag Catalog</span>
                     </label>
-                    <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all">
+                    <label className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-all">
                       <input 
                         type="checkbox" 
                         checked={catalogDisplays.buildABox}
                         onChange={(e) => setCatalogDisplays({...catalogDisplays, buildABox: e.target.checked})}
-                        className="w-5 h-5 rounded border-2 border-slate-300 text-cyan-600 focus:ring-2 focus:ring-cyan-500/20"
+                        className="w-4 h-4 rounded border-2 border-slate-300 text-cyan-600 focus:ring-2 focus:ring-cyan-500/20"
                       />
-                      <span className="text-sm font-semibold text-slate-900">Build a Box Catalog</span>
+                      <span className="text-xs font-semibold text-slate-900">Build a Box Catalog</span>
                     </label>
                   </div>
                 </div>
@@ -1651,10 +1621,10 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                  className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-black text-slate-900">Decoration Methods</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-bold text-slate-900">Decoration Methods</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-semibold text-slate-400 uppercase">From Settings</span>
                       <button
@@ -1676,7 +1646,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   <div className="relative mb-3">
                     <button
                       onClick={() => { setDecorationDropdownOpen(!decorationDropdownOpen); setImprintDropdownOpen(false); }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-left text-sm font-medium text-slate-500 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all flex items-center justify-between"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-left text-xs font-medium text-slate-500 hover:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all flex items-center justify-between"
                     >
                       <span>Select decoration method...</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${decorationDropdownOpen ? 'rotate-180' : ''}`} />
@@ -1800,15 +1770,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
             </div>
 
             {/* Right Column */}
-            <div className="space-y-5">
+            <div className="space-y-3">
               {/* Production */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-black text-slate-900">Production</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-bold text-slate-900">Production</h3>
                   {(vendorType === 'Product Distributor' || vendorType === 'Apparel Distributor') && (
                     <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full uppercase flex items-center gap-1">
                       <Truck className="w-3 h-3" />
@@ -1817,13 +1787,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   )}
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="relative">
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Vendor Type</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Vendor Type</label>
                     <button
                       type="button"
                       onClick={() => { setVendorTypeOpen(!vendorTypeOpen); setShipmentTimeOpen(false); setOriginOpen(false); setStorageSizeOpen(false); }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                     >
                       <span>{vendorType || 'Select type'}</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${vendorTypeOpen ? 'rotate-180' : ''}`} />
@@ -1857,7 +1827,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-2">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">
                       {(vendorType === 'Product Distributor' || vendorType === 'Apparel Distributor') ? 'Drop Shipment Time' : 'Production Time Range'}
                     </label>
                     {(vendorType === 'Product Distributor' || vendorType === 'Apparel Distributor') ? (
@@ -1866,7 +1836,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                           <button
                             type="button"
                             onClick={() => { setShipmentTimeOpen(!shipmentTimeOpen); setVendorTypeOpen(false); setOriginOpen(false); setStorageSizeOpen(false); }}
-                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                           >
                             <span>{productionTimeRange[0]} {productionTimeRange[0] === 1 ? 'Day' : 'Days'}</span>
                             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${shipmentTimeOpen ? 'rotate-180' : ''}`} />
@@ -2004,20 +1974,20 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="bg-white rounded-3xl p-5 shadow-lg border border-slate-200"
+                className="bg-white rounded-xl p-4 shadow-sm border border-slate-200"
               >
-                <h3 className="text-base font-black text-slate-900 mb-3">Packaging Specs</h3>
+                <h3 className="text-sm font-bold text-slate-900 mb-2.5">Packaging Specs</h3>
                 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold text-slate-600">Dimensions</label>
-                      <div className="flex bg-slate-100 rounded-lg p-0.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-500">Dimensions</label>
+                      <div className="flex bg-slate-100 rounded p-0.5">
                         {(['in', 'cm'] as const).map(unit => (
                           <button
                             key={unit}
                             onClick={() => setDimensionUnit(unit)}
-                            className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
+                            className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded transition-all ${
                               dimensionUnit === unit
                                 ? 'bg-white text-slate-900 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
@@ -2028,7 +1998,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         ))}
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {(['l', 'w', 'h'] as const).map((key, i) => (
                         <div key={key} className="relative">
                           <input 
@@ -2036,23 +2006,23 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                             placeholder={i === 0 ? '25' : '10'}
                             value={dims[key] || ''}
                             onChange={(e) => setDims((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                            className="w-full px-3 py-2.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                            className="w-full px-2.5 py-1.5 pr-10 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold">{key.toUpperCase()} ({dimensionUnit})</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-semibold">{key.toUpperCase()} ({dimensionUnit})</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold text-slate-600">Case Weight</label>
-                      <div className="flex bg-slate-100 rounded-lg p-0.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-500">Case Weight</label>
+                      <div className="flex bg-slate-100 rounded p-0.5">
                         {(['lb', 'kg', 'oz', 'g'] as const).map(unit => (
                           <button
                             key={unit}
                             onClick={() => setWeightUnit(unit)}
-                            className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
+                            className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded transition-all ${
                               weightUnit === unit
                                 ? 'bg-white text-slate-900 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
@@ -2069,21 +2039,21 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         placeholder="30"
                         value={caseWeight}
                         onChange={(e) => setCaseWeight(e.target.value)}
-                        className="w-full px-4 py-2.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                        className="w-full px-2.5 py-1.5 pr-10 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-semibold">{weightUnit}</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold">{weightUnit}</span>
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold text-slate-600">Product Weight</label>
-                      <div className="flex bg-slate-100 rounded-lg p-0.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-slate-500">Product Weight</label>
+                      <div className="flex bg-slate-100 rounded p-0.5">
                         {(['lb', 'kg', 'oz', 'g'] as const).map(unit => (
                           <button
                             key={unit}
                             onClick={() => setProductWeightUnit(unit)}
-                            className={`px-2 py-1 text-[10px] font-bold uppercase rounded-md transition-all ${
+                            className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded transition-all ${
                               productWeightUnit === unit
                                 ? 'bg-white text-slate-900 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
@@ -2100,18 +2070,18 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         placeholder="0"
                         value={productWeight}
                         onChange={(e) => setProductWeight(e.target.value)}
-                        className="w-full px-4 py-2.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                        className="w-full px-2.5 py-1.5 pr-10 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                       />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500 font-semibold">{productWeightUnit}</span>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-semibold">{productWeightUnit}</span>
                     </div>
                   </div>
 
                   <div className="relative">
-                    <label className="block text-xs font-bold text-slate-600 mb-2">Storage Size</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Storage Size</label>
                     <button
                       type="button"
                       onClick={() => { setStorageSizeOpen(!storageSizeOpen); setVendorTypeOpen(false); setShipmentTimeOpen(false); setOriginOpen(false); }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                      className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                     >
                       <span>{storageSize}</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${storageSizeOpen ? 'rotate-180' : ''}`} />
