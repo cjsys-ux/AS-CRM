@@ -202,46 +202,93 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = event.target.files;
+    const input = event.target;
+    const uploadedFiles = input.files;
     if (!uploadedFiles || uploadedFiles.length === 0) return;
 
     const fileArray = Array.from(uploadedFiles);
 
-    if (productId) {
-      // Upload to S3 and record in MongoDB
-      for (const file of fileArray) {
-        try {
-          const presignRes = await fetch('/api/files/presign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: file.name,
-              fileType: file.type,
-              entityType: 'pipeline-compliance',
-              entityId: productId,
-            }),
-          });
-          if (!presignRes.ok) throw new Error('presign failed');
-          const { uploadUrl, key } = await presignRes.json();
-          await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-          await fetch('/api/files/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: 'pipeline-compliance', entityId: productId, uploadedBy: 'User' }),
-          });
-        } catch {
-          // silent per-file error; still add to local list
-        }
-      }
-      await fetchComplianceFiles();
-    } else {
+    if (!productId) {
       setFiles([...files, ...fileArray]);
+      toast.success(`${fileArray.length} document${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
+      input.value = '';
+      return;
     }
 
-    toast.success(`${uploadedFiles.length} document${uploadedFiles.length > 1 ? 's' : ''} uploaded successfully`, {
-      description: 'Your compliance documents have been added.',
-      duration: 3000,
-    });
+    const successes: string[] = [];
+    const failures: { name: string; reason: string }[] = [];
+
+    for (const file of fileArray) {
+      const contentType = file.type && file.type.trim() ? file.type : 'application/octet-stream';
+      try {
+        const presignRes = await fetch('/api/files/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: contentType,
+            entityType: 'pipeline-compliance',
+            entityId: productId,
+          }),
+        });
+        if (!presignRes.ok) {
+          const text = await presignRes.text().catch(() => '');
+          throw new Error(`presign ${presignRes.status}${text ? `: ${text}` : ''}`);
+        }
+        const { uploadUrl, key } = await presignRes.json();
+
+        const putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': contentType },
+        });
+        if (!putRes.ok) {
+          throw new Error(`S3 upload ${putRes.status}`);
+        }
+
+        const completeRes = await fetch('/api/files/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key,
+            fileName: file.name,
+            fileType: contentType,
+            size: file.size,
+            entityType: 'pipeline-compliance',
+            entityId: productId,
+            uploadedBy: 'User',
+          }),
+        });
+        if (!completeRes.ok) {
+          throw new Error(`complete ${completeRes.status}`);
+        }
+
+        successes.push(file.name);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'unknown error';
+        failures.push({ name: file.name, reason });
+      }
+    }
+
+    await fetchComplianceFiles();
+    input.value = '';
+
+    if (successes.length > 0 && failures.length === 0) {
+      toast.success(`${successes.length} document${successes.length > 1 ? 's' : ''} uploaded successfully`, {
+        description: 'Your compliance documents have been added.',
+        duration: 3000,
+      });
+    } else if (failures.length > 0 && successes.length === 0) {
+      toast.error(`Failed to upload ${failures[0].name}`, {
+        description: failures[0].reason,
+        duration: 6000,
+      });
+    } else {
+      toast.warning(`${successes.length} uploaded, ${failures.length} failed`, {
+        description: `First failure: ${failures[0].name} — ${failures[0].reason}`,
+        duration: 6000,
+      });
+    }
   };
 
   const handleDownloadFile = (file: File) => {

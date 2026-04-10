@@ -130,24 +130,82 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   };
 
   const uploadFileToS3 = async (file: File, category: string): Promise<void> => {
+    const contentType = file.type && file.type.trim() ? file.type : 'application/octet-stream';
+
     const presignRes = await fetch('/api/files/presign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         fileName: file.name,
-        fileType: file.type,
+        fileType: contentType,
         entityType: `pipeline-packaging-${category}`,
         entityId: productId,
       }),
     });
-    if (!presignRes.ok) throw new Error('presign failed');
+    if (!presignRes.ok) {
+      const text = await presignRes.text().catch(() => '');
+      throw new Error(`presign ${presignRes.status}${text ? `: ${text}` : ''}`);
+    }
     const { uploadUrl, key } = await presignRes.json();
-    await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-    await fetch('/api/files/complete', {
+
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': contentType },
+    });
+    if (!putRes.ok) {
+      throw new Error(`S3 upload ${putRes.status}`);
+    }
+
+    const completeRes = await fetch('/api/files/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: `pipeline-packaging-${category}`, entityId: productId, uploadedBy: 'User' }),
+      body: JSON.stringify({
+        key,
+        fileName: file.name,
+        fileType: contentType,
+        size: file.size,
+        entityType: `pipeline-packaging-${category}`,
+        entityId: productId,
+        uploadedBy: 'User',
+      }),
     });
+    if (!completeRes.ok) {
+      throw new Error(`complete ${completeRes.status}`);
+    }
+  };
+
+  const runPackagingUpload = async (
+    files: File[],
+    category: 'mockup' | 'dieline' | 'spec',
+    label: string,
+  ) => {
+    const successes: string[] = [];
+    const failures: { name: string; reason: string }[] = [];
+    for (const f of files) {
+      try {
+        await uploadFileToS3(f, category);
+        successes.push(f.name);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : 'unknown error';
+        failures.push({ name: f.name, reason });
+      }
+    }
+    await fetchSavedFiles();
+
+    if (successes.length > 0 && failures.length === 0) {
+      toast.success(`${successes.length} ${label}${successes.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
+    } else if (failures.length > 0 && successes.length === 0) {
+      toast.error(`Failed to upload ${failures[0].name}`, {
+        description: failures[0].reason,
+        duration: 6000,
+      });
+    } else {
+      toast.warning(`${successes.length} uploaded, ${failures.length} failed`, {
+        description: `First failure: ${failures[0].name} — ${failures[0].reason}`,
+        duration: 6000,
+      });
+    }
   };
 
   const handleDeleteSavedFile = async (fileId: string) => {
@@ -166,42 +224,45 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   };
 
   const handleMockupUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const input = event.target;
+    const files = input.files;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
     if (productId) {
-      for (const f of fileArray) { try { await uploadFileToS3(f, 'mockup'); } catch {} }
-      await fetchSavedFiles();
+      await runPackagingUpload(fileArray, 'mockup', 'mockup');
     } else {
       setMockups([...mockups, ...fileArray]);
+      toast.success(`${fileArray.length} mockup${fileArray.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
     }
-    toast.success(`${files.length} mockup${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
+    input.value = '';
   };
 
   const handleDielineUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const input = event.target;
+    const files = input.files;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
     if (productId) {
-      for (const f of fileArray) { try { await uploadFileToS3(f, 'dieline'); } catch {} }
-      await fetchSavedFiles();
+      await runPackagingUpload(fileArray, 'dieline', 'dieline file');
     } else {
       setDielineFiles([...dielineFiles, ...fileArray]);
+      toast.success(`${fileArray.length} dieline file${fileArray.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
     }
-    toast.success(`${files.length} dieline file${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
+    input.value = '';
   };
 
   const handleSpecUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const input = event.target;
+    const files = input.files;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
     if (productId) {
-      for (const f of fileArray) { try { await uploadFileToS3(f, 'spec'); } catch {} }
-      await fetchSavedFiles();
+      await runPackagingUpload(fileArray, 'spec', 'spec sheet');
     } else {
       setSpecSheets([...specSheets, ...fileArray]);
+      toast.success(`${fileArray.length} spec sheet${fileArray.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
     }
-    toast.success(`${files.length} spec sheet${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
+    input.value = '';
   };
 
   const handleDeleteFile = () => {

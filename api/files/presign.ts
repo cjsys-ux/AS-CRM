@@ -26,9 +26,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { fileName, fileType, entityType, entityId } = req.body ?? {};
 
-  if (!fileName || !fileType) {
-    return res.status(400).json({ error: 'fileName and fileType are required.' });
+  if (!fileName) {
+    return res.status(400).json({ error: 'fileName is required.' });
   }
+
+  const safeContentType =
+    typeof fileType === 'string' && fileType.trim()
+      ? fileType.trim()
+      : 'application/octet-stream';
 
   try {
     const bucket = getS3Bucket();
@@ -50,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      ContentType: fileType as string,
+      ContentType: safeContentType,
     });
 
     const uploadUrl = await getSignedUrl(s3, command, {
