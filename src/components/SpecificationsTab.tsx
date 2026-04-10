@@ -211,20 +211,20 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
   };
 
   const addMaterialComposition = () => {
-    setMaterialCompositions([
-      ...materialCompositions,
+    setMaterialCompositions(prev => [
+      ...prev,
       { id: Date.now().toString(), material: '', percentage: 0 }
     ]);
   };
 
   const removeMaterialComposition = (id: string) => {
-    if (materialCompositions.length > 1) {
-      setMaterialCompositions(materialCompositions.filter(m => m.id !== id));
-    }
+    setMaterialCompositions(prev =>
+      prev.length > 1 ? prev.filter(m => m.id !== id) : prev
+    );
   };
 
   const updateMaterialComposition = (id: string, field: 'material' | 'percentage' | 'customMaterial', value: string | number) => {
-    setMaterialCompositions(materialCompositions.map(m =>
+    setMaterialCompositions(prev => prev.map(m =>
       m.id === id ? { ...m, [field]: value } : m
     ));
   };
@@ -568,7 +568,10 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => sf.fileUrl && window.open(sf.fileUrl, '_blank')}
+                        onClick={() => {
+                          if (sf.key) window.open(`/api/files/image?key=${encodeURIComponent(sf.key)}`, '_blank');
+                          else if (sf.fileUrl) window.open(sf.fileUrl, '_blank');
+                        }}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Download"
                       >

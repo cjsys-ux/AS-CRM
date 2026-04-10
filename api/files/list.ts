@@ -7,14 +7,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { entityType, entityId } = req.query;
+  const { entityType, entityTypes, entityId } = req.query;
 
   try {
     const db = await getDb();
     const collection = db.collection('uploads');
 
     const filter: Record<string, unknown> = {};
-    if (entityType) filter.entityType = entityType;
+    if (typeof entityTypes === 'string' && entityTypes.length > 0) {
+      const list = entityTypes.split(',').map((s) => s.trim()).filter(Boolean);
+      if (list.length > 0) filter.entityType = { $in: list };
+    } else if (entityType) {
+      filter.entityType = entityType;
+    }
     if (entityId) filter.entityId = entityId;
 
     const uploads = await collection

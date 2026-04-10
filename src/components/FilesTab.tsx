@@ -12,7 +12,7 @@ interface FileItem {
   size: string;
   uploadedBy: string;
   uploadedDate: string;
-  category: string;
+  section: string;
   fileUrl?: string;
   key?: string;
 }
@@ -20,6 +20,31 @@ interface FileItem {
 interface FilesTabProps {
   productId?: string;
 }
+
+// Every entityType persisted via /api/files/complete from any tab on a product
+// pipeline. Keep in sync with the upload sites in SpecificationsTab, PackagingTab,
+// SamplesTab, and FilesTab itself. (AddSampleDrawer and ChatTab currently only
+// call /presign and never /complete, so their files never land in the uploads
+// collection and are intentionally not listed here.)
+const PRODUCT_FILE_ENTITY_TYPES = [
+  'pipeline-file',
+  'pipeline-compliance',
+  'pipeline-packaging-mockup',
+  'pipeline-packaging-dieline',
+  'pipeline-packaging-spec',
+  'pipeline-sample-document',
+  'pipeline-sample-image',
+] as const;
+
+const ENTITY_TYPE_SECTION_LABELS: Record<string, string> = {
+  'pipeline-file': 'Files',
+  'pipeline-compliance': 'Compliance & Certifications',
+  'pipeline-packaging-mockup': 'Packaging Mockups',
+  'pipeline-packaging-dieline': 'Packaging Dielines',
+  'pipeline-packaging-spec': 'Packaging Spec Sheets',
+  'pipeline-sample-document': 'Sample Documents',
+  'pipeline-sample-image': 'Sample Images',
+};
 
 const isImageType = (type: string) => {
   const t = type.toLowerCase();
@@ -56,18 +81,22 @@ const getFileIcon = (type: string) => {
   }
 };
 
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case 'Specifications':
-      return 'bg-blue-100 text-blue-700 border-blue-200';
-    case 'Design':
-      return 'bg-purple-100 text-purple-700 border-purple-200';
-    case 'Quality':
-      return 'bg-green-100 text-green-700 border-green-200';
-    case 'Images':
-      return 'bg-pink-100 text-pink-700 border-pink-200';
-    case 'Compliance':
+const getSectionColor = (section: string) => {
+  switch (section) {
+    case 'Files':
+      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'Compliance & Certifications':
       return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'Packaging Mockups':
+      return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'Packaging Dielines':
+      return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'Packaging Spec Sheets':
+      return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+    case 'Sample Documents':
+      return 'bg-green-100 text-green-700 border-green-200';
+    case 'Sample Images':
+      return 'bg-pink-100 text-pink-700 border-pink-200';
     default:
       return 'bg-slate-100 text-slate-700 border-slate-200';
   }
@@ -75,7 +104,7 @@ const getCategoryColor = (category: string) => {
 
 export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedSection, setSelectedSection] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
@@ -87,15 +116,13 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
 
   const fetchFiles = async () => {
     try {
-      const res = await fetch(`/api/files/list?entityType=pipeline-file&entityId=${encodeURIComponent(productId)}`);
+      const res = await fetch(
+        `/api/files/list?entityTypes=${encodeURIComponent(PRODUCT_FILE_ENTITY_TYPES.join(','))}&entityId=${encodeURIComponent(productId)}`
+      );
       if (!res.ok) throw new Error('Failed to fetch files');
       const data = await res.json();
       const mapped: FileItem[] = (data.uploads ?? []).map((u: any) => {
         const ext = (u.fileName ?? '').split('.').pop()?.toLowerCase() ?? '';
-        const category = u.fileType?.startsWith('image/') ? 'Images'
-          : ext === 'pdf' ? 'Specifications'
-          : ['xlsx', 'csv', 'xls'].includes(ext) ? 'Specifications'
-          : 'General';
         const sizeBytes = typeof u.size === 'number' ? u.size : 0;
         const sizeStr = sizeBytes > 1024 * 1024
           ? `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`
@@ -107,7 +134,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
           size: sizeStr,
           uploadedBy: u.uploadedBy ?? 'User',
           uploadedDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '',
-          category: u.category ?? category,
+          section: ENTITY_TYPE_SECTION_LABELS[u.entityType] ?? 'Other',
           fileUrl: u.fileUrl ?? '',
           key: u.key ?? '',
         };
@@ -118,11 +145,11 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
     }
   };
 
-  const filteredFiles = selectedCategory === 'all'
+  const filteredFiles = selectedSection === 'all'
     ? files
-    : files.filter(file => file.category === selectedCategory);
+    : files.filter(file => file.section === selectedSection);
 
-  const categories = ['all', ...Array.from(new Set(files.map(f => f.category)))];
+  const sections = ['all', ...Array.from(new Set(files.map(f => f.section)))];
 
   const handleFileUpload = async (uploadedFiles: FileList | null) => {
     if (!uploadedFiles || uploadedFiles.length === 0) return;
@@ -200,22 +227,22 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Category Filter */}
-      {categories.length > 1 && (
+      {/* Section Filter */}
+      {sections.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {categories.map((category) => (
+          {sections.map((section) => (
             <motion.button
-              key={category}
+              key={section}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => setSelectedSection(section)}
               className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                selectedCategory === category
+                selectedSection === section
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
             >
-              {category === 'all' ? 'All Files' : category}
+              {section === 'all' ? 'All Files' : section}
             </motion.button>
           ))}
         </div>
@@ -240,8 +267,8 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
               <Archive className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-600">Categories</p>
-              <h3 className="text-2xl font-bold text-slate-900">{categories.length - 1}</h3>
+              <p className="text-sm font-medium text-slate-600">Sections</p>
+              <h3 className="text-2xl font-bold text-slate-900">{sections.length - 1}</h3>
             </div>
           </div>
         </div>
@@ -325,7 +352,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                     File Name
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Category
+                    Section
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Size
@@ -368,8 +395,8 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold border ${getCategoryColor(file.category)}`}>
-                        {file.category}
+                      <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold border ${getSectionColor(file.section)}`}>
+                        {file.section}
                       </span>
                     </td>
                     <td className="px-6 py-4">
