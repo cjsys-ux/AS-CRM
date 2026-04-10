@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, Image as ImageIcon, ChevronDown, FileImage, Trash2, Check, AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { statuses, productTypes } from '../utils/mockData';
 import { createPortal } from 'react-dom';
 
@@ -220,6 +221,8 @@ interface EditProductInfoDrawerProps {
 export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave, linkedVendors, checklistProgress }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
   const [imagePreview, setImagePreview] = useState(productInfo.image);
+  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
   const [dbClients, setDbClients] = useState<any[]>([]);
 
@@ -270,15 +273,58 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
     setImagePreview(productInfo.image);
   }, [productInfo]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setFormData({ ...formData, image: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    // Show instant local preview
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+
+    setIsUploadingImage(true);
+    try {
+      const contentType = file.type && file.type.trim() ? file.type : 'application/octet-stream';
+
+      const presignRes = await fetch('/api/files/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: contentType,
+          entityType: 'project',
+          entityId: productId || 'new',
+        }),
+      });
+      if (!presignRes.ok) {
+        const text = await presignRes.text().catch(() => '');
+        throw new Error(`presign ${presignRes.status}${text ? `: ${text}` : ''}`);
+      }
+      const { uploadUrl, key } = await presignRes.json();
+
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': contentType },
+      });
+      if (!putRes.ok) {
+        throw new Error(`S3 upload ${putRes.status}`);
+      }
+
+      setUploadedImageKey(key);
+      // Point formData.image at the proxy URL so the parent's product details
+      // refresh immediately after save without waiting for a re-fetch.
+      const proxyUrl = `/api/files/image?key=${encodeURIComponent(key)}`;
+      setFormData(prev => ({ ...prev, image: proxyUrl }));
+      toast.success('Image uploaded');
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown error';
+      toast.error('Failed to upload image', { description: reason, duration: 6000 });
+      setImagePreview(productInfo.image);
+      setUploadedImageKey(null);
+    } finally {
+      setIsUploadingImage(false);
+      input.value = '';
     }
   };
 
@@ -302,15 +348,21 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
           htsBaseRate: formData.htsBaseRate,
           htsSection301: formData.htsSection301,
           sizeVariants: formData.sizeVariants,
+          ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
         };
         const res = await fetch('/api/projects/update', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Failed to save changes.');
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Failed to save changes (${res.status})${text ? `: ${text}` : ''}`);
+        }
       } catch (err) {
         console.error('Error saving product info:', err);
+        const reason = err instanceof Error ? err.message : 'Please try again.';
+        toast.error('Failed to save product info', { description: reason, duration: 6000 });
         return;
       }
     }
@@ -628,12 +680,13 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                 Cancel
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: isUploadingImage ? 1 : 1.02 }}
+                whileTap={{ scale: isUploadingImage ? 1 : 0.98 }}
                 onClick={handleSave}
-                className="flex-1 px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg text-sm"
+                disabled={isUploadingImage}
+                className="flex-1 px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Save Changes
+                {isUploadingImage ? 'Uploading image...' : 'Save Changes'}
               </motion.button>
             </div>
           </motion.div>
