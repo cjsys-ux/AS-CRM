@@ -568,7 +568,10 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => sf.fileUrl && window.open(sf.fileUrl, '_blank')}
+                        onClick={() => {
+                          if (sf.key) window.open(`/api/files/image?key=${encodeURIComponent(sf.key)}`, '_blank');
+                          else if (sf.fileUrl) window.open(sf.fileUrl, '_blank');
+                        }}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Download"
                       >
