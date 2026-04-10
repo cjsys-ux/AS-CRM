@@ -15,6 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     shippingWeight, shippingWeightUnit,
     materialCompositions,
     careInstructions,
+    variantSpecs,
   } = req.body ?? {};
 
   if (!productId) {
@@ -39,6 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         shippingWeightUnit: shippingWeightUnit ?? 'lbs',
         materialCompositions: materialCompositions ?? [],
         careInstructions: careInstructions ?? '',
+        variantSpecs: variantSpecs ?? {},
         updatedAt: new Date(),
       },
       $setOnInsert: { createdAt: new Date() },

@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const command = new GetObjectCommand({ Bucket: bucket, Key: key });
     const response = await s3.send(command);
 
-    res.setHeader('Content-Type', response.ContentType || 'image/jpeg');
+    res.setHeader('Content-Type', response.ContentType || 'application/octet-stream');
     if (response.ContentLength != null) {
       res.setHeader('Content-Length', String(response.ContentLength));
     }

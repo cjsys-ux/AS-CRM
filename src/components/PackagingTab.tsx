@@ -10,8 +10,17 @@ const getProxyUrl = (f: any) => f.key ? `/api/files/image?key=${encodeURICompone
 import { UnitDropdown } from './UnitDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { downloadSavedFile } from '../lib/downloadFile';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+
+const handleDownloadSavedFile = async (f: any) => {
+  try {
+    await downloadSavedFile(f);
+  } catch {
+    toast.error('Failed to download file');
+  }
+};
 
 interface PackagingTabProps {
   productId?: string;
@@ -22,7 +31,9 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   const [dielineFiles, setDielineFiles] = useState<File[]>([]);
   const [specSheets, setSpecSheets] = useState<File[]>([]);
   const [primaryPackaging, setPrimaryPackaging] = useState('');
+  const [customPrimaryPackaging, setCustomPrimaryPackaging] = useState('');
   const [packagingMaterial, setPackagingMaterial] = useState('');
+  const [customPackagingMaterial, setCustomPackagingMaterial] = useState('');
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number; type: 'mockup' | 'dieline' | 'spec' } | null>(null);
@@ -61,7 +72,9 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       setHeight(packaging.height ?? '');
       setHeightUnit(packaging.heightUnit ?? 'in');
       setPrimaryPackaging(packaging.primaryPackaging ?? '');
+      setCustomPrimaryPackaging(packaging.customPrimaryPackaging ?? '');
       setPackagingMaterial(packaging.packagingMaterial ?? '');
+      setCustomPackagingMaterial(packaging.customPackagingMaterial ?? '');
       setSpecialRequirements(packaging.specialRequirements ?? '');
     } catch {
       // silent
@@ -101,7 +114,9 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
           height: height ? parseFloat(height) : null,
           heightUnit,
           primaryPackaging,
+          customPrimaryPackaging,
           packagingMaterial,
+          customPackagingMaterial,
           specialRequirements,
         }),
       });
@@ -218,7 +233,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Dimensions */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
           <Box className="w-5 h-5 text-blue-600" />
           <h3 className="font-bold text-slate-900">Packaging Dimensions</h3>
@@ -235,7 +250,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   onChange={(e) => setLength(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={lengthUnit} onChange={setLengthUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={lengthUnit} onChange={setLengthUnit} />
               </div>
             </div>
             <div>
@@ -248,7 +263,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   onChange={(e) => setWidth(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={widthUnit} onChange={setWidthUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={widthUnit} onChange={setWidthUnit} />
               </div>
             </div>
             <div>
@@ -261,7 +276,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   onChange={(e) => setHeight(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={heightUnit} onChange={setHeightUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} />
               </div>
             </div>
           </div>
@@ -279,7 +294,10 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
             <label className="block text-sm font-medium text-slate-700 mb-2">Primary Packaging</label>
             <FilterDropdown
               value={primaryPackaging}
-              onChange={setPrimaryPackaging}
+              onChange={(v) => {
+                setPrimaryPackaging(v);
+                if (v !== 'Custom') setCustomPrimaryPackaging('');
+              }}
               options={[
                 { value: '', label: 'Select packaging type...' },
                 { value: 'Poly Bag', label: 'Poly Bag' },
@@ -290,12 +308,26 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
               ]}
               fullWidth
             />
+            {primaryPackaging === 'Custom' && (
+              <motion.input
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                type="text"
+                value={customPrimaryPackaging}
+                onChange={(e) => setCustomPrimaryPackaging(e.target.value)}
+                placeholder="Enter custom packaging type..."
+                className="mt-2 w-full px-4 py-2.5 bg-white border-2 border-green-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
+              />
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Material</label>
             <FilterDropdown
               value={packagingMaterial}
-              onChange={setPackagingMaterial}
+              onChange={(v) => {
+                setPackagingMaterial(v);
+                if (v !== 'Other') setCustomPackagingMaterial('');
+              }}
               options={[
                 { value: '', label: 'Select material...' },
                 { value: 'Cardboard', label: 'Cardboard' },
@@ -307,6 +339,17 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
               ]}
               fullWidth
             />
+            {packagingMaterial === 'Other' && (
+              <motion.input
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                type="text"
+                value={customPackagingMaterial}
+                onChange={(e) => setCustomPackagingMaterial(e.target.value)}
+                placeholder="Enter custom material..."
+                className="mt-2 w-full px-4 py-2.5 bg-white border-2 border-green-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
+              />
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Special Requirements</label>
@@ -322,7 +365,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Mockups */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageIcon className="w-5 h-5 text-pink-600" />
@@ -374,7 +417,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
@@ -426,7 +469,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Dieline & CAD Files */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-purple-600" />
@@ -478,7 +521,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
@@ -530,7 +573,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Spec Sheet */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Download className="w-5 h-5 text-orange-600" />
@@ -582,7 +625,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}

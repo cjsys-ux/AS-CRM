@@ -3,6 +3,7 @@ import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plu
 import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
+import { downloadSavedFile } from '../lib/downloadFile';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 
@@ -13,8 +14,35 @@ interface MaterialComposition {
   customMaterial?: string;
 }
 
+type VariantSpec = {
+  length: string;
+  lengthUnit: string;
+  width: string;
+  widthUnit: string;
+  height: string;
+  heightUnit: string;
+  productWeight: string;
+  productWeightUnit: string;
+  shippingWeight: string;
+  shippingWeightUnit: string;
+};
+
+const emptyVariantSpec = (): VariantSpec => ({
+  length: '',
+  lengthUnit: 'in',
+  width: '',
+  widthUnit: 'in',
+  height: '',
+  heightUnit: 'in',
+  productWeight: '',
+  productWeightUnit: 'lbs',
+  shippingWeight: '',
+  shippingWeightUnit: 'lbs',
+});
+
 interface SpecsTabProps {
   productId?: string;
+  sizeVariants?: string[];
 }
 
 const MATERIAL_OPTIONS = [
@@ -38,7 +66,7 @@ const MATERIAL_OPTIONS = [
   'Other'
 ];
 
-export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
+export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTabProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -65,6 +93,9 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
 
   // Care
   const [careInstructions, setCareInstructions] = useState('');
+
+  // Per-size variant specifications
+  const [variantSpecs, setVariantSpecs] = useState<Record<string, VariantSpec>>({});
 
   useEffect(() => {
     if (productId) {
@@ -93,9 +124,37 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
       if (spec.materialCompositions?.length > 0) {
         setMaterialCompositions(spec.materialCompositions);
       }
+      if (spec.variantSpecs && typeof spec.variantSpecs === 'object') {
+        setVariantSpecs(spec.variantSpecs);
+      }
     } catch {
       // silent
     }
+  };
+
+  // Reconcile per-size specs whenever sizeVariants changes.
+  // Adds defaults for new sizes, drops removed sizes, preserves existing data.
+  const sizeVariantsKey = sizeVariants.join('|');
+  useEffect(() => {
+    setVariantSpecs(prev => {
+      const prevKeys = Object.keys(prev);
+      const sameKeys =
+        prevKeys.length === sizeVariants.length &&
+        sizeVariants.every(s => s in prev);
+      if (sameKeys) return prev;
+      const next: Record<string, VariantSpec> = {};
+      for (const size of sizeVariants) {
+        next[size] = prev[size] ?? emptyVariantSpec();
+      }
+      return next;
+    });
+  }, [sizeVariantsKey]);
+
+  const updateVariantField = (size: string, field: keyof VariantSpec, value: string) => {
+    setVariantSpecs(prev => ({
+      ...prev,
+      [size]: { ...(prev[size] ?? emptyVariantSpec()), [field]: value },
+    }));
   };
 
   const fetchComplianceFiles = async () => {
@@ -130,6 +189,7 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
           shippingWeightUnit,
           materialCompositions,
           careInstructions,
+          variantSpecs,
         }),
       });
       if (!res.ok) throw new Error('Failed to save');
@@ -247,117 +307,260 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
         </motion.button>
       </div>
 
-      {/* Product Dimensions */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
-          <Ruler className="w-5 h-5 text-blue-600" />
-          <h3 className="font-bold text-slate-900">Product Dimensions</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-                <UnitDropdown
-                  options={['in', 'cm', 'mm']}
-                  defaultOption={lengthUnit}
-                  onChange={setLengthUnit}
-                />
-              </div>
+      {/* Product Dimensions & Weight Specifications — shown only when no size variants are defined.
+          When sizes exist, per-size inputs in the Size Variants card take over. */}
+      {sizeVariants.length === 0 && (
+        <>
+          {/* Product Dimensions */}
+          <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+              <Ruler className="w-5 h-5 text-blue-600" />
+              <h3 className="font-bold text-slate-900">Product Dimensions</h3>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Width</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-                <UnitDropdown
-                  options={['in', 'cm', 'mm']}
-                  defaultOption={widthUnit}
-                  onChange={setWidthUnit}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Height</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-                <UnitDropdown
-                  options={['in', 'cm', 'mm']}
-                  defaultOption={heightUnit}
-                  onChange={setHeightUnit}
-                />
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={length}
+                      onChange={(e) => setLength(e.target.value)}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                    <UnitDropdown
+                      options={['in', 'cm', 'mm']}
+                      defaultOption="in"
+                      value={lengthUnit}
+                      onChange={setLengthUnit}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Width</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                    <UnitDropdown
+                      options={['in', 'cm', 'mm']}
+                      defaultOption="in"
+                      value={widthUnit}
+                      onChange={setWidthUnit}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Height</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                    <UnitDropdown
+                      options={['in', 'cm', 'mm']}
+                      defaultOption="in"
+                      value={heightUnit}
+                      onChange={setHeightUnit}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Weight Specifications */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
-          <Weight className="w-5 h-5 text-green-600" />
-          <h3 className="font-bold text-slate-900">Weight Specifications</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Product Weight</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={productWeight}
-                  onChange={(e) => setProductWeight(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                />
-                <UnitDropdown
-                  options={['lbs', 'kg', 'oz', 'g']}
-                  defaultOption={productWeightUnit}
-                  onChange={setProductWeightUnit}
-                />
-              </div>
+          {/* Weight Specifications */}
+          <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+              <Weight className="w-5 h-5 text-green-600" />
+              <h3 className="font-bold text-slate-900">Weight Specifications</h3>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Shipping Weight</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={shippingWeight}
-                  onChange={(e) => setShippingWeight(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                />
-                <UnitDropdown
-                  options={['lbs', 'kg', 'oz', 'g']}
-                  defaultOption={shippingWeightUnit}
-                  onChange={setShippingWeightUnit}
-                />
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Product Weight</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={productWeight}
+                      onChange={(e) => setProductWeight(e.target.value)}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    />
+                    <UnitDropdown
+                      options={['lbs', 'kg', 'oz', 'g']}
+                      defaultOption="lbs"
+                      value={productWeightUnit}
+                      onChange={setProductWeightUnit}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Shipping Weight</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={shippingWeight}
+                      onChange={(e) => setShippingWeight(e.target.value)}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    />
+                    <UnitDropdown
+                      options={['lbs', 'kg', 'oz', 'g']}
+                      defaultOption="lbs"
+                      value={shippingWeightUnit}
+                      onChange={setShippingWeightUnit}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </>
+      )}
+
+      {/* Per-Size Variant Specifications */}
+      {sizeVariants.length > 0 && (
+        <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
+          <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+            <Package className="w-5 h-5 text-indigo-600" />
+            <h3 className="font-bold text-slate-900">Size Variants</h3>
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+              {sizeVariants.length} size{sizeVariants.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="p-6 space-y-4">
+            <AnimatePresence initial={false}>
+              {sizeVariants.map((size) => {
+                const vs = variantSpecs[size] ?? emptyVariantSpec();
+                return (
+                  <motion.div
+                    key={size}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="rounded-xl border border-slate-200 bg-slate-50/60 p-5"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm">
+                        {size}
+                      </span>
+                      <span className="text-sm font-medium text-slate-600">Dimensions & Weight</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Length</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.length}
+                            onChange={(e) => updateVariantField(size, 'length', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <UnitDropdown
+                            options={['in', 'cm', 'mm']}
+                            defaultOption="in"
+                            value={vs.lengthUnit}
+                            onChange={(v) => updateVariantField(size, 'lengthUnit', v)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Width</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.width}
+                            onChange={(e) => updateVariantField(size, 'width', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <UnitDropdown
+                            options={['in', 'cm', 'mm']}
+                            defaultOption="in"
+                            value={vs.widthUnit}
+                            onChange={(v) => updateVariantField(size, 'widthUnit', v)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Height</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.height}
+                            onChange={(e) => updateVariantField(size, 'height', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <UnitDropdown
+                            options={['in', 'cm', 'mm']}
+                            defaultOption="in"
+                            value={vs.heightUnit}
+                            onChange={(v) => updateVariantField(size, 'heightUnit', v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Product Weight</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.productWeight}
+                            onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                          />
+                          <UnitDropdown
+                            options={['lbs', 'kg', 'oz', 'g']}
+                            defaultOption="lbs"
+                            value={vs.productWeightUnit}
+                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Shipping Weight</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.shippingWeight}
+                            onChange={(e) => updateVariantField(size, 'shippingWeight', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                          />
+                          <UnitDropdown
+                            options={['lbs', 'kg', 'oz', 'g']}
+                            defaultOption="lbs"
+                            value={vs.shippingWeightUnit}
+                            onChange={(v) => updateVariantField(size, 'shippingWeightUnit', v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Material Specifications */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Layers className="w-5 h-5 text-purple-600" />
@@ -391,14 +594,7 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                     <div className="relative">
                       <input
                         type="text"
-                        value={composition.material === 'Other' && composition.customMaterial 
-                          ? composition.customMaterial 
-                          : composition.material || ''}
-                        onChange={(e) => {
-                          if (composition.material === 'Other') {
-                            updateMaterialComposition(composition.id, 'customMaterial', e.target.value);
-                          }
-                        }}
+                        value={composition.material || ''}
                         onClick={(e) => {
                           e.preventDefault();
                           setOpenDropdownId(composition.id);
@@ -410,10 +606,10 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                         onBlur={() => setTimeout(() => setOpenDropdownId(null), 200)}
                         placeholder="Select material..."
                         className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium cursor-pointer"
-                        readOnly={composition.material !== 'Other'}
+                        readOnly
                       />
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                      
+
                       <AnimatePresence>
                         {openDropdownId === composition.id && (
                           <motion.div
@@ -450,6 +646,17 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                         )}
                       </AnimatePresence>
                     </div>
+                    {composition.material === 'Other' && (
+                      <motion.input
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        type="text"
+                        value={composition.customMaterial || ''}
+                        onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
+                        placeholder="Enter custom material name..."
+                        className="mt-2 w-full px-4 py-3 bg-white border-2 border-purple-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
@@ -520,7 +727,7 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
       </div>
 
       {/* Compliance & Certifications */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-orange-600" />
@@ -540,7 +747,6 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
             id="compliance-upload"
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.jpg,.png"
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -568,9 +774,12 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          if (sf.key) window.open(`/api/files/image?key=${encodeURIComponent(sf.key)}`, '_blank');
-                          else if (sf.fileUrl) window.open(sf.fileUrl, '_blank');
+                        onClick={async () => {
+                          try {
+                            await downloadSavedFile(sf);
+                          } catch {
+                            toast.error('Failed to download file');
+                          }
                         }}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Download"
