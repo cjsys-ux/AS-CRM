@@ -211,20 +211,20 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
   };
 
   const addMaterialComposition = () => {
-    setMaterialCompositions([
-      ...materialCompositions,
+    setMaterialCompositions(prev => [
+      ...prev,
       { id: Date.now().toString(), material: '', percentage: 0 }
     ]);
   };
 
   const removeMaterialComposition = (id: string) => {
-    if (materialCompositions.length > 1) {
-      setMaterialCompositions(materialCompositions.filter(m => m.id !== id));
-    }
+    setMaterialCompositions(prev =>
+      prev.length > 1 ? prev.filter(m => m.id !== id) : prev
+    );
   };
 
   const updateMaterialComposition = (id: string, field: 'material' | 'percentage' | 'customMaterial', value: string | number) => {
-    setMaterialCompositions(materialCompositions.map(m =>
+    setMaterialCompositions(prev => prev.map(m =>
       m.id === id ? { ...m, [field]: value } : m
     ));
   };
