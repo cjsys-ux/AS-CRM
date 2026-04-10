@@ -269,7 +269,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Type */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
           <Package className="w-5 h-5 text-green-600" />
           <h3 className="font-bold text-slate-900">Packaging Type</h3>
