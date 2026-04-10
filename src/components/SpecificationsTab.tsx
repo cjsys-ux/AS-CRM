@@ -594,14 +594,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     <div className="relative">
                       <input
                         type="text"
-                        value={composition.material === 'Other' && composition.customMaterial 
-                          ? composition.customMaterial 
-                          : composition.material || ''}
-                        onChange={(e) => {
-                          if (composition.material === 'Other') {
-                            updateMaterialComposition(composition.id, 'customMaterial', e.target.value);
-                          }
-                        }}
+                        value={composition.material || ''}
                         onClick={(e) => {
                           e.preventDefault();
                           setOpenDropdownId(composition.id);
@@ -613,10 +606,10 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                         onBlur={() => setTimeout(() => setOpenDropdownId(null), 200)}
                         placeholder="Select material..."
                         className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium cursor-pointer"
-                        readOnly={composition.material !== 'Other'}
+                        readOnly
                       />
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                      
+
                       <AnimatePresence>
                         {openDropdownId === composition.id && (
                           <motion.div
@@ -653,6 +646,17 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                         )}
                       </AnimatePresence>
                     </div>
+                    {composition.material === 'Other' && (
+                      <motion.input
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        type="text"
+                        value={composition.customMaterial || ''}
+                        onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
+                        placeholder="Enter custom material name..."
+                        className="mt-2 w-full px-4 py-3 bg-white border-2 border-purple-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">

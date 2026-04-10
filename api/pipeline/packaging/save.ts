@@ -12,7 +12,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     width, widthUnit,
     height, heightUnit,
     primaryPackaging,
+    customPrimaryPackaging,
     packagingMaterial,
+    customPackagingMaterial,
     specialRequirements,
   } = req.body ?? {};
 
@@ -35,7 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           height: height ?? null,
           heightUnit: heightUnit ?? 'in',
           primaryPackaging: primaryPackaging ?? '',
+          customPrimaryPackaging: customPrimaryPackaging ?? '',
           packagingMaterial: packagingMaterial ?? '',
+          customPackagingMaterial: customPackagingMaterial ?? '',
           specialRequirements: specialRequirements ?? '',
           updatedAt: new Date(),
         },
