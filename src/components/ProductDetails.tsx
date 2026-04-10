@@ -612,7 +612,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
           </div>
 
           {/* Tabs */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-visible">
             <div className="border-b border-slate-200 px-4 sm:px-6 overflow-x-auto">
               <div className="flex gap-4 sm:gap-6 min-w-max">
                 {tabs.map((tab) => {

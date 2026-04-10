@@ -218,7 +218,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Dimensions */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
           <Box className="w-5 h-5 text-blue-600" />
           <h3 className="font-bold text-slate-900">Packaging Dimensions</h3>
@@ -235,7 +235,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   onChange={(e) => setLength(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={lengthUnit} onChange={setLengthUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={lengthUnit} onChange={setLengthUnit} />
               </div>
             </div>
             <div>
@@ -248,7 +248,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   onChange={(e) => setWidth(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={widthUnit} onChange={setWidthUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={widthUnit} onChange={setWidthUnit} />
               </div>
             </div>
             <div>
@@ -261,7 +261,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   onChange={(e) => setHeight(e.target.value)}
                   className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption={heightUnit} onChange={setHeightUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} />
               </div>
             </div>
           </div>
@@ -322,7 +322,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Mockups */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ImageIcon className="w-5 h-5 text-pink-600" />
@@ -426,7 +426,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Dieline & CAD Files */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-purple-600" />
@@ -530,7 +530,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Spec Sheet */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Download className="w-5 h-5 text-orange-600" />
