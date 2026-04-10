@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ChecklistWidget } from './ChecklistWidget';
 import { AddSampleDrawer } from './AddSampleDrawer';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
+import { downloadSavedFile } from '../lib/downloadFile';
 
 interface UploadedFile {
   id: string;
@@ -304,7 +305,13 @@ export function SamplesTab({ productId = '' }: SamplesTabProps) {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => window.open(doc.fileUrl, '_blank')}
+                    onClick={async () => {
+                      try {
+                        await downloadSavedFile({ key: doc.key, fileUrl: doc.fileUrl, fileName: doc.name });
+                      } catch {
+                        toast.error('Failed to download file');
+                      }
+                    }}
                     className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <Download className="w-4 h-4 text-slate-400 hover:text-blue-600" />

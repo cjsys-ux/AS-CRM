@@ -10,8 +10,17 @@ const getProxyUrl = (f: any) => f.key ? `/api/files/image?key=${encodeURICompone
 import { UnitDropdown } from './UnitDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { downloadSavedFile } from '../lib/downloadFile';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+
+const handleDownloadSavedFile = async (f: any) => {
+  try {
+    await downloadSavedFile(f);
+  } catch {
+    toast.error('Failed to download file');
+  }
+};
 
 interface PackagingTabProps {
   productId?: string;
@@ -374,7 +383,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
@@ -478,7 +487,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}
@@ -582,7 +591,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => window.open(getProxyUrl(f), '_blank')} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
+                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
                         </motion.button>
                       )}

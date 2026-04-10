@@ -3,6 +3,7 @@ import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plu
 import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
+import { downloadSavedFile } from '../lib/downloadFile';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 
@@ -742,7 +743,6 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
             id="compliance-upload"
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.jpg,.png"
             onChange={handleFileUpload}
             className="hidden"
           />
@@ -770,9 +770,12 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          if (sf.key) window.open(`/api/files/image?key=${encodeURIComponent(sf.key)}`, '_blank');
-                          else if (sf.fileUrl) window.open(sf.fileUrl, '_blank');
+                        onClick={async () => {
+                          try {
+                            await downloadSavedFile(sf);
+                          } catch {
+                            toast.error('Failed to download file');
+                          }
                         }}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Download"
