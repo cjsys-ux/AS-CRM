@@ -1,17 +1,24 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface UnitDropdownProps {
   options: string[];
   defaultOption: string;
+  value?: string;
   className?: string;
   onChange?: (value: string) => void;
 }
 
-export function UnitDropdown({ options, defaultOption, className = '', onChange }: UnitDropdownProps) {
+export function UnitDropdown({ options, defaultOption, value, className = '', onChange }: UnitDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState(defaultOption);
+  const [selected, setSelected] = useState(value ?? defaultOption);
+
+  useEffect(() => {
+    if (value !== undefined && value !== selected) {
+      setSelected(value);
+    }
+  }, [value]);
 
   return (
     <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'}`}>

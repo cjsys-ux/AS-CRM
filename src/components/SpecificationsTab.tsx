@@ -13,8 +13,35 @@ interface MaterialComposition {
   customMaterial?: string;
 }
 
+type VariantSpec = {
+  length: string;
+  lengthUnit: string;
+  width: string;
+  widthUnit: string;
+  height: string;
+  heightUnit: string;
+  productWeight: string;
+  productWeightUnit: string;
+  shippingWeight: string;
+  shippingWeightUnit: string;
+};
+
+const emptyVariantSpec = (): VariantSpec => ({
+  length: '',
+  lengthUnit: 'in',
+  width: '',
+  widthUnit: 'in',
+  height: '',
+  heightUnit: 'in',
+  productWeight: '',
+  productWeightUnit: 'lbs',
+  shippingWeight: '',
+  shippingWeightUnit: 'lbs',
+});
+
 interface SpecsTabProps {
   productId?: string;
+  sizeVariants?: string[];
 }
 
 const MATERIAL_OPTIONS = [
@@ -38,7 +65,7 @@ const MATERIAL_OPTIONS = [
   'Other'
 ];
 
-export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
+export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTabProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -65,6 +92,9 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
 
   // Care
   const [careInstructions, setCareInstructions] = useState('');
+
+  // Per-size variant specifications
+  const [variantSpecs, setVariantSpecs] = useState<Record<string, VariantSpec>>({});
 
   useEffect(() => {
     if (productId) {
@@ -93,9 +123,37 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
       if (spec.materialCompositions?.length > 0) {
         setMaterialCompositions(spec.materialCompositions);
       }
+      if (spec.variantSpecs && typeof spec.variantSpecs === 'object') {
+        setVariantSpecs(spec.variantSpecs);
+      }
     } catch {
       // silent
     }
+  };
+
+  // Reconcile per-size specs whenever sizeVariants changes.
+  // Adds defaults for new sizes, drops removed sizes, preserves existing data.
+  const sizeVariantsKey = sizeVariants.join('|');
+  useEffect(() => {
+    setVariantSpecs(prev => {
+      const prevKeys = Object.keys(prev);
+      const sameKeys =
+        prevKeys.length === sizeVariants.length &&
+        sizeVariants.every(s => s in prev);
+      if (sameKeys) return prev;
+      const next: Record<string, VariantSpec> = {};
+      for (const size of sizeVariants) {
+        next[size] = prev[size] ?? emptyVariantSpec();
+      }
+      return next;
+    });
+  }, [sizeVariantsKey]);
+
+  const updateVariantField = (size: string, field: keyof VariantSpec, value: string) => {
+    setVariantSpecs(prev => ({
+      ...prev,
+      [size]: { ...(prev[size] ?? emptyVariantSpec()), [field]: value },
+    }));
   };
 
   const fetchComplianceFiles = async () => {
@@ -130,6 +188,7 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
           shippingWeightUnit,
           materialCompositions,
           careInstructions,
+          variantSpecs,
         }),
       });
       if (!res.ok) throw new Error('Failed to save');
@@ -267,7 +326,8 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                 />
                 <UnitDropdown
                   options={['in', 'cm', 'mm']}
-                  defaultOption={lengthUnit}
+                  defaultOption="in"
+                  value={lengthUnit}
                   onChange={setLengthUnit}
                 />
               </div>
@@ -284,7 +344,8 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                 />
                 <UnitDropdown
                   options={['in', 'cm', 'mm']}
-                  defaultOption={widthUnit}
+                  defaultOption="in"
+                  value={widthUnit}
                   onChange={setWidthUnit}
                 />
               </div>
@@ -301,7 +362,8 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                 />
                 <UnitDropdown
                   options={['in', 'cm', 'mm']}
-                  defaultOption={heightUnit}
+                  defaultOption="in"
+                  value={heightUnit}
                   onChange={setHeightUnit}
                 />
               </div>
@@ -330,7 +392,8 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                 />
                 <UnitDropdown
                   options={['lbs', 'kg', 'oz', 'g']}
-                  defaultOption={productWeightUnit}
+                  defaultOption="lbs"
+                  value={productWeightUnit}
                   onChange={setProductWeightUnit}
                 />
               </div>
@@ -347,7 +410,8 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
                 />
                 <UnitDropdown
                   options={['lbs', 'kg', 'oz', 'g']}
-                  defaultOption={shippingWeightUnit}
+                  defaultOption="lbs"
+                  value={shippingWeightUnit}
                   onChange={setShippingWeightUnit}
                 />
               </div>
@@ -355,6 +419,138 @@ export function SpecificationsTab({ productId = '' }: SpecsTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Per-Size Variant Specifications */}
+      {sizeVariants.length > 0 && (
+        <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
+            <Package className="w-5 h-5 text-indigo-600" />
+            <h3 className="font-bold text-slate-900">Size Variants</h3>
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+              {sizeVariants.length} size{sizeVariants.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="p-6 space-y-4">
+            <AnimatePresence initial={false}>
+              {sizeVariants.map((size) => {
+                const vs = variantSpecs[size] ?? emptyVariantSpec();
+                return (
+                  <motion.div
+                    key={size}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="rounded-xl border border-slate-200 bg-slate-50/60 p-5"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm">
+                        {size}
+                      </span>
+                      <span className="text-sm font-medium text-slate-600">Dimensions & Weight</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Length</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.length}
+                            onChange={(e) => updateVariantField(size, 'length', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <UnitDropdown
+                            options={['in', 'cm', 'mm']}
+                            defaultOption="in"
+                            value={vs.lengthUnit}
+                            onChange={(v) => updateVariantField(size, 'lengthUnit', v)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Width</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.width}
+                            onChange={(e) => updateVariantField(size, 'width', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <UnitDropdown
+                            options={['in', 'cm', 'mm']}
+                            defaultOption="in"
+                            value={vs.widthUnit}
+                            onChange={(v) => updateVariantField(size, 'widthUnit', v)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Height</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.height}
+                            onChange={(e) => updateVariantField(size, 'height', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                          <UnitDropdown
+                            options={['in', 'cm', 'mm']}
+                            defaultOption="in"
+                            value={vs.heightUnit}
+                            onChange={(v) => updateVariantField(size, 'heightUnit', v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Product Weight</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.productWeight}
+                            onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                          />
+                          <UnitDropdown
+                            options={['lbs', 'kg', 'oz', 'g']}
+                            defaultOption="lbs"
+                            value={vs.productWeightUnit}
+                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Shipping Weight</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            placeholder="0.00"
+                            value={vs.shippingWeight}
+                            onChange={(e) => updateVariantField(size, 'shippingWeight', e.target.value)}
+                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                          />
+                          <UnitDropdown
+                            options={['lbs', 'kg', 'oz', 'g']}
+                            defaultOption="lbs"
+                            value={vs.shippingWeightUnit}
+                            onChange={(v) => updateVariantField(size, 'shippingWeightUnit', v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* Material Specifications */}
       <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">

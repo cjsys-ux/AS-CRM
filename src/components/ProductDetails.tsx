@@ -869,7 +869,12 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 </div>
               )}
 
-              {activeTab === 'specifications' && <SpecificationsTab productId={productId} />}
+              {activeTab === 'specifications' && (
+                <SpecificationsTab
+                  productId={productId}
+                  sizeVariants={productInfo.sizeVariants}
+                />
+              )}
               {activeTab === 'packaging' && <PackagingTab productId={productId} />}
 
               {activeTab === 'samples' && (
