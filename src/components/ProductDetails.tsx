@@ -803,7 +803,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                   </span>
                                 )}
                               </div>
-                              {vendor.contact?.name && (
+                              {vendor.contact && (
                                 <div className="border-t border-slate-100 pt-1.5 mb-1.5">
                                   <div className="flex items-center gap-1 text-[10px] text-slate-600">
                                     <svg className="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
