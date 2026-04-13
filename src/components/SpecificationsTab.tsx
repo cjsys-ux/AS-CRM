@@ -446,78 +446,49 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                    className="rounded-lg border border-slate-200 bg-slate-50/60 p-4"
                   >
-                    <div className="grid grid-cols-[4rem_1fr_1fr] gap-6 items-start">
-                      {/* Size label */}
+                    {/* Row 1: Size + column headers */}
+                    <div className="grid grid-cols-[5rem_1fr_auto] gap-4 items-end mb-2">
                       <div>
                         <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Size</p>
                         <span className="text-sm font-bold text-indigo-600">{size}</span>
                       </div>
-                      {/* Dimensions */}
                       <div>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Dimensions (L × W × H)</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dimensions (L × W × H)</p>
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              value={vs.length}
-                              onChange={(e) => updateVariantField(size, 'length', e.target.value)}
-                              className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              value={vs.width}
-                              onChange={(e) => updateVariantField(size, 'width', e.target.value)}
-                              className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              value={vs.height}
-                              onChange={(e) => updateVariantField(size, 'height', e.target.value)}
-                              className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-1">
-                          <UnitDropdown
-                            options={['in', 'cm', 'mm']}
-                            defaultOption="in"
-                            value={vs.lengthUnit}
-                            onChange={(v) => {
-                              updateVariantField(size, 'lengthUnit', v);
-                              updateVariantField(size, 'widthUnit', v);
-                              updateVariantField(size, 'heightUnit', v);
-                            }}
-                          />
+                          <input type="number" placeholder="0.00" value={vs.length}
+                            onChange={(e) => updateVariantField(size, 'length', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full" />
+                          <input type="number" placeholder="0.00" value={vs.width}
+                            onChange={(e) => updateVariantField(size, 'width', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full" />
+                          <input type="number" placeholder="0.00" value={vs.height}
+                            onChange={(e) => updateVariantField(size, 'height', e.target.value)}
+                            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full" />
                         </div>
                       </div>
-                      {/* Weight */}
                       <div>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Weight</p>
+                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Weight</p>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={vs.productWeight}
+                          <input type="number" placeholder="0.00" value={vs.productWeight}
                             onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
-                            className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                          />
-                          <UnitDropdown
-                            options={['lbs', 'kg', 'oz', 'g']}
-                            defaultOption="lbs"
+                            className="w-24 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
+                          <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
                             value={vs.productWeightUnit}
-                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)}
-                          />
+                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
                         </div>
                       </div>
+                    </div>
+                    {/* Row 2: unit selector for dimensions */}
+                    <div className="pl-[5.5rem]">
+                      <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in"
+                        value={vs.lengthUnit}
+                        onChange={(v) => {
+                          updateVariantField(size, 'lengthUnit', v);
+                          updateVariantField(size, 'widthUnit', v);
+                          updateVariantField(size, 'heightUnit', v);
+                        }} />
                     </div>
                   </motion.div>
                 );
