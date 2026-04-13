@@ -256,17 +256,15 @@ function DraggableTierRow({ tier, index, isEditing, hasChanges, isDropship, upda
           <span className={`px-2 py-1.5 text-sm font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}>{tier.leadTime}</span>
         )}
       </td>
-      <td className="px-2 py-1.5 w-[36px]">
-        {(isEditing || hasChanges) && (
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => removeTier(index)}
-            className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </motion.button>
-        )}
+      <td className="px-2 py-1.5 w-[36px] text-center">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => removeTier(index)}
+          className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors inline-flex items-center justify-center"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </motion.button>
       </td>
     </tr>
   );
@@ -668,7 +666,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                       <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'text-slate-500'}`} style={!isDropship ? { minWidth: '60px' } : undefined}>
                         {isDropship ? 'Dropship Days' : 'Days'}
                       </th>
-                      <th className="px-2 py-2.5 w-[36px] text-[11px] font-bold text-slate-500 uppercase">Actions</th>
+                      <th className="px-2 py-2.5 w-[36px] text-center text-[11px] font-bold text-slate-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>

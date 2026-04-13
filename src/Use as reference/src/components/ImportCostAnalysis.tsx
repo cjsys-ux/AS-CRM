@@ -21,7 +21,7 @@ interface ImportCostAnalysisProps {
 export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, vendorName }: ImportCostAnalysisProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [shippingCosts, setShippingCosts] = useState<Record<number, string>>({});
-  const [selectedBasis, setSelectedBasis] = useState<'fob' | 'exw'>('fob');
+  const [pickupFees, setPickupFees] = useState<Record<number, string>>({});
   const [showAllRows, setShowAllRows] = useState(false);
   const MAX_VISIBLE_ROWS = 5;
 
@@ -38,14 +38,25 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
       const exw = Number(tier.exwPrice) || 0;
       const fob = Number(tier.fobPrice) || 0;
       const ddp = Number(tier.ddpPrice) || 0;
-      const basisPrice = selectedBasis === 'fob' ? fob : exw;
       const shippingPerUnit = parseFloat(shippingCosts[index] || '0') || 0;
+      const pickupFee = parseFloat(pickupFees[index] || '0') || 0;
+
+      // Auto-determine basis: use FOB as the base price for duty calculation
+      // Pickup fee is the extra cost freight forwarder charges to collect at factory (EXW) vs FOB
+      // If using EXW basis (pickup fee > 0), total = EXW + pickup + duty + shipping
+      // If using FOB basis (no pickup), total = FOB + duty + shipping
+      const hasPickupFee = pickupFee > 0;
+      const basisPrice = fob; // Always calculate duty on FOB
       const dutyPerUnit = basisPrice * (totalDutyRate / 100);
-      const selfImportLanded = basisPrice + dutyPerUnit + shippingPerUnit;
+
+      // Self-import landed cost:
+      // FOB + duty + shipping + pickup fee (if freight forwarder picks up at factory)
+      const selfImportLanded = fob + dutyPerUnit + shippingPerUnit + pickupFee;
+
       const savings = ddp - selfImportLanded;
       const savingsPercent = ddp > 0 ? (savings / ddp) * 100 : 0;
       const recommendation: 'self-import' | 'ddp' | 'no-data' =
-        ddp <= 0 || basisPrice <= 0 ? 'no-data' :
+        ddp <= 0 || fob <= 0 ? 'no-data' :
         savings > 0 ? 'self-import' : 'ddp';
 
       return {
@@ -56,6 +67,7 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
         basisPrice,
         dutyPerUnit,
         shippingPerUnit,
+        pickupFee,
         selfImportLanded,
         savings,
         savingsPercent,
@@ -64,9 +76,9 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
         leadTime: Number(tier.leadTime) || 0,
       };
     });
-  }, [pricingTiers, totalDutyRate, shippingCosts, selectedBasis]);
+  }, [pricingTiers, totalDutyRate, shippingCosts, pickupFees]);
 
-  const validTiers = analysis.filter(a => a.basisPrice > 0 && a.ddp > 0);
+  const validTiers = analysis.filter(a => a.fob > 0 && a.ddp > 0);
   const bestSaving = validTiers.length > 0
     ? validTiers.reduce((best, curr) => curr.savings > best.savings ? curr : best, validTiers[0])
     : null;
@@ -114,7 +126,7 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
               className="overflow-hidden"
             >
               <div className="p-4 space-y-3">
-                {/* Duty Rate Summary & Controls */}
+                {/* Duty Rate Summary */}
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
                     <span className="text-[10px] font-semibold text-slate-500 uppercase">Total Duty</span>
@@ -131,43 +143,27 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                       SECTION 301 (+25%)
                     </span>
                   )}
-                  <div className="ml-auto flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
-                    <button
-                      onClick={() => setSelectedBasis('fob')}
-                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                        selectedBasis === 'fob'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      FOB Basis
-                    </button>
-                    <button
-                      onClick={() => setSelectedBasis('exw')}
-                      className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                        selectedBasis === 'exw'
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      EXW Basis
-                    </button>
-                  </div>
                 </div>
 
                 {/* Analysis Table */}
                 <div className="overflow-x-auto">
-                  <table className="w-full" style={{ minWidth: '880px' }}>
+                  <table className="w-full" style={{ minWidth: '960px' }}>
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">Qty</th>
-                        <th className={`text-left px-2 py-2 text-[10px] font-bold uppercase ${selectedBasis === 'exw' ? 'text-blue-600 bg-blue-50/50' : 'text-slate-500'}`}>EXW</th>
-                        <th className={`text-left px-2 py-2 text-[10px] font-bold uppercase ${selectedBasis === 'fob' ? 'text-blue-600 bg-blue-50/50' : 'text-slate-500'}`}>FOB</th>
+                        <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">EXW</th>
+                        <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">FOB</th>
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase">Duty/Unit</th>
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-slate-500 uppercase w-[90px]">
                           <div className="flex flex-col">
                             <span>Ship/Unit</span>
                             <span className="text-[8px] font-normal text-slate-400 normal-case">editable</span>
+                          </div>
+                        </th>
+                        <th className="text-left px-2 py-2 text-[10px] font-bold text-orange-600 uppercase w-[90px]">
+                          <div className="flex flex-col">
+                            <span>Pickup Fee</span>
+                            <span className="text-[8px] font-normal text-orange-400 normal-case">EXW factory</span>
                           </div>
                         </th>
                         <th className="text-left px-2 py-2 text-[10px] font-bold text-blue-600 uppercase bg-blue-50/50">Self-Import</th>
@@ -191,10 +187,10 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                           <td className="px-2 py-2 text-sm font-medium text-slate-900">
                             {Number(row.qty).toLocaleString()}
                           </td>
-                          <td className={`px-2 py-2 text-sm font-medium ${selectedBasis === 'exw' ? 'text-slate-900 bg-blue-50/20' : 'text-slate-500'}`}>
+                          <td className="px-2 py-2 text-sm font-medium text-slate-500">
                             ${row.exw.toFixed(2)}
                           </td>
-                          <td className={`px-2 py-2 text-sm font-medium ${selectedBasis === 'fob' ? 'text-slate-900 bg-blue-50/20' : 'text-slate-500'}`}>
+                          <td className="px-2 py-2 text-sm font-medium text-slate-900">
                             ${row.fob.toFixed(2)}
                           </td>
                           <td className="px-2 py-2 text-sm font-medium text-slate-700">
@@ -213,6 +209,22 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                                 }}
                                 placeholder="0.00"
                                 className="w-full pl-5 pr-1 py-1 rounded-md border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 text-sm text-slate-900 font-medium focus:outline-none transition-all bg-white"
+                              />
+                            </div>
+                          </td>
+                          <td className="px-2 py-2">
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-orange-400">$</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={pickupFees[index] || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                                  setPickupFees(prev => ({ ...prev, [index]: val }));
+                                }}
+                                placeholder="0.00"
+                                className="w-full pl-5 pr-1 py-1 rounded-md border border-orange-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 text-sm text-slate-900 font-medium focus:outline-none transition-all bg-orange-50/30"
                               />
                             </div>
                           </td>
@@ -308,8 +320,8 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                         <div className="text-[10px] font-bold text-slate-500 uppercase mb-1.5">Cost Breakdown ({bestSaving.qty.toLocaleString()} units)</div>
                         <div className="space-y-1">
                           <div className="flex justify-between text-xs">
-                            <span className="text-slate-500">{selectedBasis.toUpperCase()} Price</span>
-                            <span className="font-semibold text-slate-900">${bestSaving.basisPrice.toFixed(2)}</span>
+                            <span className="text-slate-500">FOB Price</span>
+                            <span className="font-semibold text-slate-900">${bestSaving.fob.toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-slate-500">Duty ({totalDutyRate.toFixed(1)}%)</span>
@@ -319,6 +331,12 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                             <span className="text-slate-500">Shipping</span>
                             <span className="font-semibold text-slate-900">${bestSaving.shippingPerUnit.toFixed(2)}</span>
                           </div>
+                          {bestSaving.pickupFee > 0 && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-orange-500">Factory Pickup</span>
+                              <span className="font-semibold text-orange-600">${bestSaving.pickupFee.toFixed(2)}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-xs border-t border-slate-200 pt-1">
                             <span className="font-semibold text-slate-700">Landed Cost</span>
                             <span className="font-bold text-blue-700">${bestSaving.selfImportLanded.toFixed(2)}</span>
@@ -342,7 +360,7 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                             <span className="text-sm font-bold text-green-700">Be Importer of Record</span>
                           </div>
                           <p className="text-[10px] text-slate-500 leading-relaxed">
-                            Self-importing at {selectedBasis.toUpperCase()} is cheaper than {vendorName}'s DDP pricing. Activate Swag should act as importer of record.
+                            Self-importing at FOB is cheaper than {vendorName}'s DDP pricing. Activate Swag should act as importer of record.
                           </p>
                         </>
                       ) : (
@@ -352,7 +370,7 @@ export function ImportCostAnalysis({ pricingTiers, htsBaseRate, htsSection301, v
                             <span className="text-sm font-bold text-amber-700">Use Vendor DDP</span>
                           </div>
                           <p className="text-[10px] text-slate-500 leading-relaxed">
-                            {vendorName}'s DDP pricing is currently more cost-effective. Enter shipping costs to refine the analysis.
+                            {vendorName}'s DDP pricing is currently more cost-effective. Enter shipping costs and pickup fees to refine the analysis.
                           </p>
                         </>
                       )}
