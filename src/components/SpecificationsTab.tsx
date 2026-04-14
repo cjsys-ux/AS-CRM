@@ -468,68 +468,81 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
             <Package className="w-5 h-5 text-indigo-600" />
             <h3 className="font-bold text-slate-900">Size Variants</h3>
             <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
-              {sizeVariants.length} size{sizeVariants.length !== 1 ? 's' : ''}
+              {sizeVariants.length} variant{sizeVariants.length !== 1 ? 's' : ''}
             </span>
           </div>
           <div className="p-4 space-y-2">
-            {/* Column headers */}
-            <div className="grid grid-cols-[60px_1fr_180px] gap-4 px-3 pb-1">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Size</p>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dimensions (L × W × H)</p>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Weight</p>
-            </div>
             <AnimatePresence initial={false}>
               {sizeVariants.map((size) => {
                 const vs = variantSpecs[size] ?? emptyVariantSpec();
+                const hasDims = vs.length || vs.width || vs.height;
+                const hasWeight = vs.productWeight;
                 return (
                   <motion.div
                     key={size}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="grid grid-cols-[60px_1fr_180px] gap-4 items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-3"
+                    className="grid grid-cols-[120px_1fr_220px] gap-4 items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
                   >
-                    {/* Size */}
-                    <span className="text-sm font-bold text-indigo-600">{size}</span>
-
-                    {/* Dimensions: 3 inputs + unit */}
+                    {/* Size column */}
                     <div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <input type="number" placeholder="0.00" value={vs.length}
-                          onChange={(e) => updateVariantField(size, 'length', e.target.value)}
-                          disabled={!isEditing}
-                          className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full disabled:opacity-60 disabled:cursor-not-allowed" />
-                        <input type="number" placeholder="0.00" value={vs.width}
-                          onChange={(e) => updateVariantField(size, 'width', e.target.value)}
-                          disabled={!isEditing}
-                          className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full disabled:opacity-60 disabled:cursor-not-allowed" />
-                        <input type="number" placeholder="0.00" value={vs.height}
-                          onChange={(e) => updateVariantField(size, 'height', e.target.value)}
-                          disabled={!isEditing}
-                          className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full disabled:opacity-60 disabled:cursor-not-allowed" />
-                      </div>
-                      <div className="mt-1.5">
-                        <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in"
-                          value={vs.lengthUnit}
-                          disabled={!isEditing}
-                          onChange={(v) => {
-                            updateVariantField(size, 'lengthUnit', v);
-                            updateVariantField(size, 'widthUnit', v);
-                            updateVariantField(size, 'heightUnit', v);
-                          }} />
-                      </div>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Size</p>
+                      <span className="text-sm font-bold text-indigo-600">{size}</span>
                     </div>
 
-                    {/* Weight: input + unit */}
-                    <div className="flex items-center gap-2">
-                      <input type="number" placeholder="0.00" value={vs.productWeight}
-                        onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
-                        disabled={!isEditing}
-                        className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed" />
-                      <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
-                        value={vs.productWeightUnit}
-                        disabled={!isEditing}
-                        onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
+                    {/* Dimensions column */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dimensions (L × W × H)</p>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5">
+                          <input type="number" placeholder="L" value={vs.length}
+                            onChange={(e) => updateVariantField(size, 'length', e.target.value)}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <span className="text-slate-400 text-sm">×</span>
+                          <input type="number" placeholder="W" value={vs.width}
+                            onChange={(e) => updateVariantField(size, 'width', e.target.value)}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <span className="text-slate-400 text-sm">×</span>
+                          <input type="number" placeholder="H" value={vs.height}
+                            onChange={(e) => updateVariantField(size, 'height', e.target.value)}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <select
+                            value={vs.lengthUnit || 'in'}
+                            onChange={(e) => {
+                              updateVariantField(size, 'lengthUnit', e.target.value);
+                              updateVariantField(size, 'widthUnit', e.target.value);
+                              updateVariantField(size, 'heightUnit', e.target.value);
+                            }}
+                            className="text-sm text-slate-600 bg-transparent border-none outline-none cursor-pointer font-medium ml-0.5"
+                          >
+                            <option>in</option><option>cm</option><option>mm</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">
+                          {hasDims ? `${vs.length || '–'} × ${vs.width || '–'} × ${vs.height || '–'} ${vs.lengthUnit}` : 'Not set'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Weight column */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Weight</p>
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <input type="number" placeholder="0.0" value={vs.productWeight}
+                            onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
+                            className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
+                          <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
+                            value={vs.productWeightUnit}
+                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">
+                          {hasWeight ? `${vs.productWeight} ${vs.productWeightUnit}` : 'Not set'}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 );
