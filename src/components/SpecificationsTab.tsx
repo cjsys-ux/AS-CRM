@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save } from 'lucide-react';
+import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save, Pencil } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
@@ -76,6 +76,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
     { id: '1', material: '', percentage: 0 }
   ]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Dimensions
   const [length, setLength] = useState('');
@@ -194,6 +195,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
       });
       if (!res.ok) throw new Error('Failed to save');
       toast.success('Specifications saved successfully');
+      setIsEditing(false);
     } catch {
       toast.error('Failed to save specifications');
     } finally {
@@ -293,18 +295,41 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
 
   return (
     <div className="space-y-6">
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSaveSpecs}
-          disabled={isSaving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          {isSaving ? 'Saving...' : 'Save Specifications'}
-        </motion.button>
+      {/* Edit / Save buttons */}
+      <div className="flex justify-end gap-3">
+        {isEditing ? (
+          <>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsEditing(false)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSaveSpecs}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save Specifications'}
+            </motion.button>
+          </>
+        ) : (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+          >
+            <Pencil className="w-4 h-4" />
+            Edit Specifications
+          </motion.button>
+        )}
       </div>
 
       {/* Product Dimensions & Weight Specifications */}
@@ -326,13 +351,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={length}
                       onChange={(e) => setLength(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['in', 'cm', 'mm']}
                       defaultOption="in"
                       value={lengthUnit}
                       onChange={setLengthUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -344,13 +371,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={width}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['in', 'cm', 'mm']}
                       defaultOption="in"
                       value={widthUnit}
                       onChange={setWidthUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -362,13 +391,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['in', 'cm', 'mm']}
                       defaultOption="in"
                       value={heightUnit}
                       onChange={setHeightUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -392,13 +423,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={productWeight}
                       onChange={(e) => setProductWeight(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['lbs', 'kg', 'oz', 'g']}
                       defaultOption="lbs"
                       value={productWeightUnit}
                       onChange={setProductWeightUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -410,13 +443,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={shippingWeight}
                       onChange={(e) => setShippingWeight(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['lbs', 'kg', 'oz', 'g']}
                       defaultOption="lbs"
                       value={shippingWeightUnit}
                       onChange={setShippingWeightUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -436,7 +471,13 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
               {sizeVariants.length} size{sizeVariants.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-2">
+            {/* Column headers */}
+            <div className="grid grid-cols-[60px_1fr_180px] gap-4 px-3 pb-1">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Size</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Dimensions (L × W × H)</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Weight</p>
+            </div>
             <AnimatePresence initial={false}>
               {sizeVariants.map((size) => {
                 const vs = variantSpecs[size] ?? emptyVariantSpec();
@@ -446,49 +487,49 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="rounded-lg border border-slate-200 bg-slate-50/60 p-4"
+                    className="grid grid-cols-[60px_1fr_180px] gap-4 items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-3"
                   >
-                    {/* Row 1: Size + column headers */}
-                    <div className="grid grid-cols-[5rem_1fr_auto] gap-4 items-end mb-2">
-                      <div>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Size</p>
-                        <span className="text-sm font-bold text-indigo-600">{size}</span>
+                    {/* Size */}
+                    <span className="text-sm font-bold text-indigo-600">{size}</span>
+
+                    {/* Dimensions: 3 inputs + unit */}
+                    <div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <input type="number" placeholder="0.00" value={vs.length}
+                          onChange={(e) => updateVariantField(size, 'length', e.target.value)}
+                          disabled={!isEditing}
+                          className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full disabled:opacity-60 disabled:cursor-not-allowed" />
+                        <input type="number" placeholder="0.00" value={vs.width}
+                          onChange={(e) => updateVariantField(size, 'width', e.target.value)}
+                          disabled={!isEditing}
+                          className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full disabled:opacity-60 disabled:cursor-not-allowed" />
+                        <input type="number" placeholder="0.00" value={vs.height}
+                          onChange={(e) => updateVariantField(size, 'height', e.target.value)}
+                          disabled={!isEditing}
+                          className="px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full disabled:opacity-60 disabled:cursor-not-allowed" />
                       </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dimensions (L × W × H)</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input type="number" placeholder="0.00" value={vs.length}
-                            onChange={(e) => updateVariantField(size, 'length', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full" />
-                          <input type="number" placeholder="0.00" value={vs.width}
-                            onChange={(e) => updateVariantField(size, 'width', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full" />
-                          <input type="number" placeholder="0.00" value={vs.height}
-                            onChange={(e) => updateVariantField(size, 'height', e.target.value)}
-                            className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-full" />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Weight</p>
-                        <div className="flex items-center gap-2">
-                          <input type="number" placeholder="0.00" value={vs.productWeight}
-                            onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
-                            className="w-24 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                          <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
-                            value={vs.productWeightUnit}
-                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
-                        </div>
+                      <div className="mt-1.5">
+                        <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in"
+                          value={vs.lengthUnit}
+                          disabled={!isEditing}
+                          onChange={(v) => {
+                            updateVariantField(size, 'lengthUnit', v);
+                            updateVariantField(size, 'widthUnit', v);
+                            updateVariantField(size, 'heightUnit', v);
+                          }} />
                       </div>
                     </div>
-                    {/* Row 2: unit selector for dimensions */}
-                    <div className="pl-[5.5rem]">
-                      <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in"
-                        value={vs.lengthUnit}
-                        onChange={(v) => {
-                          updateVariantField(size, 'lengthUnit', v);
-                          updateVariantField(size, 'widthUnit', v);
-                          updateVariantField(size, 'heightUnit', v);
-                        }} />
+
+                    {/* Weight: input + unit */}
+                    <div className="flex items-center gap-2">
+                      <input type="number" placeholder="0.00" value={vs.productWeight}
+                        onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
+                        disabled={!isEditing}
+                        className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+                      <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
+                        value={vs.productWeightUnit}
+                        disabled={!isEditing}
+                        onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
                     </div>
                   </motion.div>
                 );

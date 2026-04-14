@@ -7,10 +7,11 @@ interface UnitDropdownProps {
   defaultOption: string;
   value?: string;
   className?: string;
+  disabled?: boolean;
   onChange?: (value: string) => void;
 }
 
-export function UnitDropdown({ options, defaultOption, value, className = '', onChange }: UnitDropdownProps) {
+export function UnitDropdown({ options, defaultOption, value, className = '', disabled = false, onChange }: UnitDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState(value ?? defaultOption);
 
@@ -24,11 +25,12 @@ export function UnitDropdown({ options, defaultOption, value, className = '', on
     <div className={`relative ${isOpen ? 'z-[100]' : 'z-10'}`}>
       <motion.button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        className={`flex items-center justify-between gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 hover:border-slate-400 rounded-xl text-slate-700 font-medium transition-all shadow-sm min-w-[90px] ${className}`}
+        whileHover={disabled ? {} : { scale: 1.02 }}
+        whileTap={disabled ? {} : { scale: 0.98 }}
+        disabled={disabled}
+        className={`flex items-center justify-between gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl text-slate-700 font-medium transition-all shadow-sm min-w-[90px] ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-slate-400'} ${className}`}
       >
         <span>{selected}</span>
         <motion.div
