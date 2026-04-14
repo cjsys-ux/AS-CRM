@@ -483,15 +483,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="grid grid-cols-[120px_1fr_220px] gap-4 items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
+                    className="grid grid-cols-[110px_1fr_200px] items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
                   >
-                    {/* Size column */}
+                    {/* Size */}
                     <div>
                       <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Size</p>
                       <span className="text-sm font-bold text-indigo-600">{size}</span>
                     </div>
 
-                    {/* Dimensions column */}
+                    {/* Dimensions */}
                     <div>
                       <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dimensions (L × W × H)</p>
                       {isEditing ? (
@@ -499,11 +499,11 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                           <input type="number" placeholder="L" value={vs.length}
                             onChange={(e) => updateVariantField(size, 'length', e.target.value)}
                             className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
-                          <span className="text-slate-400 text-sm">×</span>
+                          <span className="text-slate-400 text-xs">×</span>
                           <input type="number" placeholder="W" value={vs.width}
                             onChange={(e) => updateVariantField(size, 'width', e.target.value)}
                             className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
-                          <span className="text-slate-400 text-sm">×</span>
+                          <span className="text-slate-400 text-xs">×</span>
                           <input type="number" placeholder="H" value={vs.height}
                             onChange={(e) => updateVariantField(size, 'height', e.target.value)}
                             className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
@@ -514,19 +514,19 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                               updateVariantField(size, 'widthUnit', e.target.value);
                               updateVariantField(size, 'heightUnit', e.target.value);
                             }}
-                            className="text-sm text-slate-600 bg-transparent border-none outline-none cursor-pointer font-medium ml-0.5"
+                            className="text-sm text-slate-600 bg-transparent border-none outline-none cursor-pointer ml-1"
                           >
                             <option>in</option><option>cm</option><option>mm</option>
                           </select>
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-400 italic">
+                        <p className="text-sm italic text-slate-400">
                           {hasDims ? `${vs.length || '–'} × ${vs.width || '–'} × ${vs.height || '–'} ${vs.lengthUnit}` : 'Not set'}
                         </p>
                       )}
                     </div>
 
-                    {/* Weight column */}
+                    {/* Weight */}
                     <div>
                       <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Weight</p>
                       {isEditing ? (
@@ -539,7 +539,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                             onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
                         </div>
                       ) : (
-                        <p className="text-sm text-slate-400 italic">
+                        <p className="text-sm italic text-slate-400">
                           {hasWeight ? `${vs.productWeight} ${vs.productWeightUnit}` : 'Not set'}
                         </p>
                       )}
