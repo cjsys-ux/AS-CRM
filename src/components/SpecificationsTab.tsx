@@ -483,7 +483,8 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="grid grid-cols-[110px_1fr_200px] items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
+                    style={{ display: 'grid', gridTemplateColumns: '110px 1fr 200px', alignItems: 'center' }}
                   >
                     {/* Size */}
                     <div>
