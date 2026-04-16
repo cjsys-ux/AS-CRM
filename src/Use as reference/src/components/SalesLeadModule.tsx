@@ -289,31 +289,31 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
       {isOpen && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={onClose} />
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-[580px] bg-white shadow-2xl z-50 flex flex-col">
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-[460px] bg-white shadow-2xl z-50 flex flex-col">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 relative overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvc3ZnPg==')] opacity-50" />
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center border border-white/20">
-                    <Target className="w-5 h-5 text-white" />
+                  <div className="w-9 h-9 bg-white/15 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
+                    <Target className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">{lead ? 'Edit Deal' : 'Create Deal'}</h2>
-                    <p className="text-xs text-white/70">Fill out the deal details below</p>
+                    <h2 className="text-sm font-bold text-white">{lead ? 'Edit Deal' : 'Create Deal'}</h2>
+                    <p className="text-[11px] text-white/70">Fill out the deal details below</p>
                   </div>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-white/15 rounded-lg transition-colors"><X className="w-5 h-5 text-white" /></button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Deal Info Section */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Deal Information
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Deal Information
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className={labelCls}>Deal Title *</label>
                     <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Custom Shirts" className={inputCls} />
@@ -378,7 +378,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Deal Amount ($)</label>
                       <input value={form.amount} onChange={e => setForm({ ...form, amount: formatCurrency(e.target.value) })} placeholder="0.00" className={inputCls} />
@@ -386,7 +386,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     <CustomDropdown label="Pipeline Stage" value={form.stage} options={PIPELINE_STAGES.map(s => ({ value: s.id, label: s.label, color: s.color }))} onChange={v => setForm({ ...form, stage: v })} />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <CustomDropdown label="Lead Source" value={form.source} options={LEAD_SOURCES.map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, source: v })} />
                     <CustomDropdown label="Product Type" value={form.productType} options={PRODUCT_TYPES.map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, productType: v })} />
                     <div>
@@ -395,7 +395,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>In-Hands Date</label>
                       <input type="date" value={form.inHandsDate} onChange={e => setForm({ ...form, inHandsDate: e.target.value })} className={inputCls} />
@@ -435,10 +435,10 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
               {/* Contact Section */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Contact Details
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Contact Details
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {isExistingCompany && form.companyId && (
                     <div ref={contactRef}>
                       <label className={labelCls}>Select Contact</label>
@@ -477,7 +477,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                       )}
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>First Name</label>
                       <input value={form.contactFirstName} onChange={e => setForm({ ...form, contactFirstName: e.target.value })} placeholder="First name" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
@@ -487,7 +487,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                       <input value={form.contactLastName} onChange={e => setForm({ ...form, contactLastName: e.target.value })} placeholder="Last name" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Email</label>
                       <input type="email" value={form.contactEmail} onChange={e => setForm({ ...form, contactEmail: e.target.value })} placeholder="email@company.com" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
@@ -502,8 +502,8 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
               {/* Documents */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Documents
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Documents
                 </h3>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt,.csv" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all">
@@ -527,20 +527,20 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
               {/* Notes */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Notes
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Notes
                 </h3>
-                <textarea rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional details about this deal..." className={inputCls + " resize-none"} />
+                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional details about this deal..." className={inputCls + " resize-none"} />
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex gap-3">
-              <button onClick={onClose} className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-colors">Cancel</button>
+            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex gap-3">
+              <button onClick={onClose} className="flex-1 px-3 py-2.5 border-2 border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-100 transition-colors">Cancel</button>
               <motion.button
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+                className="flex-1 px-3 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 {lead ? 'Update Deal' : 'Create Deal'}
@@ -1031,7 +1031,7 @@ export function SalesLeadModule() {
         {viewMode === 'board' ? (
         <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 sm:px-6 lg:px-8 pb-4">
           <div className="max-w-[2200px] mx-auto h-full">
-            <div className="flex gap-3 h-full" style={{ minWidth: `${visibleStages.length * 240}px` }}>
+            <div className="flex gap-3 h-full" style={{ minWidth: `${visibleStages.length * 260}px` }}>
               {visibleStages.map((stage) => {
                 const stageLeads = filteredLeads.filter(l => l.stage === stage.id);
                 const stageTotal = stageLeads.reduce((s, l) => s + l.amount, 0);
@@ -1042,7 +1042,7 @@ export function SalesLeadModule() {
                 return (
                   <div
                     key={stage.id}
-                    className={`flex-1 min-w-[220px] max-w-[300px] flex flex-col rounded-2xl transition-all ${
+                    className={`flex-1 min-w-[250px] flex flex-col rounded-2xl transition-all ${
                       isDragOver ? 'bg-indigo-50/70 ring-2 ring-indigo-400 ring-offset-2' : 'bg-white/50'
                     }`}
                     onDragOver={e => onDragOver(e, stage.id)}

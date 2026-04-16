@@ -507,13 +507,13 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
   const c = contactData;
 
   const InfoField = ({ icon: Icon, label, value, color = 'slate' }: { icon: any; label: string; value: string; color?: string }) => (
-    <div className="flex items-start gap-3 py-2">
-      <div className={`w-9 h-9 bg-${color}-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5`}>
-        <Icon className={`w-4 h-4 text-${color}-600`} />
+    <div className="flex items-start gap-2.5 py-1.5">
+      <div className={`w-7 h-7 bg-${color}-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5`}>
+        <Icon className={`w-3.5 h-3.5 text-${color}-600`} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium text-slate-900 break-words">{value || '—'}</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-xs font-medium text-slate-900 break-words">{value || '—'}</p>
       </div>
     </div>
   );
@@ -532,36 +532,36 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
       {/* ─── Header ─── */}
-      <div className="bg-slate-800 px-8 py-5">
+      <div className="bg-slate-800 px-6 py-3">
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2.5">
             <motion.button
               whileHover={{ scale: 1.05, x: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={onBack}
-              className="flex items-center gap-2 text-white/90 hover:text-white font-medium transition-colors"
+              className="flex items-center gap-1.5 text-white/90 hover:text-white font-medium transition-colors text-sm"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
               Back to Contacts
             </motion.button>
           </div>
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl">
-              <span className="text-xl font-black text-indigo-600">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-xl">
+              <span className="text-sm font-black text-indigo-600">
                 {c.name?.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
               </span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{c.name}</h1>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${getTypeColor(c.type)} bg-white`}>
+              <h1 className="text-base font-bold text-white">{c.name}</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${getTypeColor(c.type)} bg-white`}>
                   {c.type}
                 </span>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${getStatusColor(c.status)} bg-white`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${getStatusColor(c.status)} bg-white`}>
                   {c.status}
                 </span>
                 {c.company && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-white/20 text-white border border-white/30">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/20 text-white border border-white/30">
                     {c.company}
                   </span>
                 )}
@@ -570,12 +570,12 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-1 mt-5 -mb-5">
+          <div className="flex items-center gap-0.5 mt-3 -mb-3">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 rounded-t-xl text-sm font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all ${
                   activeTab === tab.id
                     ? 'bg-slate-50 text-indigo-700 shadow-sm'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -589,115 +589,115 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
       </div>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="max-w-[1400px] mx-auto">
 
           {/* ════════════ OVERVIEW TAB ════════════ */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Quick Actions */}
-              <div className="flex items-center gap-3">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
-                  <Send className="w-4 h-4" /> Send Email
+              <div className="flex items-center gap-2">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all text-xs">
+                  <Send className="w-3.5 h-3.5" /> Send Email
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors">
-                  <Phone className="w-4 h-4" /> Call
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors text-xs">
+                  <Phone className="w-3.5 h-3.5" /> Call
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors">
-                  <Video className="w-4 h-4" /> Schedule Meeting
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors text-xs">
+                  <Video className="w-3.5 h-3.5" /> Schedule Meeting
                 </motion.button>
               </div>
 
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-3 gap-4">
                 {/* ─── Left: Contact Information (editable) ─── */}
-                <div className="col-span-2 space-y-6">
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4 border-b border-slate-200">
+                <div className="col-span-2 space-y-4">
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-3 border-b border-slate-200">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
-                            <User className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                            <User className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-slate-900">Contact Information</h3>
-                            <p className="text-sm text-slate-500">Personal details & communication</p>
+                            <h3 className="text-sm font-bold text-slate-900">Contact Information</h3>
+                            <p className="text-xs text-slate-500">Personal details & communication</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {saveSuccess === 'info' && (
-                            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
-                              <Check className="w-3.5 h-3.5 inline mr-1" /> Saved
+                            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                              <Check className="w-3 h-3 inline mr-0.5" /> Saved
                             </motion.span>
                           )}
                           {editingSection === 'info' ? (
-                            <div className="flex items-center gap-2">
-                              <button onClick={cancelEditing} className="px-3 py-1.5 text-sm font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-                              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveInfoEdits} disabled={saving} className="px-4 py-1.5 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={cancelEditing} className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
+                              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveInfoEdits} disabled={saving} className="px-3 py-1 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-1">
+                                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
                               </motion.button>
                             </div>
                           ) : (
-                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => startEditing('info')} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
-                              <Pencil className="w-3.5 h-3.5" /> Edit
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => startEditing('info')} className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                              <Pencil className="w-3 h-3" /> Edit
                             </motion.button>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {editingSection === 'info' ? (
-                        <div className="space-y-5">
-                          <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Full Name</label>
-                              <input type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Full Name</label>
+                              <input type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Position / Title</label>
-                              <input type="text" value={editForm.position || ''} onChange={e => setEditForm({ ...editForm, position: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Email</label>
-                              <input type="email" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Phone</label>
-                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Position / Title</label>
+                              <input type="text" value={editForm.position || ''} onChange={e => setEditForm({ ...editForm, position: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Company</label>
-                              <input type="text" value={editForm.company || ''} onChange={e => setEditForm({ ...editForm, company: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label>
+                              <input type="email" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Country</label>
-                              <input type="text" value={editForm.country || ''} onChange={e => setEditForm({ ...editForm, country: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone</label>
+                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
                             </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Type</label>
-                              <select value={editForm.type || 'Customer'} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Company</label>
+                              <input type="text" value={editForm.company || ''} onChange={e => setEditForm({ ...editForm, company: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Country</label>
+                              <input type="text" value={editForm.country || ''} onChange={e => setEditForm({ ...editForm, country: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Type</label>
+                              <select value={editForm.type || 'Customer'} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all">
                                 {CONTACT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Status</label>
-                              <select value={editForm.status || 'Active'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
+                              <select value={editForm.status || 'Active'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all">
                                 {CONTACT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Website</label>
-                              <input type="text" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value })} placeholder="www.example.com" className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Website</label>
+                              <input type="text" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value })} placeholder="www.example.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Notes</label>
-                            <textarea rows={3} value={editForm.notes || ''} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all resize-none" />
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Notes</label>
+                            <textarea rows={3} value={editForm.notes || ''} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all resize-none" />
                           </div>
                         </div>
                       ) : (
@@ -721,24 +721,24 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                   </motion.div>
 
                   {/* ─── Addresses Preview ─── */}
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-slate-200">
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 border-b border-slate-200">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
-                            <MapPin className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+                            <MapPin className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-slate-900">Addresses</h3>
-                            <p className="text-sm text-slate-500">{addresses.length} location{addresses.length !== 1 ? 's' : ''} on file</p>
+                            <h3 className="text-sm font-bold text-slate-900">Addresses</h3>
+                            <p className="text-xs text-slate-500">{addresses.length} location{addresses.length !== 1 ? 's' : ''} on file</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {saveSuccess === 'addresses' && (
-                            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg"><Check className="w-3.5 h-3.5 inline mr-1" /> Saved</motion.span>
+                            <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg"><Check className="w-3 h-3 inline mr-0.5" /> Saved</motion.span>
                           )}
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={openAddAddress} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-amber-700 bg-amber-100 rounded-lg hover:bg-amber-200 transition-colors">
-                            <Plus className="w-3.5 h-3.5" /> Add Address
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={openAddAddress} className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-100 rounded-lg hover:bg-amber-200 transition-colors">
+                            <Plus className="w-3 h-3" /> Add Address
                           </motion.button>
                           {addresses.length > 4 && (
                             <button onClick={() => setActiveTab('addresses')} className="text-xs font-bold text-indigo-600 hover:underline ml-1">View All</button>
@@ -746,22 +746,22 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                         </div>
                       </div>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {addresses.length === 0 ? (
-                        <div className="text-center py-8">
-                          <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                            <MapPin className="w-7 h-7 text-amber-300" />
+                        <div className="text-center py-6">
+                          <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <MapPin className="w-5 h-5 text-amber-300" />
                           </div>
-                          <p className="text-sm font-semibold text-slate-700 mb-1">No addresses added yet</p>
-                          <p className="text-xs text-slate-400 mb-4">Add billing, shipping, and office addresses</p>
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAddAddress} className="px-4 py-2 bg-amber-500 text-white rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors inline-flex items-center gap-1.5">
-                            <Plus className="w-4 h-4" /> Add First Address
+                          <p className="text-xs font-semibold text-slate-700 mb-1">No addresses added yet</p>
+                          <p className="text-[10px] text-slate-400 mb-3">Add billing, shipping, and office addresses</p>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAddAddress} className="px-3 py-1.5 bg-amber-500 text-white rounded-lg font-bold text-xs hover:bg-amber-600 transition-colors inline-flex items-center gap-1">
+                            <Plus className="w-3.5 h-3.5" /> Add First Address
                           </motion.button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                           {addresses.slice(0, 4).map(addr => (
-                            <div key={addr.id} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-amber-300 transition-colors group relative">
+                            <div key={addr.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200 hover:border-amber-300 transition-colors group relative">
                               <div className="flex items-center gap-2 mb-2">
                                 <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${getAddressTypeColor(addr.label)}`}>{addr.label}</span>
                                 {addr.isPrimary && <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-100 text-indigo-700">Primary</span>}
@@ -782,13 +782,13 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                 </div>
 
                 {/* ─── Right: Activity Timeline ─── */}
-                <div className="space-y-6">
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 border-b border-slate-200">
-                      <h3 className="text-lg font-bold text-slate-900">Recent Activity</h3>
-                      <p className="text-sm text-slate-500">Communication history</p>
+                <div className="space-y-4">
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3 border-b border-slate-200">
+                      <h3 className="text-sm font-bold text-slate-900">Recent Activity</h3>
+                      <p className="text-xs text-slate-500">Communication history</p>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {loadingActivity ? (
                         <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 text-slate-400 animate-spin" /></div>
                       ) : activityData.length === 0 ? (
@@ -835,17 +835,17 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
           {activeTab === 'emails' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               {/* Compose Email Card */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-                <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">Email History</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">Communication log with {c.name}</p>
+                    <h3 className="text-sm font-bold text-slate-900">Email History</h3>
+                    <p className="text-xs text-slate-500">Communication log with {c.name}</p>
                   </div>
                   <button
                     onClick={() => setShowComposeEmail(!showComposeEmail)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send className="w-3.5 h-3.5" />
                     Compose Email
                   </button>
                 </div>
@@ -859,28 +859,28 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden border-b border-slate-200"
                     >
-                      <div className="p-6 bg-blue-50/50 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-blue-50/50 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">From</label>
-                            <input type="text" placeholder="Your Name" value={emailForm.from} onChange={e => setEmailForm({ ...emailForm, from: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">From</label>
+                            <input type="text" placeholder="Your Name" value={emailForm.from} onChange={e => setEmailForm({ ...emailForm, from: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">To</label>
-                            <input type="text" value={contactData.email} disabled className="w-full px-4 py-2.5 bg-slate-100 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-500" />
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">To</label>
+                            <input type="text" value={contactData.email} disabled className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-500" />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Subject</label>
-                          <input type="text" placeholder="Email subject..." value={emailForm.subject} onChange={e => setEmailForm({ ...emailForm, subject: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Subject</label>
+                          <input type="text" placeholder="Email subject..." value={emailForm.subject} onChange={e => setEmailForm({ ...emailForm, subject: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Body</label>
-                          <textarea rows={5} placeholder="Write your email..." value={emailForm.body} onChange={e => setEmailForm({ ...emailForm, body: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none" />
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Body</label>
+                          <textarea rows={4} placeholder="Write your email..." value={emailForm.body} onChange={e => setEmailForm({ ...emailForm, body: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none" />
                         </div>
-                        <div className="flex items-center gap-3 justify-end">
-                          <button onClick={() => setShowComposeEmail(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800">Cancel</button>
-                          <button onClick={handleSendEmail} disabled={sendingEmail || !emailForm.subject.trim()} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                        <div className="flex items-center gap-2 justify-end">
+                          <button onClick={() => setShowComposeEmail(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800">Cancel</button>
+                          <button onClick={handleSendEmail} disabled={sendingEmail || !emailForm.subject.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
                             {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                             Send Email
                           </button>
@@ -891,14 +891,14 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                 </AnimatePresence>
 
                 {/* Email List */}
-                <div className="p-6">
+                <div className="p-4">
                   {loadingEmails ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 text-slate-400 animate-spin" /></div>
+                    <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 text-slate-400 animate-spin" /></div>
                   ) : emailsData.length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><Mail className="w-10 h-10 text-blue-300" /></div>
-                      <h4 className="text-lg font-bold text-slate-900 mb-2">No emails yet</h4>
-                      <p className="text-sm text-slate-500 max-w-md mx-auto">Send the first email to {c.name} using the Compose button above.</p>
+                    <div className="text-center py-10">
+                      <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-3"><Mail className="w-6 h-6 text-blue-300" /></div>
+                      <h4 className="text-sm font-bold text-slate-900 mb-1">No emails yet</h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">Send the first email to {c.name} using the Compose button above.</p>
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -962,14 +962,14 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
           {/* ════════════ TICKETS TAB ════════════ */}
           {activeTab === 'tickets' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-                <div className="bg-slate-50 px-8 py-5 border-b border-slate-200 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">Support Tickets</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">Track and manage issues for {c.name}</p>
+                    <h3 className="text-sm font-bold text-slate-900">Support Tickets</h3>
+                    <p className="text-xs text-slate-500">Track and manage issues for {c.name}</p>
                   </div>
-                  <button onClick={() => setShowCreateTicket(!showCreateTicket)} className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 text-white text-sm font-semibold rounded-xl hover:bg-orange-700 transition-colors">
-                    <Plus className="w-4 h-4" />
+                  <button onClick={() => setShowCreateTicket(!showCreateTicket)} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white text-xs font-semibold rounded-lg hover:bg-orange-700 transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
                     New Ticket
                   </button>
                 </div>
@@ -978,19 +978,19 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                 <AnimatePresence>
                   {showCreateTicket && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden border-b border-slate-200">
-                      <div className="p-6 bg-orange-50/50 space-y-4">
+                      <div className="p-4 bg-orange-50/50 space-y-3">
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Subject</label>
-                          <input type="text" placeholder="Brief description of the issue..." value={ticketForm.subject} onChange={e => setTicketForm({ ...ticketForm, subject: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500" />
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Subject</label>
+                          <input type="text" placeholder="Brief description of the issue..." value={ticketForm.subject} onChange={e => setTicketForm({ ...ticketForm, subject: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500" />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Description</label>
-                          <textarea rows={4} placeholder="Detailed description..." value={ticketForm.description} onChange={e => setTicketForm({ ...ticketForm, description: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none" />
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Description</label>
+                          <textarea rows={3} placeholder="Detailed description..." value={ticketForm.description} onChange={e => setTicketForm({ ...ticketForm, description: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 resize-none" />
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Priority</label>
-                            <select value={ticketForm.priority} onChange={e => setTicketForm({ ...ticketForm, priority: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Priority</label>
+                            <select value={ticketForm.priority} onChange={e => setTicketForm({ ...ticketForm, priority: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500">
                               <option value="Low">Low</option>
                               <option value="Medium">Medium</option>
                               <option value="High">High</option>
@@ -998,8 +998,8 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Category</label>
-                            <select value={ticketForm.category} onChange={e => setTicketForm({ ...ticketForm, category: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Category</label>
+                            <select value={ticketForm.category} onChange={e => setTicketForm({ ...ticketForm, category: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500">
                               <option value="General">General</option>
                               <option value="Billing">Billing</option>
                               <option value="Shipping">Shipping</option>
@@ -1009,13 +1009,13 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                             </select>
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Assigned To</label>
-                            <input type="text" placeholder="Team member..." value={ticketForm.assignedTo} onChange={e => setTicketForm({ ...ticketForm, assignedTo: e.target.value })} className="w-full px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500" />
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Assigned To</label>
+                            <input type="text" placeholder="Team member..." value={ticketForm.assignedTo} onChange={e => setTicketForm({ ...ticketForm, assignedTo: e.target.value })} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500" />
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 justify-end">
-                          <button onClick={() => setShowCreateTicket(false)} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800">Cancel</button>
-                          <button onClick={handleCreateTicket} disabled={creatingTicket || !ticketForm.subject.trim()} className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white text-sm font-semibold rounded-xl hover:bg-orange-700 disabled:opacity-50 transition-colors">
+                        <div className="flex items-center gap-2 justify-end">
+                          <button onClick={() => setShowCreateTicket(false)} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800">Cancel</button>
+                          <button onClick={handleCreateTicket} disabled={creatingTicket || !ticketForm.subject.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white text-xs font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors">
                             {creatingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ticket className="w-4 h-4" />}
                             Create Ticket
                           </button>
@@ -1026,14 +1026,14 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                 </AnimatePresence>
 
                 {/* Tickets List */}
-                <div className="p-6">
+                <div className="p-4">
                   {loadingTickets ? (
-                    <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 text-slate-400 animate-spin" /></div>
+                    <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 text-slate-400 animate-spin" /></div>
                   ) : ticketsData.length === 0 ? (
-                    <div className="text-center py-16">
-                      <div className="w-20 h-20 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><Ticket className="w-10 h-10 text-orange-300" /></div>
-                      <h4 className="text-lg font-bold text-slate-900 mb-2">No tickets yet</h4>
-                      <p className="text-sm text-slate-500 max-w-md mx-auto">Create a support ticket when {c.name} reports an issue.</p>
+                    <div className="text-center py-10">
+                      <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mx-auto mb-3"><Ticket className="w-6 h-6 text-orange-300" /></div>
+                      <h4 className="text-sm font-bold text-slate-900 mb-1">No tickets yet</h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto">Create a support ticket when {c.name} reports an issue.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1053,8 +1053,8 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                         };
                         const createdDate = new Date(ticket.createdAt);
                         return (
-                          <div key={ticket.id} className="border border-slate-200 rounded-xl p-5 hover:border-slate-300 transition-colors">
-                            <div className="flex items-start justify-between mb-3">
+                          <div key={ticket.id} className="border border-slate-200 rounded-lg p-3 hover:border-slate-300 transition-colors">
+                            <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center gap-3">
                                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${ticket.status === 'Resolved' || ticket.status === 'Closed' ? 'bg-green-100' : 'bg-orange-100'}`}>
                                   <Ticket className={`w-4 h-4 ${ticket.status === 'Resolved' || ticket.status === 'Closed' ? 'text-green-600' : 'text-orange-600'}`} />
@@ -1097,30 +1097,30 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
 
           {/* ════════════ ADDRESSES TAB ════════════ */}
           {activeTab === 'addresses' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">All Addresses</h2>
-                  <p className="text-sm text-slate-500">{addresses.length} location{addresses.length !== 1 ? 's' : ''} configured</p>
+                  <h2 className="text-sm font-bold text-slate-900">All Addresses</h2>
+                  <p className="text-xs text-slate-500">{addresses.length} location{addresses.length !== 1 ? 's' : ''} configured</p>
                 </div>
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={openAddAddress} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg">
-                  <Plus className="w-4 h-4" /> Add Address
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={openAddAddress} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-xs">
+                  <Plus className="w-3.5 h-3.5" /> Add Address
                 </motion.button>
               </div>
               {addresses.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-12 text-center">
-                  <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-4"><MapPin className="w-10 h-10 text-amber-300" /></div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">No addresses yet</h3>
-                  <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">Add billing, shipping, office addresses and more.</p>
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAddAddress} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors inline-flex items-center gap-2">
-                    <Plus className="w-5 h-5" /> Add First Address
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
+                  <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-3"><MapPin className="w-6 h-6 text-amber-300" /></div>
+                  <h3 className="text-sm font-bold text-slate-900 mb-1">No addresses yet</h3>
+                  <p className="text-xs text-slate-500 mb-4 max-w-md mx-auto">Add billing, shipping, office addresses and more.</p>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={openAddAddress} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors inline-flex items-center gap-1.5 text-xs">
+                    <Plus className="w-3.5 h-3.5" /> Add First Address
                   </motion.button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-3">
                   {addresses.map(addr => (
-                    <motion.div key={addr.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-                      <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <motion.div key={addr.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
+                      <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <div className="flex items-center gap-2">
                           <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${getAddressTypeColor(addr.label)}`}>{addr.label}</span>
                           {addr.isPrimary && <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-indigo-100 text-indigo-700">Primary</span>}
@@ -1130,8 +1130,8 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                           <button onClick={() => setDeleteAddressItem(addr)} className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-500" /></button>
                         </div>
                       </div>
-                      <div className="p-5">
-                        <div className="flex items-start gap-3">
+                      <div className="p-3">
+                        <div className="flex items-start gap-2.5">
                           <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                           <div className="text-sm text-slate-700 space-y-0.5">
                             {formatAddress(addr).map((line, i) => <p key={i} className={i === 0 ? 'font-semibold text-slate-900' : ''}>{line}</p>)}
@@ -1140,10 +1140,10 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                       </div>
                     </motion.div>
                   ))}
-                  <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={openAddAddress} className="border-2 border-dashed border-slate-300 rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer">
-                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-3"><Plus className="w-6 h-6 text-slate-400" /></div>
-                    <p className="text-sm font-bold text-slate-600">Add New Address</p>
-                    <p className="text-xs text-slate-400 mt-1">Billing, Shipping, Office...</p>
+                  <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={openAddAddress} className="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer">
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center mb-2"><Plus className="w-5 h-5 text-slate-400" /></div>
+                    <p className="text-xs font-bold text-slate-600">Add New Address</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Billing, Shipping, Office...</p>
                   </motion.button>
                 </div>
               )}
@@ -1152,39 +1152,39 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
 
           {/* ════════════ QUOTES TAB ════════════ */}
           {activeTab === 'quotes' && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-4 border-b border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center"><FileText className="w-5 h-5 text-white" /></div>
-                  <div><h3 className="text-lg font-bold text-slate-900">Quotes</h3><p className="text-sm text-slate-500">{quotes.length} quote{quotes.length !== 1 ? 's' : ''}</p></div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-4 py-3 border-b border-slate-200">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center"><FileText className="w-4 h-4 text-white" /></div>
+                  <div><h3 className="text-sm font-bold text-slate-900">Quotes</h3><p className="text-xs text-slate-500">{quotes.length} quote{quotes.length !== 1 ? 's' : ''}</p></div>
                 </div>
               </div>
               {quotes.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><FileText className="w-8 h-8 text-blue-400" /></div>
-                  <h4 className="font-bold text-slate-900 mb-1">No quotes yet</h4>
-                  <p className="text-sm text-slate-500">Quotes will appear here when they are created for this contact</p>
+                <div className="text-center py-10">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3"><FileText className="w-6 h-6 text-blue-400" /></div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">No quotes yet</h4>
+                  <p className="text-xs text-slate-500">Quotes will appear here when they are created for this contact</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Quote ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Items</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Quote ID</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Items</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {quotes.map(q => (
                         <tr key={q.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4"><span className="font-semibold text-slate-900">{q.id}</span></td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{q.date}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{q.items} items</td>
-                          <td className="px-6 py-4"><span className="font-semibold text-green-600">${q.amount.toLocaleString()}</span></td>
-                          <td className="px-6 py-4"><span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getStatusColor(q.status)}`}>{q.status}</span></td>
+                          <td className="px-4 py-2.5"><span className="text-xs font-semibold text-slate-900">{q.id}</span></td>
+                          <td className="px-4 py-2.5 text-xs text-slate-600">{q.date}</td>
+                          <td className="px-4 py-2.5 text-xs text-slate-600">{q.items} items</td>
+                          <td className="px-4 py-2.5"><span className="text-xs font-semibold text-green-600">${q.amount.toLocaleString()}</span></td>
+                          <td className="px-4 py-2.5"><span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${getStatusColor(q.status)}`}>{q.status}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1196,39 +1196,39 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
 
           {/* ════════════ INVOICES TAB ════════════ */}
           {activeTab === 'invoices' && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-slate-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center"><DollarSign className="w-5 h-5 text-white" /></div>
-                  <div><h3 className="text-lg font-bold text-slate-900">Invoices</h3><p className="text-sm text-slate-500">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</p></div>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 border-b border-slate-200">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center"><DollarSign className="w-4 h-4 text-white" /></div>
+                  <div><h3 className="text-sm font-bold text-slate-900">Invoices</h3><p className="text-xs text-slate-500">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</p></div>
                 </div>
               </div>
               {invoices.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><DollarSign className="w-8 h-8 text-green-400" /></div>
-                  <h4 className="font-bold text-slate-900 mb-1">No invoices yet</h4>
-                  <p className="text-sm text-slate-500">Invoices will appear here when they are created for this contact</p>
+                <div className="text-center py-10">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3"><DollarSign className="w-6 h-6 text-green-400" /></div>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1">No invoices yet</h4>
+                  <p className="text-xs text-slate-500">Invoices will appear here when they are created for this contact</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Invoice ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Due Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Invoice ID</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Due Date</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {invoices.map(inv => (
                         <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4"><span className="font-semibold text-slate-900">{inv.id}</span></td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{inv.date}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{inv.dueDate}</td>
-                          <td className="px-6 py-4"><span className="font-semibold text-green-600">${inv.amount.toLocaleString()}</span></td>
-                          <td className="px-6 py-4"><span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${getStatusColor(inv.status)}`}>{inv.status}</span></td>
+                          <td className="px-4 py-2.5"><span className="text-xs font-semibold text-slate-900">{inv.id}</span></td>
+                          <td className="px-4 py-2.5 text-xs text-slate-600">{inv.date}</td>
+                          <td className="px-4 py-2.5 text-xs text-slate-600">{inv.dueDate}</td>
+                          <td className="px-4 py-2.5"><span className="text-xs font-semibold text-green-600">${inv.amount.toLocaleString()}</span></td>
+                          <td className="px-4 py-2.5"><span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${getStatusColor(inv.status)}`}>{inv.status}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1240,31 +1240,31 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
 
           {/* ════════════ DOCUMENTS TAB ════════════ */}
           {activeTab === 'documents' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div><h2 className="text-xl font-bold text-slate-900">Documents</h2><p className="text-sm text-slate-500">{uploadedFiles.length} files uploaded</p></div>
-                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowUploadModal(true)} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg">
-                  <Upload className="w-4 h-4" /> Upload Document
+                <div><h2 className="text-sm font-bold text-slate-900">Documents</h2><p className="text-xs text-slate-500">{uploadedFiles.length} files uploaded</p></div>
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowUploadModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-xs">
+                  <Upload className="w-3.5 h-3.5" /> Upload Document
                 </motion.button>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-                <div className="p-6">
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-4">
                   {loadingDocs ? (
-                    <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>
+                    <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 text-indigo-400 animate-spin" /></div>
                   ) : uploadedFiles.length === 0 ? (
-                    <div className="text-center py-10">
-                      <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3"><FileText className="w-8 h-8 text-indigo-400" /></div>
-                      <h4 className="font-bold text-slate-900 mb-1">No documents yet</h4>
-                      <p className="text-sm text-slate-500 mb-4">Upload contracts, catalogs, and other files</p>
+                    <div className="text-center py-8">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-2"><FileText className="w-6 h-6 text-indigo-400" /></div>
+                      <h4 className="text-sm font-bold text-slate-900 mb-1">No documents yet</h4>
+                      <p className="text-xs text-slate-500 mb-3">Upload contracts, catalogs, and other files</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {uploadedFiles.map(doc => (
-                        <div key={doc.id} className="flex items-center justify-between bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-indigo-300 transition-colors group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600"><File className="w-5 h-5" /></div>
+                        <div key={doc.id} className="flex items-center justify-between bg-slate-50 rounded-lg p-3 border border-slate-200 hover:border-indigo-300 transition-colors group">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-indigo-50 text-indigo-600"><File className="w-4 h-4" /></div>
                             <div>
-                              <h4 className="font-semibold text-slate-900">{doc.name}</h4>
+                              <h4 className="text-xs font-semibold text-slate-900">{doc.name}</h4>
                               <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
                                 <span>{doc.size}</span><span>&middot;</span><span>{doc.uploadedDate}</span><span>&middot;</span><span>{doc.uploadedBy}</span>
                               </div>
@@ -1285,33 +1285,33 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
 
           {/* ════════════ ACTIVITY TAB ════════════ */}
           {activeTab === 'activity' && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
-              <div className="bg-slate-50 px-8 py-6 border-b border-slate-200">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">Activity Timeline</h3>
-                    <p className="text-sm text-slate-500 mt-1">Full communication and interaction history</p>
+                    <h3 className="text-sm font-bold text-slate-900">Activity Timeline</h3>
+                    <p className="text-xs text-slate-500">Full communication and interaction history</p>
                   </div>
-                  <span className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600">{activityData.length} events</span>
+                  <span className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-semibold text-slate-600">{activityData.length} events</span>
                 </div>
               </div>
-              <div className="p-8">
+              <div className="p-4">
                 {loadingActivity ? (
-                  <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-slate-400 animate-spin" /></div>
+                  <div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 text-slate-400 animate-spin" /></div>
                 ) : activityData.length === 0 ? (
-                  <div className="text-center py-20">
-                    <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Calendar className="w-10 h-10 text-slate-300" />
+                  <div className="text-center py-10">
+                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Calendar className="w-6 h-6 text-slate-300" />
                     </div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-2">No activity yet</h4>
-                    <p className="text-sm text-slate-500 max-w-md mx-auto">Activity will be logged automatically as you interact with this contact — emails, calls, document uploads, and more.</p>
+                    <h4 className="text-sm font-bold text-slate-900 mb-1">No activity yet</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto">Activity will be logged automatically as you interact with this contact — emails, calls, document uploads, and more.</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
                     {activityData.map((activity, index) => (
-                      <div key={activity.id || index} className="flex gap-4">
+                      <div key={activity.id || index} className="flex gap-3">
                         <div className="flex flex-col items-center">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                             activity.type === 'Email' ? 'bg-blue-100 text-blue-600' :
                             activity.type === 'Call' ? 'bg-green-100 text-green-600' :
                             activity.type === 'Document' ? 'bg-indigo-100 text-indigo-600' :
@@ -1321,8 +1321,8 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                           </div>
                           {index < activityData.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 mt-2" />}
                         </div>
-                        <div className="flex-1 pb-6">
-                          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        <div className="flex-1 pb-4">
+                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                             <div className="flex items-center justify-between mb-2">
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
                                 activity.type === 'Email' ? 'bg-blue-100 text-blue-700' :

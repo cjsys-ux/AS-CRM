@@ -1229,13 +1229,13 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
 
   // ─── Editable field helper ───
   const InfoField = ({ icon: Icon, label, value, color = 'slate' }: { icon: any; label: string; value: string; color?: string }) => (
-    <div className="flex items-start gap-3 py-2">
-      <div className={`w-9 h-9 bg-${color}-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5`}>
-        <Icon className={`w-4 h-4 text-${color}-600`} />
+    <div className="flex items-start gap-2.5 py-1.5">
+      <div className={`w-7 h-7 bg-${color}-100 rounded-lg flex items-center justify-center shrink-0 mt-0.5`}>
+        <Icon className={`w-3.5 h-3.5 text-${color}-600`} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium text-slate-900 break-words">{value || '—'}</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-xs font-medium text-slate-900 break-words">{value || '—'}</p>
       </div>
     </div>
   );
@@ -1257,18 +1257,18 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     const perPage = rpp || ROWS_PER_PAGE;
     const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
     return (
-      <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-white">
-        <div className="text-sm text-slate-600">
+      <div className="px-4 py-2.5 border-t border-slate-200 flex items-center justify-between bg-white">
+        <div className="text-xs text-slate-600">
           Page {currentPage} of {totalPages} · Showing {totalItems === 0 ? 0 : Math.min((currentPage - 1) * perPage + 1, totalItems)} to {Math.min(currentPage * perPage, totalItems)} of {totalItems}
         </div>
         <div className="flex items-center gap-2">
           {onRowsPerPageChange && (
             <>
-              <span className="text-sm text-slate-600">Rows per page:</span>
+              <span className="text-xs text-slate-600">Rows per page:</span>
               <select
                 value={perPage}
                 onChange={e => { onRowsPerPageChange(Number(e.target.value)); onPageChange(1); }}
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -1292,45 +1292,45 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
       {/* ─── Header ─── */}
-      <div className="bg-slate-800 px-8 py-5">
+      <div className="bg-slate-800 px-6 py-3">
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2.5">
             <motion.button
               whileHover={{ scale: 1.05, x: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={onBack}
-              className="flex items-center gap-2 text-white/90 hover:text-white font-medium transition-colors"
+              className="flex items-center gap-1.5 text-white/90 hover:text-white font-medium transition-colors text-sm"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
               Back to Vendors
             </motion.button>
             {/* Delete handled from table view */}
           </div>
-          <div className="flex items-center gap-5">
-            <div className="w-20 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl overflow-hidden">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-xl overflow-hidden">
               {v.logo && (v.logo.startsWith('data:') || v.logo.startsWith('http')) ? (
-                <img src={v.logo} alt={v.name} className="max-w-full max-h-full object-contain p-1.5" />
+                <img src={v.logo} alt={v.name} className="max-w-full max-h-full object-contain p-1" />
               ) : (
-                <span className="text-xl font-black text-purple-600">
+                <span className="text-sm font-black text-purple-600">
                   {v.name?.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
                 </span>
               )}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">{v.name}</h1>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${getStatusColor(v.status)} bg-white`}>
+              <h1 className="text-base font-bold text-white">{v.name}</h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${getStatusColor(v.status)} bg-white`}>
                   {v.status}
                 </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-white/20 text-white border border-white/30">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/20 text-white border border-white/30">
                   {v.type}
                 </span>
                 {v.accountType && v.accountType !== 'Standalone' && (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-white/10 text-white/80 border border-white/20">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-white/80 border border-white/20">
                     {v.accountType}
                   </span>
                 )}
-                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border ${v.supportsDropShipping !== false ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/30' : 'bg-red-500/20 text-red-200 border-red-400/30'}`}>
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${v.supportsDropShipping !== false ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/30' : 'bg-red-500/20 text-red-200 border-red-400/30'}`}>
                   <Truck className="w-3 h-3" />
                   {v.supportsDropShipping !== false ? 'Drop Ship' : 'No Drop Ship'}
                 </span>
@@ -1339,12 +1339,12 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-1 mt-5 -mb-5">
+          <div className="flex items-center gap-0.5 mt-3 -mb-3">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2.5 rounded-t-xl text-sm font-bold transition-all ${
+                className={`px-3 py-1.5 rounded-t-lg text-xs font-bold transition-all ${
                   activeTab === tab.id
                     ? 'bg-slate-50 text-purple-700 shadow-sm'
                     : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -1358,14 +1358,14 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
       </div>
 
       {/* ─── Content ─── */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="max-w-[1400px] mx-auto">
 
           {/* ════════════ OVERVIEW TAB ════════════ */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Stats Row */}
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-3">
                 {[
                   { label: 'Total PO Value', value: totalPOValue > 0 ? `$${totalPOValue.toLocaleString()}` : '$0', icon: ShoppingCart, bgColor: 'bg-blue-100', textColor: 'text-blue-600' },
                   { label: 'Invoices Paid', value: invoices.length > 0 ? `${paidInvoices}/${invoices.length}` : '0', icon: DollarSign, bgColor: 'bg-green-100', textColor: 'text-green-600' },
@@ -1377,127 +1377,127 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm"
+                    className="bg-white rounded-lg border border-slate-200 p-3 shadow-sm"
                   >
-                    <div className={`w-10 h-10 ${stat.bgColor} rounded-lg flex items-center justify-center mb-2`}>
-                      <stat.icon className={`w-5 h-5 ${stat.textColor}`} />
+                    <div className={`w-8 h-8 ${stat.bgColor} rounded-lg flex items-center justify-center mb-1.5`}>
+                      <stat.icon className={`w-4 h-4 ${stat.textColor}`} />
                     </div>
-                    <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-                    <div className="text-sm text-slate-500">{stat.label}</div>
+                    <div className="text-lg font-bold text-slate-900">{stat.value}</div>
+                    <div className="text-xs text-slate-500">{stat.label}</div>
                   </motion.div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-3 gap-4">
                 {/* ─── Left: Vendor Information (editable) ─── */}
-                <div className="col-span-2 space-y-6">
+                <div className="col-span-2 space-y-4">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden"
+                    className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
                   >
-                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-slate-200">
+                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 border-b border-slate-200">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-white" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <Building2 className="w-4 h-4 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-slate-900">Vendor Information</h3>
-                            <p className="text-sm text-slate-500">Contact details, terms & notes</p>
+                            <h3 className="text-sm font-bold text-slate-900">Vendor Information</h3>
+                            <p className="text-xs text-slate-500">Contact details, terms & notes</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {saveSuccess === 'info' && (
-                            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
-                              <Check className="w-3.5 h-3.5 inline mr-1" /> Saved
+                            <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                              <Check className="w-3 h-3 inline mr-0.5" /> Saved
                             </motion.span>
                           )}
                           {editingSection === 'info' ? (
-                            <div className="flex items-center gap-2">
-                              <button onClick={cancelEditing} className="px-3 py-1.5 text-sm font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-                              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveInfoEdits} disabled={saving} className="px-4 py-1.5 text-sm font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-1.5">
-                                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+                            <div className="flex items-center gap-1.5">
+                              <button onClick={cancelEditing} className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
+                              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveInfoEdits} disabled={saving} className="px-3 py-1 text-xs font-bold text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-1">
+                                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
                               </motion.button>
                             </div>
                           ) : (
-                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => startEditing('info')} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                              <Pencil className="w-3.5 h-3.5" /> Edit
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => startEditing('info')} className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                              <Pencil className="w-3 h-3" /> Edit
                             </motion.button>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="p-6">
+                    <div className="p-4">
                       {editingSection === 'info' ? (
-                        <div className="space-y-5">
-                          <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Vendor Name</label>
-                              <input type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Vendor Name</label>
+                              <input type="text" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Contact Name</label>
-                              <input type="text" value={editForm.contactName || ''} onChange={e => setEditForm({ ...editForm, contactName: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Email</label>
-                              <input type="email" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Phone</label>
-                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Contact Name</label>
+                              <input type="text" value={editForm.contactName || ''} onChange={e => setEditForm({ ...editForm, contactName: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Website</label>
-                              <input type="text" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value })} placeholder="www.vendor.com" className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email</label>
+                              <input type="email" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">WeChat ID</label>
-                              <input type="text" value={editForm.wechatId || ''} onChange={e => setEditForm({ ...editForm, wechatId: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone</label>
+                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
                             </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Status</label>
-                              <select value={editForm.status || 'Active'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Website</label>
+                              <input type="text" value={editForm.website || ''} onChange={e => setEditForm({ ...editForm, website: e.target.value })} placeholder="www.vendor.com" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">WeChat ID</label>
+                              <input type="text" value={editForm.wechatId || ''} onChange={e => setEditForm({ ...editForm, wechatId: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
+                              <select value={editForm.status || 'Active'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
                                 {VENDOR_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Vendor Type</label>
-                              <select value={editForm.type || 'Distributor'} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Vendor Type</label>
+                              <select value={editForm.type || 'Distributor'} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
                                 {VENDOR_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Account Type</label>
-                              <select value={editForm.accountType || 'Standalone'} onChange={e => setEditForm({ ...editForm, accountType: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Account Type</label>
+                              <select value={editForm.accountType || 'Standalone'} onChange={e => setEditForm({ ...editForm, accountType: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
                                 {ACCOUNT_TYPES.map(a => <option key={a} value={a}>{a}</option>)}
                               </select>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Payment Terms</label>
-                              <select value={editForm.paymentTerms || ''} onChange={e => setEditForm({ ...editForm, paymentTerms: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Payment Terms</label>
+                              <select value={editForm.paymentTerms || ''} onChange={e => setEditForm({ ...editForm, paymentTerms: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all">
                                 <option value="">Select terms...</option>
                                 {PAYMENT_TERMS.map(p => <option key={p} value={p}>{p}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Account Number</label>
-                              <input type="text" value={editForm.accountNumber || ''} onChange={e => setEditForm({ ...editForm, accountNumber: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Account Number</label>
+                              <input type="text" value={editForm.accountNumber || ''} onChange={e => setEditForm({ ...editForm, accountNumber: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Notes</label>
-                            <textarea rows={3} value={editForm.notes || ''} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all resize-none" />
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Notes</label>
+                            <textarea rows={3} value={editForm.notes || ''} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all resize-none" />
                           </div>
                           {/* ─── Drop Shipping Toggle ─── */}
                           <div className="mt-2 p-4 rounded-xl border-2 border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50/30">

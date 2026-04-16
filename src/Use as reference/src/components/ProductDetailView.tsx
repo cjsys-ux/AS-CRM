@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, Star, Upload, Plus, X, ExternalLink, FileText, Package, Box, Ruler, Weight, Archive, ChevronDown, GripVertical, Trash2, Zap, Truck, User, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, Upload, Plus, X, ExternalLink, FileText, Package, Box, Ruler, Weight, Archive, ChevronDown, GripVertical, Trash2, Zap, Truck, User, Sparkles, Loader2, Download } from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
@@ -31,7 +31,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
     bulkSwag: false,
     buildABox: false,
   });
-  const [documents, setDocuments] = useState<{ id: number; name: string; date: string }[]>(product.documents || []);
+  const [documents, setDocuments] = useState<{ id: number; name: string; date: string; dataUrl?: string }[]>(product.documents || []);
   
   // Parse leadTime string into productionTimeRange array
   const parseLeadTime = (leadTime: string | undefined): [number, number] => {
@@ -56,7 +56,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const [qualifiesForRush, setQualifiesForRush] = useState(product.qualifiesForRush || false);
   const [origin, setOrigin] = useState(product.origin || product.countryOfOrigin || '');
   const [nextDocId, setNextDocId] = useState((product.documents || []).length + 1);
-  const KNOWN_VENDOR_TYPES = ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer'];
+  const KNOWN_VENDOR_TYPES = ['Product Distributor', 'Apparel Distributor', 'Promo Supplier', 'Product Manufacturer'];
   // Initialize vendorType: check vendorType field first, then fall back to category if it's a known vendor type
   const resolvedVendorType = product.vendorType || 
     (KNOWN_VENDOR_TYPES.includes(product.category) ? product.category : '') ||
@@ -66,20 +66,47 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const resolvedCategory = product.productCategory || 
     (product.category && !KNOWN_VENDOR_TYPES.includes(product.category) ? product.category : 'Apparel');
   const [category, setCategory] = useState(resolvedCategory);
-  const productCategoryIsDistributor = resolvedVendorType === 'Product Distributor' || resolvedVendorType === 'Apparel Distributor';
+  const productCategoryIsDistributor = resolvedVendorType === 'Product Distributor';
+  // For Apparel Distributor, always show decoration methods & imprint locations
+  const isApparelDistributor = resolvedVendorType === 'Apparel Distributor';
   const [showDecorationMethods, setShowDecorationMethods] = useState(
-    product.showDecorationMethods !== undefined ? product.showDecorationMethods : !productCategoryIsDistributor
+    isApparelDistributor ? true : (product.showDecorationMethods !== undefined ? product.showDecorationMethods : !productCategoryIsDistributor)
   );
   const [showImprintLocations, setShowImprintLocations] = useState(
-    product.showImprintLocations !== undefined ? product.showImprintLocations : !productCategoryIsDistributor
+    isApparelDistributor ? true : (product.showImprintLocations !== undefined ? product.showImprintLocations : !productCategoryIsDistributor)
   );
   const [subcategory, setSubcategory] = useState(product.subcategory || '');
   const [showPricingStructure, setShowPricingStructure] = useState(
     product.showPricingStructure !== undefined ? product.showPricingStructure : true
   );
-  const [decorationVendors, setDecorationVendors] = useState<{ id: string; name: string; type: string }[]>([]);
-  const [selectedDecorationVendor, setSelectedDecorationVendor] = useState<string>(product.decorationVendor || '');
-  const [showDecoVendorDropdown, setShowDecoVendorDropdown] = useState(false);
+  const [decorationVendors, setDecorationVendors] = useState<{ id: string; name: string; type: string; decorationTypes?: string[] }[]>([]);
+  const [methodVendors, setMethodVendors] = useState<Record<string, { vendorId: string; vendorName: string }>>(() => {
+    const saved = product.methodVendors || {};
+    if (product.decorationVendorId && !saved['Embroidery']) {
+      saved['Embroidery'] = { vendorId: product.decorationVendorId, vendorName: product.decorationVendor || '' };
+    }
+    if (product.selectedScreenPrintVendor && !saved['Screen Print']) {
+      saved['Screen Print'] = { vendorId: product.selectedScreenPrintVendor, vendorName: '' };
+    }
+    return saved;
+  });
+  const [methodVendorDropdowns, setMethodVendorDropdowns] = useState<Record<string, boolean>>({});
+  const [collapsedPricingTables, setCollapsedPricingTables] = useState<Record<string, boolean>>(product.collapsedPricingTables || {});
+  const [methodContractData, setMethodContractData] = useState<Record<string, any>>({});
+  const [loadingMethodPricing, setLoadingMethodPricing] = useState<Record<string, boolean>>({});
+  const selectedDecorationVendor = methodVendors['Embroidery']?.vendorName || '';
+  const selectedDecorationVendorId = methodVendors['Embroidery']?.vendorId || '';
+  const selectedScreenPrintVendor = methodVendors['Screen Print']?.vendorId || '';
+  const embroideryContractData = methodContractData['Embroidery'] || null;
+  const loadingEmbroideryPricing = loadingMethodPricing['Embroidery'] || false;
+  const contractPricingData = methodContractData['Screen Print'] || null;
+  const loadingContractPricing = loadingMethodPricing['Screen Print'] || false;
+  const [embroideryMargins, setEmbroideryMargins] = useState<Record<string, number>>(product.embroideryMargins || {});
+  const [screenPrintMargins, setScreenPrintMargins] = useState<Record<string, number>>(product.screenPrintMargins || {});
+  const [defaultEmbroideryMargin, setDefaultEmbroideryMargin] = useState<number>(product.defaultEmbroideryMargin || 40);
+  const [defaultScreenPrintMargin, setDefaultScreenPrintMargin] = useState<number>(product.defaultScreenPrintMargin || 40);
+  const [defaultDtgMargin, setDefaultDtgMargin] = useState<number>(product.defaultDtgMargin || 40);
+  const [editingTierMargin, setEditingTierMargin] = useState<{ method: string; tier: string } | null>(null);
   const [dimensionUnit, setDimensionUnit] = useState<'in' | 'cm'>(product.dimensionUnit || 'in');
   const [weightUnit, setWeightUnit] = useState<'lb' | 'kg' | 'oz' | 'g'>(product.weightUnit || 'lb');
   const [lifestyleImageIndex, setLifestyleImageIndex] = useState<number | null>(product.lifestyleImageIndex ?? null);
@@ -474,12 +501,11 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   const [screenPrintColors, setScreenPrintColors] = useState<number>(product.screenPrintColors || 1);
   const [dtgFlatRate, setDtgFlatRate] = useState<number>(product.dtgFlatRate || 0);
   
-  // Screen Print Contract Pricing Integration
-  const [screenPrintVendors, setScreenPrintVendors] = useState<{ id: string; name: string }[]>([]);
-  const [selectedScreenPrintVendor, setSelectedScreenPrintVendor] = useState<string>(product.selectedScreenPrintVendor || '');
-  const [contractPricingData, setContractPricingData] = useState<any>(null);
-  const [loadingContractPricing, setLoadingContractPricing] = useState(false);
-  const [showScreenPrintVendorDropdown, setShowScreenPrintVendorDropdown] = useState(false);
+  // Screen Print Contract Pricing Integration (vendors now shared via decorationVendors)
+  const screenPrintVendors = decorationVendors.filter(v => {
+    const types = (v.decorationTypes || []).map(t => t.toLowerCase());
+    return types.some(t => t.includes('screen') && t.includes('print'));
+  });
   
   // Embroidery rate lookup: stitch count -> quantity tier -> rate
   const [embroideryRates, setEmbroideryRates] = useState<Record<string, Record<string, number>>>(
@@ -623,6 +649,12 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   // Quantity tiers based on method
   const getQuantityTiersForMethod = (method: 'Embroidery' | 'Screen Print' | 'DTG'): string[] => {
     if (method === 'DTG') return [];
+    // For embroidery, derive tiers from the loaded rates (which may come from contract data)
+    if (method === 'Embroidery' && Object.keys(embroideryRates).length > 0) {
+      const firstKey = Object.keys(embroideryRates)[0];
+      const tiers = Object.keys(embroideryRates[firstKey] || {});
+      if (tiers.length > 0) return tiers;
+    }
     return ['Under 6', '7–14', '15–29', '30–74', '75–149', '150–299', '300–599', '600–999'];
   };
   
@@ -718,11 +750,16 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
   };
 
   const toggleDecorationMethod = (method: string) => {
-    setDecorationMethods(prev => 
-      prev.includes(method) 
+    setDecorationMethods(prev => {
+      const next = prev.includes(method) 
         ? prev.filter(m => m !== method)
-        : [...prev, method]
-    );
+        : [...prev, method];
+      // Auto-show pricing structure when a priceable method is added
+      if (!prev.includes(method) && ['Embroidery', 'Screen Print', 'DTG'].includes(method)) {
+        setShowPricingStructure(true);
+      }
+      return next;
+    });
   };
 
   // Fetch decorator vendors when embroidery (or similar decoration method) is selected
@@ -740,109 +777,167 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       .then(res => res.json())
       .then(data => {
         if (data.success && data.vendors) {
-          // Filter vendors to only Decorator type
+          // Filter vendors that offer decoration services
           const decorators = data.vendors
+            .filter((v: any) => {
+              const vType = (v.type || v.vendorType || '').toLowerCase();
+              const decorationTypes = v.decorationTypes || v.decorationType || [];
+              const decorationTypesArray = Array.isArray(decorationTypes) ? decorationTypes : [decorationTypes];
+              // Include Decorator type vendors, or vendors with decoration-related types
+              const hasDecoTypes = decorationTypesArray.some((dt: string) => {
+                const dtLower = (dt || '').toLowerCase();
+                return dtLower.includes('embroid') || dtLower.includes('screen') || dtLower.includes('heat') || dtLower.includes('dtf') || dtLower.includes('sublim') || dtLower.includes('print');
+              });
+              return vType === 'decorator' || hasDecoTypes;
+            })
             .map((v: any) => ({
               id: v.id || '',
               name: v.name || v.vendorName || v.companyName || 'Unknown',
               type: v.type || v.vendorType || 'Vendor',
-            }))
-            .filter((v: { type: string }) => v.type === 'Decorator');
+              decorationTypes: (() => {
+                const dt = v.decorationTypes || v.decorationType || [];
+                return Array.isArray(dt) ? dt : [dt];
+              })(),
+            }));
           setDecorationVendors(decorators);
+          // Back-fill vendor names for methodVendors loaded from saved data
+          setMethodVendors(prev => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach(method => {
+              if (updated[method].vendorId && !updated[method].vendorName) {
+                const found = decorators.find((d: any) => d.id === updated[method].vendorId);
+                if (found) updated[method] = { ...updated[method], vendorName: found.name };
+              }
+            });
+            return updated;
+          });
         }
       })
       .catch(err => console.error('Error fetching decorator vendors:', err));
   }, [needsDecorationVendor]);
 
-  // Reset imprint method when decoration methods change
+  // Auto-select imprint method when decoration methods change
   useEffect(() => {
     if (decorationMethods.length === 0) {
       setSelectedImprintMethod('');
     } else if (selectedImprintMethod && !decorationMethods.includes(selectedImprintMethod)) {
-      // Clear if the currently selected method was removed
-      setSelectedImprintMethod('');
+      // Current selection removed — pick the first available priceable method
+      const firstPriceable = decorationMethods.find(m => ['Embroidery', 'Screen Print', 'DTG'].includes(m));
+      setSelectedImprintMethod((firstPriceable as any) || '');
+    } else if (!selectedImprintMethod) {
+      // Nothing selected yet — auto-select the first priceable method
+      const firstPriceable = decorationMethods.find(m => ['Embroidery', 'Screen Print', 'DTG'].includes(m));
+      if (firstPriceable) {
+        setSelectedImprintMethod(firstPriceable as any);
+      }
     }
-  }, [decorationMethods, selectedImprintMethod]);
+  }, [decorationMethods]);
 
-  // Fetch screen print vendors (vendors tagged with screenprint decoration type)
+  // Helper: get vendors that match a specific decoration method
+  const getVendorsForMethod = (method: string) => {
+    const methodLower = method.toLowerCase();
+    return decorationVendors.filter(v => {
+      const types = (v.decorationTypes || []).map(t => (t || '').toLowerCase()).filter(Boolean);
+      // If vendor has no specific decoration types tagged, show for all methods (generic decorator)
+      if (types.length === 0) return true;
+      // Match method name in vendor's decoration types
+      if (methodLower.includes('embroid')) return types.some(t => t.includes('embroid'));
+      if (methodLower.includes('screen')) return types.some(t => t.includes('screen') || (t.includes('print') && !t.includes('pad')));
+      if (methodLower.includes('heat')) return types.some(t => t.includes('heat'));
+      if (methodLower.includes('dtf')) return types.some(t => t.includes('dtf'));
+      if (methodLower.includes('sublim')) return types.some(t => t.includes('sublim'));
+      if (methodLower.includes('dtg')) return types.some(t => t.includes('dtg'));
+      // Fallback: show all decorator vendors
+      return true;
+    });
+  };
+
+  // Helper: assign a vendor to a decoration method
+  const setMethodVendor = (method: string, vendorId: string, vendorName: string) => {
+    setMethodVendors(prev => ({ ...prev, [method]: { vendorId, vendorName } }));
+  };
+
+  // Helper: clear a method's vendor
+  const clearMethodVendor = (method: string) => {
+    setMethodVendors(prev => {
+      const next = { ...prev };
+      delete next[method];
+      return next;
+    });
+    setMethodContractData(prev => {
+      const next = { ...prev };
+      delete next[method];
+      return next;
+    });
+  };
+
+  // Fetch contract pricing for each method when its vendor changes
+  const hasEmbroidery = decorationMethods.includes('Embroidery');
+  const priceableMethods = decorationMethods.filter(m => ['Embroidery', 'Screen Print', 'DTG'].includes(m));
+  
   useEffect(() => {
-    if (selectedImprintMethod !== 'Screen Print') return;
-    
-    fetch(`${API_URL}/vendors`, {
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.vendors) {
-          // Filter vendors that have screenprint in their decoration types
-          const screenPrintVendorsList = data.vendors
-            .filter((v: any) => {
-              const decorationTypes = v.decorationTypes || v.decorationType || [];
-              const decorationTypesArray = Array.isArray(decorationTypes) ? decorationTypes : [decorationTypes];
-              
-              // Check if vendor has screen print decoration type
-              const hasScreenPrint = decorationTypesArray.some((dt: string) => {
-                const dtLower = (dt || '').toLowerCase();
-                return dtLower.includes('screen') && dtLower.includes('print');
+    // For each priceable method that has a vendor assigned, fetch contract pricing
+    priceableMethods.forEach(method => {
+      const vendor = methodVendors[method];
+      if (!vendor?.vendorId) {
+        // Clear data if no vendor
+        setMethodContractData(prev => {
+          if (prev[method]) {
+            const next = { ...prev };
+            delete next[method];
+            return next;
+          }
+          return prev;
+        });
+        return;
+      }
+      
+      // Determine decoration type key for API
+      const decoTypeKey = method === 'Embroidery' ? 'embroidery' 
+        : method === 'Screen Print' ? 'screenprint' 
+        : method.toLowerCase().replace(/\s+/g, '');
+      
+      setLoadingMethodPricing(prev => ({ ...prev, [method]: true }));
+      fetch(`${API_URL}/contractpricing/${vendor.vendorId}`, {
+        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.items) {
+            const sheet = data.items.find((item: any) => 
+              item.decorationType === decoTypeKey && item.year === '2026'
+            ) || data.items.find((item: any) => 
+              item.decorationType === decoTypeKey
+            );
+            
+            setMethodContractData(prev => ({ ...prev, [method]: sheet || null }));
+            
+            // For Embroidery, also update rates from contract data
+            if (method === 'Embroidery' && sheet?.pricingMatrix && sheet?.quantityBrackets) {
+              const normalizeBracket = (b: string) => b.replace(/(\d)-(\d)/g, '$1–$2');
+              const newRates: Record<string, Record<string, number>> = {};
+              sheet.pricingMatrix.forEach((row: any) => {
+                const stitchKey = row.label || row.stitchCount || '';
+                newRates[stitchKey] = {};
+                (sheet.quantityBrackets || []).forEach((bracket: string, idx: number) => {
+                  const price = parseFloat(row.prices?.[idx] || '0');
+                  const normalizedBracket = normalizeBracket(bracket);
+                  if (price > 0) newRates[stitchKey][normalizedBracket] = price;
+                });
               });
-              
-              // Also check if vendor type is Decorator and name/id suggests screen printing
-              const isDecorator = (v.type || v.vendorType || '').toLowerCase() === 'decorator';
-              const nameIndicatesScreenPrint = (v.name || v.vendorName || v.companyName || '').toLowerCase().includes('screen');
-              
-              return hasScreenPrint || (isDecorator && nameIndicatesScreenPrint);
-            })
-            .map((v: any) => ({
-              id: v.id || '',
-              name: v.name || v.vendorName || v.companyName || 'Unknown',
-            }));
-          
-          console.log('Screen Print Vendors Found:', screenPrintVendorsList);
-          setScreenPrintVendors(screenPrintVendorsList);
-          
-          // Auto-select if product already has a saved vendor
-          if (product.selectedScreenPrintVendor && screenPrintVendorsList.some(v => v.id === product.selectedScreenPrintVendor)) {
-            setSelectedScreenPrintVendor(product.selectedScreenPrintVendor);
+              if (Object.keys(newRates).length > 0) {
+                setEmbroideryRates(newRates);
+              }
+            }
           }
-        }
-      })
-      .catch(err => console.error('Error fetching screen print vendors:', err));
-  }, [selectedImprintMethod]);
-
-  // Fetch contract pricing when screen print vendor is selected
-  useEffect(() => {
-    if (selectedImprintMethod !== 'Screen Print' || !selectedScreenPrintVendor) {
-      setContractPricingData(null);
-      return;
-    }
-    
-    setLoadingContractPricing(true);
-    fetch(`${API_URL}/contractpricing/${selectedScreenPrintVendor}`, {
-      headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.items) {
-          // Find screenprint pricing for 2026 (or latest year)
-          const screenPrintSheet = data.items.find((item: any) => 
-            item.decorationType === 'screenprint' && item.year === '2026'
-          ) || data.items.find((item: any) => 
-            item.decorationType === 'screenprint'
-          );
-          
-          if (screenPrintSheet) {
-            setContractPricingData(screenPrintSheet);
-          } else {
-            setContractPricingData(null);
-          }
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching contract pricing:', err);
-        setContractPricingData(null);
-      })
-      .finally(() => setLoadingContractPricing(false));
-  }, [selectedScreenPrintVendor, selectedImprintMethod]);
+        })
+        .catch(err => {
+          console.error(`Error fetching ${method} contract pricing:`, err);
+          setMethodContractData(prev => ({ ...prev, [method]: null }));
+        })
+        .finally(() => setLoadingMethodPricing(prev => ({ ...prev, [method]: false })));
+    });
+  }, [JSON.stringify(priceableMethods), JSON.stringify(methodVendors)]);
 
   const toggleImprintLocation = (location: string) => {
     setImprintLocations(prev => 
@@ -992,8 +1087,11 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       // so we must restore 'Live' when writing back to the pipeline store.
       const statusToSave = product._source === 'pipeline' ? 'Live' : productStatus;
 
+      // Strip potentially large base64 data from the original product to prevent KV size issues
+      const { productImages: _oldImages, image: _oldImage, ...cleanProduct } = product;
+      
       const productData = {
-        ...product,
+        ...cleanProduct,
         name: productName.trim(),
         sku: productSku,
         brand: productBrand,
@@ -1009,7 +1107,15 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         showDecorationMethods,
         showImprintLocations,
         showPricingStructure,
+        methodVendors,
+        collapsedPricingTables,
         decorationVendor: selectedDecorationVendor,
+        decorationVendorId: selectedDecorationVendorId,
+        embroideryMargins,
+        screenPrintMargins,
+        defaultEmbroideryMargin,
+        defaultScreenPrintMargin,
+        defaultDtgMargin,
         catalogDisplays,
         documents,
         productionTimeRange,
@@ -1042,7 +1148,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
         embroideryRates,
         screenPrintRates,
         sizeBlankCosts,
-        selectedScreenPrintVendor,
+        selectedScreenPrintVendor: methodVendors['Screen Print']?.vendorId || '',
       };
 
       const endpoint = product._source === 'pipeline'
@@ -1060,6 +1166,43 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
       });
       const data = await response.json();
       if (data.success) {
+        // Log payload size to help debug persistence issues
+        const payloadSize = JSON.stringify(productData).length;
+        console.log(`✅ Product saved. Payload size: ${(payloadSize / 1024).toFixed(1)}KB`);
+        if (payloadSize > 400000) {
+          console.warn(`⚠️ Large payload (${(payloadSize / 1024).toFixed(0)}KB) — may exceed KV store limits`);
+        }
+
+        // Verify save by re-reading the saved data
+        try {
+          const verifyEndpoint = product._source === 'pipeline'
+            ? `${API_URL}/products/${product.id}`
+            : `${API_URL}/productdb/${product.id}`;
+          const verifyRes = await fetch(verifyEndpoint, {
+            headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            const saved = verifyData.product
+              ? (typeof verifyData.product === 'string' ? JSON.parse(verifyData.product) : verifyData.product)
+              : (verifyData.value ? (typeof verifyData.value === 'string' ? JSON.parse(verifyData.value) : verifyData.value) : null);
+            if (saved) {
+              const decoSaved = Array.isArray(saved.decorationMethods) ? saved.decorationMethods : [];
+              const impSaved = Array.isArray(saved.imprintLocations) ? saved.imprintLocations : [];
+              if (decorationMethods.length > 0 && decoSaved.length === 0) {
+                console.warn('⚠️ Decoration methods did NOT persist!', { sent: decorationMethods, got: decoSaved });
+                toast.error('Warning: Decoration methods may not have saved — payload may be too large.');
+              }
+              if (imprintLocations.length > 0 && impSaved.length === 0) {
+                console.warn('⚠️ Imprint locations did NOT persist!', { sent: imprintLocations, got: impSaved });
+                toast.error('Warning: Imprint locations may not have saved — payload may be too large.');
+              }
+            }
+          }
+        } catch (verifyErr) {
+          console.warn('Could not verify save:', verifyErr);
+        }
+
         toast.success('Product saved successfully!');
         if (onSave) onSave();
       } else {
@@ -1408,8 +1551,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     Array.from(files).forEach(file => {
                       const today = new Date();
                       const dateStr = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
-                      setDocuments(prev => [...prev, { id: nextDocId, name: file.name, date: dateStr }]);
-                      setNextDocId(prev => prev + 1);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const dataUrl = ev.target?.result as string;
+                        setDocuments(prev => [...prev, { id: nextDocId, name: file.name, date: dateStr, dataUrl }]);
+                        setNextDocId(prev => prev + 1);
+                      };
+                      reader.readAsDataURL(file);
                     });
                     e.target.value = '';
                   }}
@@ -1431,6 +1579,22 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                         <div className="text-xs font-semibold text-slate-900 truncate">{doc.name}</div>
                         <div className="text-[10px] text-slate-500">{doc.date}</div>
                       </div>
+                      {doc.dataUrl && (
+                        <button
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = doc.dataUrl!;
+                            link.download = doc.name;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all shrink-0"
+                          title="Download document"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => setDocuments(prev => prev.filter(d => d.id !== doc.id))}
                         className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all shrink-0"
@@ -1689,60 +1853,75 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   ) : (
                     <p className="text-xs text-slate-400 text-center py-2">No methods selected</p>
                   )}
-                  {/* Decoration Vendor Selector - shows when embroidery or similar method selected */}
-                  {needsDecorationVendor && (
-                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                      <label className="block text-xs font-bold text-amber-800 uppercase mb-2">
-                        Decoration Vendor {decorationMethods.filter(m => ['Embroidery', 'Screen Print', 'Heat Transfer', 'DTF', 'Sublimation'].includes(m)).join(', ')}
-                      </label>
-                      <p className="text-[11px] text-amber-600 mb-2">
-                        Select which vendor to base decoration pricing from
-                      </p>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setShowDecoVendorDropdown(!showDecoVendorDropdown)}
-                          className="w-full px-4 py-2.5 bg-white border-2 border-amber-300 rounded-xl text-left flex items-center justify-between hover:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all font-medium text-slate-900"
-                        >
-                          <span className={selectedDecorationVendor ? 'text-slate-900' : 'text-slate-400'}>
-                            {selectedDecorationVendor || 'Select decoration vendor...'}
-                          </span>
-                          <ChevronDown className={`w-4 h-4 text-amber-500 transition-transform ${showDecoVendorDropdown ? 'rotate-180' : ''}`} />
-                        </button>
-                        {showDecoVendorDropdown && (
-                          <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                            {decorationVendors.length > 0 ? decorationVendors.map(v => (
-                              <button
-                                key={v.id}
-                                onClick={() => { setSelectedDecorationVendor(v.name); setShowDecoVendorDropdown(false); }}
-                                className={`w-full px-4 py-2.5 text-left text-sm font-medium flex items-center justify-between hover:bg-amber-50 transition-all first:rounded-t-xl last:rounded-b-xl ${selectedDecorationVendor === v.name ? 'text-amber-700 bg-amber-50' : 'text-slate-700'}`}
-                              >
-                                <div>
-                                  <span className="block">{v.name}</span>
-                                  <span className="text-[10px] text-slate-400">{v.type}</span>
+                  {/* Per-Method Vendor Selectors */}
+                  {decorationMethods.filter(m => ['Embroidery', 'Screen Print', 'Heat Transfer', 'DTF', 'Sublimation'].includes(m)).map(method => {
+                    const vendorsForMethod = getVendorsForMethod(method);
+                    const currentVendor = methodVendors[method];
+                    const isDropdownOpen = methodVendorDropdowns[method] || false;
+                    const methodColor = method === 'Embroidery' ? 'blue' : method === 'Screen Print' ? 'amber' : 'purple';
+                    const bgColor = method === 'Embroidery' ? 'bg-blue-50 border-blue-200' : method === 'Screen Print' ? 'bg-amber-50 border-amber-200' : 'bg-purple-50 border-purple-200';
+                    const btnColor = method === 'Embroidery' ? 'border-blue-300 hover:border-blue-400 focus:ring-blue-500/30 focus:border-blue-500' : method === 'Screen Print' ? 'border-amber-300 hover:border-amber-400 focus:ring-amber-500/30 focus:border-amber-500' : 'border-purple-300 hover:border-purple-400 focus:ring-purple-500/30 focus:border-purple-500';
+                    const labelColor = method === 'Embroidery' ? 'text-blue-800' : method === 'Screen Print' ? 'text-amber-800' : 'text-purple-800';
+                    const badgeColor = method === 'Embroidery' ? 'bg-blue-600' : method === 'Screen Print' ? 'bg-amber-600' : 'bg-purple-600';
+                    const chevronColor = method === 'Embroidery' ? 'text-blue-500' : method === 'Screen Print' ? 'text-amber-500' : 'text-purple-500';
+                    const subColor = method === 'Embroidery' ? 'text-blue-600' : method === 'Screen Print' ? 'text-amber-600' : 'text-purple-600';
+                    return (
+                      <div key={method} className={`mt-3 p-3 ${bgColor} border rounded-xl`}>
+                        <label className={`block text-xs font-bold ${labelColor} uppercase mb-1.5`}>
+                          {method} Vendor
+                        </label>
+                        <p className={`text-[11px] ${subColor} mb-2`}>
+                          Select which vendor to base {method.toLowerCase()} pricing from
+                        </p>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setMethodVendorDropdowns(prev => ({ ...Object.fromEntries(Object.keys(prev).map(k => [k, false])), [method]: !isDropdownOpen }))}
+                            className={`w-full px-3 py-2 bg-white border-2 ${btnColor} rounded-xl text-left flex items-center justify-between transition-all font-medium text-slate-900 text-sm`}
+                          >
+                            <span className={currentVendor?.vendorName ? 'text-slate-900' : 'text-slate-400'}>
+                              {currentVendor?.vendorName || `Select ${method.toLowerCase()} vendor...`}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 ${chevronColor} transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          {isDropdownOpen && (
+                            <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                              {vendorsForMethod.length > 0 ? vendorsForMethod.map(v => (
+                                <button
+                                  key={v.id}
+                                  onClick={() => {
+                                    setMethodVendor(method, v.id, v.name);
+                                    setMethodVendorDropdowns(prev => ({ ...prev, [method]: false }));
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-left text-sm font-medium flex items-center justify-between hover:bg-slate-50 transition-all first:rounded-t-xl last:rounded-b-xl ${currentVendor?.vendorId === v.id ? `${labelColor} bg-slate-50` : 'text-slate-700'}`}
+                                >
+                                  <div>
+                                    <span className="block">{v.name}</span>
+                                    <span className="text-[10px] text-slate-400">{(v.decorationTypes || []).join(', ') || v.type}</span>
+                                  </div>
+                                  {currentVendor?.vendorId === v.id && (
+                                    <svg className={`w-4 h-4 ${chevronColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                  )}
+                                </button>
+                              )) : (
+                                <div className="px-4 py-3 text-xs text-slate-400 text-center">
+                                  No vendors with {method.toLowerCase()} capabilities found.
                                 </div>
-                                {selectedDecorationVendor === v.name && (
-                                  <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                )}
-                              </button>
-                            )) : (
-                              <div className="px-4 py-3 text-xs text-slate-400 text-center">
-                                No decorator vendors found. Add a vendor with type "Decorator" in the Vendor module.
-                              </div>
-                            )}
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {currentVendor?.vendorName && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${badgeColor} text-white text-xs font-semibold rounded-lg`}>
+                              {currentVendor.vendorName}
+                              <button onClick={() => clearMethodVendor(method)} className="hover:bg-white/20 rounded-full p-0.5 transition-all"><X className="w-3 h-3" /></button>
+                            </span>
                           </div>
                         )}
                       </div>
-                      {selectedDecorationVendor && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg">
-                            {selectedDecorationVendor}
-                            <button onClick={() => setSelectedDecorationVendor('')} className="hover:bg-white/20 rounded-full p-0.5 transition-all"><X className="w-3 h-3" /></button>
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })}
                 </motion.div>
               )}
 
@@ -1800,13 +1979,13 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     </button>
                     {vendorTypeOpen && (
                       <div className="absolute z-30 mt-1 w-full bg-white rounded-xl border border-slate-200 shadow-xl py-1 max-h-60 overflow-y-auto">
-                        {['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer'].map(opt => (
+                        {KNOWN_VENDOR_TYPES.map(opt => (
                           <button
                             key={opt}
                             onClick={() => {
                               setVendorType(opt);
                               setVendorTypeOpen(false);
-                              if (opt === 'Product Distributor' || opt === 'Apparel Distributor') {
+                              if (opt === 'Product Distributor') {
                                 setShowDecorationMethods(false);
                                 setShowImprintLocations(false);
                               } else {
@@ -1876,7 +2055,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                                 const val = Number(e.target.value);
                                 setProductionTimeRange(prev => [val, Math.max(val, prev[1])]);
                               }}
-                              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
+                              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
                             >
                               {productionDayOptions.map(d => (
                                 <option key={d} value={d}>{d} Days</option>
@@ -1891,7 +2070,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                                 const val = Number(e.target.value);
                                 setProductionTimeRange(prev => [Math.min(prev[0], val), val]);
                               }}
-                              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
+                              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none"
                             >
                               {productionDayOptions.filter(d => d >= productionTimeRange[0]).map(d => (
                                 <option key={d} value={d}>{d} Days</option>
@@ -1944,7 +2123,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                     <button
                       type="button"
                       onClick={() => { setOriginOpen(!originOpen); setVendorTypeOpen(false); setShipmentTimeOpen(false); setStorageSizeOpen(false); }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium text-left flex items-center justify-between hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
                     >
                       <span>{origin || 'Select origin'}</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${originOpen ? 'rotate-180' : ''}`} />
@@ -2137,7 +2316,7 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
                   <div className="relative mb-3">
                     <button
                       onClick={() => { setImprintDropdownOpen(!imprintDropdownOpen); setDecorationDropdownOpen(false); }}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-left text-sm font-medium text-slate-500 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all flex items-center justify-between"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-left text-sm font-medium text-slate-500 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all flex items-center justify-between"
                     >
                       <span>Select imprint location...</span>
                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${imprintDropdownOpen ? 'rotate-180' : ''}`} />
@@ -2766,299 +2945,424 @@ export function ProductDetailView({ product, onBack, onSave }: ProductDetailView
             );
           })()}
 
-          {/* Pricing Structure - Full Width (hideable) */}
-          {showPricingStructure && decorationMethods.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-5 bg-white rounded-2xl border border-slate-200 overflow-hidden"
-          >
-            {/* Header Controls */}
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h3 className="text-base font-black text-slate-900">{productName || 'Product Name'}</h3>
-                {productSku && (
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs font-bold rounded border border-slate-200">
-                    {productSku}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {decorationMethods.length > 0 ? (
-                  decorationMethods
-                    .filter((m): m is 'Embroidery' | 'Screen Print' | 'DTG' => 
-                      ['Embroidery', 'Screen Print', 'DTG'].includes(m)
-                    )
-                    .map(method => (
-                      <button
-                        key={method}
-                        onClick={() => setSelectedImprintMethod(method)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
-                          selectedImprintMethod === method
-                            ? 'bg-slate-900 text-white border-slate-900'
-                            : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                        }`}
-                      >
-                        {method}
-                      </button>
-                    ))
-                ) : (
-                  <span className="text-xs text-slate-400 italic">No decoration methods selected</span>
-                )}
-              </div>
-            </div>
+          {/* Per-Method Pricing Tables — each priceable method gets its own collapsible section */}
+          {showPricingStructure && priceableMethods.length > 0 ? (
+            <div className="mt-5 space-y-4">
+              {priceableMethods.map(method => {
+                const isCollapsed = collapsedPricingTables[method] || false;
+                const vendor = methodVendors[method];
+                const pricingData = methodContractData[method];
+                const isLoading = loadingMethodPricing[method] || false;
+                const methodColor = method === 'Embroidery' ? 'blue' : method === 'Screen Print' ? 'amber' : 'emerald';
+                const headerBg = 'from-slate-800 to-slate-900';
 
-            {/* Show prompt if no imprint method selected */}
-            {!selectedImprintMethod ? (
-              <div className="px-6 py-12 bg-slate-50">
-                <div className="max-w-md mx-auto text-center">
-                  <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-6 h-6 text-slate-500" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-1">Select an Imprint Method</h4>
-                  <p className="text-xs text-slate-600">Choose an imprint method above to view pricing details</p>
-                </div>
-              </div>
-            ) : (
-              <>
-            {/* Method-Specific Config Bar */}
-            <div className={`px-6 py-3 border-b border-slate-200 ${
-              selectedImprintMethod === 'Embroidery' ? 'bg-blue-50/50' :
-              selectedImprintMethod === 'Screen Print' ? 'bg-amber-50/50' : 'bg-emerald-50/50'
-            }`}>
-              <div className="flex items-center gap-4">
-                {selectedImprintMethod === 'Screen Print' && contractPricingData && (
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Using Contract Pricing</label>
-                    <div className="px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-lg flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      {contractPricingData.effectiveDate || '2026'}
-                    </div>
-                  </div>
-                )}
-                {selectedImprintMethod === 'DTG' && (
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-600 uppercase">Flat Rate ($/pc)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={dtgFlatRate}
-                      onChange={(e) => setDtgFlatRate(parseFloat(e.target.value) || 0)}
-                      className="px-3 py-1.5 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-32"
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Screen Print Vendor Selection (Required Before Viewing Pricing) */}
-            {selectedImprintMethod === 'Screen Print' && screenPrintVendors.length === 0 && (
-              <div className="px-6 py-8 bg-slate-50 border-b border-slate-200">
-                <div className="max-w-md mx-auto text-center">
-                  <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <User className="w-6 h-6 text-slate-500" />
-                  </div>
-                  <h4 className="text-sm font-bold text-slate-900 mb-1">No Screen Print Vendors Found</h4>
-                  <p className="text-xs text-slate-600">Add vendors with screen print decoration types in the Vendor module</p>
-                </div>
-              </div>
-            )}
-            {selectedImprintMethod === 'Screen Print' && screenPrintVendors.length > 0 && !selectedScreenPrintVendor && (
-              <div className="px-6 py-8 bg-amber-50/30 border-b border-slate-200">
-                <div className="max-w-md mx-auto text-center">
-                  <div className="mb-4">
-                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <User className="w-6 h-6 text-amber-600" />
-                    </div>
-                    <h4 className="text-sm font-bold text-slate-900 mb-1">Select Contract Vendor</h4>
-                    <p className="text-xs text-slate-600">Choose a vendor to view their contract pricing</p>
-                  </div>
-                  <div className="relative">
+                return (
+                  <motion.div
+                    key={method}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
+                  >
+                    {/* Collapsible Header */}
                     <button
-                      onClick={() => setShowScreenPrintVendorDropdown(!showScreenPrintVendorDropdown)}
-                      className="w-full px-4 py-3 text-sm font-semibold text-slate-900 bg-white border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 flex items-center gap-2 justify-between hover:border-amber-400 transition-all"
+                      onClick={() => setCollapsedPricingTables(prev => ({ ...prev, [method]: !isCollapsed }))}
+                      className={`w-full px-5 py-3 flex items-center justify-between bg-gradient-to-r ${headerBg} text-white cursor-pointer hover:opacity-95 transition-opacity`}
                     >
-                      <span className="truncate">Select Vendor...</span>
-                      <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    </button>
-                    {showScreenPrintVendorDropdown && (
-                      <div className="absolute left-0 top-full z-50 mt-2 w-full bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
-                        {screenPrintVendors.map(vendor => (
-                          <button
-                            key={vendor.id}
-                            onClick={() => {
-                              setSelectedScreenPrintVendor(vendor.id);
-                              setShowScreenPrintVendorDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-3 text-sm transition-colors text-slate-700 hover:bg-amber-50 font-medium border-b border-slate-100 last:border-0"
-                          >
-                            {vendor.name}
-                          </button>
-                        ))}
+                      <div className="flex items-center gap-3">
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                        <h3 className="text-sm font-black">{productName || 'Product'}</h3>
+                        {productSku && (
+                          <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold rounded">
+                            {productSku}
+                          </span>
+                        )}
                       </div>
+                      <div className="flex items-center gap-2">
+                        {vendor?.vendorName && (
+                          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-white/20 rounded text-[10px] font-bold">
+                            <User className="w-3 h-3" />
+                            {vendor.vendorName}
+                          </span>
+                        )}
+                        <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
+                          {method}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Collapsible Content */}
+                    {!isCollapsed && (
+                      <>
+                        {/* No vendor assigned prompt */}
+                        {!vendor?.vendorId ? (
+                          <div className="px-6 py-8 bg-slate-50 text-center">
+                            <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <User className="w-5 h-5 text-slate-500" />
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-900 mb-1">No {method} Vendor Selected</h4>
+                            <p className="text-xs text-slate-500">Assign a {method.toLowerCase()} vendor in the Decoration Methods section above to view pricing</p>
+                          </div>
+                        ) : isLoading ? (
+                          <div className="flex items-center justify-center py-12">
+                            <Loader2 className={`w-6 h-6 text-${methodColor}-500 animate-spin`} />
+                            <span className="ml-2 text-sm text-slate-500">Loading {method.toLowerCase()} pricing...</span>
+                          </div>
+                        ) : method === 'Embroidery' ? (
+                          /* ─── EMBROIDERY PRICING TABLE ─── */
+                          <div>
+                            <div className="px-5 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                  <User className="w-3.5 h-3.5 text-blue-600" />
+                                  <span className="text-xs font-bold text-blue-700">{vendor.vendorName}</span>
+                                  {pricingData && (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded">LIVE</span>
+                                  )}
+                                </div>
+                                <div className="w-px h-4 bg-slate-300" />
+                                <span className="text-[10px] font-bold text-slate-500">BLANK</span>
+                                <span className="text-xs font-black text-slate-900">${(basePrice || 0).toFixed(2)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-500">MARGIN</span>
+                                <input
+                                  type="number"
+                                  value={defaultEmbroideryMargin}
+                                  onChange={(e) => setDefaultEmbroideryMargin(parseFloat(e.target.value) || 0)}
+                                  className="w-14 px-2 py-1 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-center"
+                                  min={0} max={99}
+                                />
+                                <span className="text-[10px] text-slate-400">%</span>
+                                <button
+                                  onClick={() => {
+                                    const allTiers = getQuantityTiersForMethod('Embroidery');
+                                    const newMargins: Record<string, number> = {};
+                                    allTiers.forEach(tier => { newMargins[tier] = defaultEmbroideryMargin; });
+                                    setEmbroideryMargins(newMargins);
+                                  }}
+                                  className="px-2.5 py-1 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                >
+                                  Apply All
+                                </button>
+                              </div>
+                            </div>
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-slate-200">
+                                  <th className="text-left px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-white sticky left-0 z-10 w-[100px]">Stitches</th>
+                                  {getQuantityTiersForMethod('Embroidery').map(tier => {
+                                    const tierMargin = embroideryMargins[tier];
+                                    const isEditing = editingTierMargin?.method === 'Embroidery' && editingTierMargin?.tier === tier;
+                                    return (
+                                    <th key={tier} className="text-center px-2 py-2 min-w-[90px]">
+                                      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">{tier}</div>
+                                      {isEditing ? (
+                                        <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                          <input
+                                            type="number"
+                                            autoFocus
+                                            defaultValue={tierMargin ?? defaultEmbroideryMargin}
+                                            onBlur={(e) => {
+                                              const val = parseFloat(e.target.value);
+                                              if (!isNaN(val)) setEmbroideryMargins(prev => ({ ...prev, [tier]: val }));
+                                              setEditingTierMargin(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+                                              if (e.key === 'Escape') setEditingTierMargin(null);
+                                            }}
+                                            className="w-10 px-1 py-0.5 text-[9px] font-bold text-slate-700 bg-white border border-blue-400 rounded text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            min={0} max={99}
+                                          />
+                                          <span className="text-[8px] text-slate-400">%</span>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => setEditingTierMargin({ method: 'Embroidery', tier })}
+                                          className={`text-[9px] mt-0.5 px-1.5 py-0.5 rounded transition-colors ${tierMargin !== undefined ? 'font-bold text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-50'}`}
+                                        >
+                                          {tierMargin !== undefined ? `${tierMargin}%` : `${defaultEmbroideryMargin}%`}
+                                        </button>
+                                      )}
+                                    </th>
+                                    );
+                                  })}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.keys(embroideryRates).sort((a, b) => {
+                                  const numA = parseInt(a.replace(/[^\d]/g, ''));
+                                  const numB = parseInt(b.replace(/[^\d]/g, ''));
+                                  return numA - numB;
+                                }).map(stitchCount => (
+                                  <tr key={stitchCount} className="border-b border-slate-100 group">
+                                    <td className="px-4 py-2.5 sticky left-0 bg-white z-10">
+                                      <span className="px-2 py-0.5 bg-blue-50 text-blue-800 text-[11px] font-bold rounded border border-blue-200">
+                                        {stitchCount.replace('up to ', '≤')}
+                                      </span>
+                                    </td>
+                                    {getQuantityTiersForMethod('Embroidery').map(tier => {
+                                      const decoRate = embroideryRates[stitchCount]?.[tier];
+                                      const blankCost = basePrice || 0;
+                                      const totalCost = decoRate !== undefined ? blankCost + decoRate : null;
+                                      const margin = embroideryMargins[tier] ?? defaultEmbroideryMargin;
+                                      const sellPrice = totalCost !== null && margin < 100 ? totalCost / (1 - margin / 100) : null;
+                                      return (
+                                        <td key={tier} className="px-2 py-2.5 text-center relative">
+                                          {decoRate !== undefined ? (
+                                            <div className="group/cell relative cursor-default">
+                                              <div className="text-sm font-bold text-green-600">
+                                                {sellPrice !== null ? `$${sellPrice.toFixed(2)}` : '—'}
+                                              </div>
+                                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                                cost ${totalCost!.toFixed(2)}
+                                              </div>
+                                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-3 py-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                                                <div className="flex flex-col gap-0.5">
+                                                  <div className="flex justify-between gap-3"><span className="text-slate-400">Blank:</span><span className="font-bold">${blankCost.toFixed(2)}</span></div>
+                                                  <div className="flex justify-between gap-3"><span className="text-blue-300">Deco:</span><span className="font-bold text-blue-300">${decoRate.toFixed(2)}</span></div>
+                                                  <div className="border-t border-slate-600 pt-0.5 flex justify-between gap-3"><span className="text-slate-400">Cost:</span><span className="font-bold">${totalCost!.toFixed(2)}</span></div>
+                                                  <div className="flex justify-between gap-3"><span className="text-green-300">Sell ({margin}%):</span><span className="font-bold text-green-300">${sellPrice!.toFixed(2)}</span></div>
+                                                </div>
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <span className="text-xs text-slate-300">—</span>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            <div className="px-5 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-4 text-[10px]">
+                                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500" /><span className="text-slate-500">Sell price</span></div>
+                                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-400" /><span className="text-slate-500">Cost (blank + deco)</span></div>
+                                <span className="text-slate-400 italic">Hover cell for breakdown</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[10px]">
+                                <span className="text-slate-400">{Object.keys(embroideryRates).length} stitch ranges</span>
+                                <span className="text-slate-300">|</span>
+                                <span className="text-slate-400">{getQuantityTiersForMethod('Embroidery').length} qty tiers</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : method === 'Screen Print' && pricingData ? (
+                          /* ─── SCREEN PRINT PRICING TABLE ─── */
+                          <div>
+                            <div className="px-5 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                  <User className="w-3.5 h-3.5 text-amber-600" />
+                                  <span className="text-xs font-bold text-amber-700">{vendor.vendorName}</span>
+                                  {pricingData && (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded">LIVE</span>
+                                  )}
+                                </div>
+                                <div className="w-px h-4 bg-slate-300" />
+                                <span className="text-[10px] font-bold text-slate-500">BLANK</span>
+                                <span className="text-xs font-black text-slate-900">${(basePrice || 0).toFixed(2)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-500">MARGIN</span>
+                                <input
+                                  type="number"
+                                  value={defaultScreenPrintMargin}
+                                  onChange={(e) => setDefaultScreenPrintMargin(parseFloat(e.target.value) || 0)}
+                                  className="w-14 px-2 py-1 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-center"
+                                  min={0} max={99}
+                                />
+                                <span className="text-[10px] text-slate-400">%</span>
+                                <button
+                                  onClick={() => {
+                                    const allTiers = pricingData.quantityBrackets || [];
+                                    const newMargins: Record<string, number> = {};
+                                    allTiers.forEach((tier: string) => { newMargins[tier] = defaultScreenPrintMargin; });
+                                    setScreenPrintMargins(newMargins);
+                                  }}
+                                  className="px-2.5 py-1 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                >
+                                  Apply All
+                                </button>
+                              </div>
+                            </div>
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-slate-200 bg-slate-50">
+                                  <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide sticky left-0 bg-slate-50 z-10">Colors</th>
+                                  {(pricingData.quantityBrackets || []).map((bracket: string) => {
+                                    const tierMargin = screenPrintMargins[bracket];
+                                    const isEditing = editingTierMargin?.method === 'Screen Print' && editingTierMargin?.tier === bracket;
+                                    return (
+                                    <th key={bracket} className="text-center px-2 py-2.5 min-w-[90px]">
+                                      <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">{bracket}</div>
+                                      {isEditing ? (
+                                        <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                          <input
+                                            type="number"
+                                            autoFocus
+                                            defaultValue={tierMargin ?? defaultScreenPrintMargin}
+                                            onBlur={(e) => {
+                                              const val = parseFloat(e.target.value);
+                                              if (!isNaN(val)) setScreenPrintMargins(prev => ({ ...prev, [bracket]: val }));
+                                              setEditingTierMargin(null);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+                                              if (e.key === 'Escape') setEditingTierMargin(null);
+                                            }}
+                                            className="w-10 px-1 py-0.5 text-[9px] font-bold text-slate-700 bg-white border border-amber-400 rounded text-center focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                            min={0} max={99}
+                                          />
+                                          <span className="text-[8px] text-slate-400">%</span>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => setEditingTierMargin({ method: 'Screen Print', tier: bracket })}
+                                          className={`text-[9px] mt-0.5 px-1.5 py-0.5 rounded transition-colors ${tierMargin !== undefined ? 'font-bold text-amber-600 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50'}`}
+                                        >
+                                          {tierMargin !== undefined ? `${tierMargin}%` : `${defaultScreenPrintMargin}%`}
+                                        </button>
+                                      )}
+                                    </th>
+                                    );
+                                  })}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(pricingData.pricingMatrix || []).map((row: any) => (
+                                  <tr key={row.id || row.label} className="border-b border-slate-100 group">
+                                    <td className="px-4 py-2.5 sticky left-0 bg-white z-10">
+                                      <span className="px-2 py-0.5 bg-amber-50 text-amber-900 text-[11px] font-bold rounded border border-amber-200">
+                                        {row.label}
+                                      </span>
+                                    </td>
+                                    {(row.prices || []).map((price: string, idx: number) => {
+                                      const decoRate = price ? parseFloat(price) : null;
+                                      const blankCost = basePrice || 0;
+                                      const totalCost = decoRate !== null ? blankCost + decoRate : null;
+                                      const bracketKey = (pricingData.quantityBrackets || [])[idx];
+                                      const margin = (bracketKey && screenPrintMargins[bracketKey] !== undefined) ? screenPrintMargins[bracketKey] : defaultScreenPrintMargin;
+                                      const sellPrice = totalCost !== null && margin < 100 ? totalCost / (1 - margin / 100) : null;
+                                      return (
+                                        <td key={idx} className="px-2 py-2.5 text-center relative">
+                                          {decoRate !== null ? (
+                                            <div className="group/cell relative cursor-default">
+                                              <div className="text-sm font-bold text-green-600">
+                                                {sellPrice !== null ? `$${sellPrice.toFixed(2)}` : '—'}
+                                              </div>
+                                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                                cost ${totalCost!.toFixed(2)}
+                                              </div>
+                                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-3 py-2 bg-slate-800 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                                                <div className="flex flex-col gap-0.5">
+                                                  <div className="flex justify-between gap-3"><span className="text-slate-400">Blank:</span><span className="font-bold">${blankCost.toFixed(2)}</span></div>
+                                                  <div className="flex justify-between gap-3"><span className="text-amber-300">Deco:</span><span className="font-bold text-amber-300">${decoRate.toFixed(2)}</span></div>
+                                                  <div className="border-t border-slate-600 pt-0.5 flex justify-between gap-3"><span className="text-slate-400">Cost:</span><span className="font-bold">${totalCost!.toFixed(2)}</span></div>
+                                                  <div className="flex justify-between gap-3"><span className="text-green-300">Sell ({margin}%):</span><span className="font-bold text-green-300">${sellPrice!.toFixed(2)}</span></div>
+                                                </div>
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <span className="text-xs text-slate-300">—</span>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            <div className="px-5 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-4 text-[10px]">
+                                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500" /><span className="text-slate-500">Sell price</span></div>
+                                <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-slate-400" /><span className="text-slate-500">Cost (blank + deco)</span></div>
+                                <span className="text-slate-400 italic">Hover cell for breakdown</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-[10px]">
+                                <span className="text-slate-400">{(pricingData.pricingMatrix || []).length} color rows</span>
+                                <span className="text-slate-300">|</span>
+                                <span className="text-slate-400">{(pricingData.quantityBrackets || []).length} qty tiers</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : method === 'DTG' ? (
+                          /* ─── DTG PRICING ─── */
+                          <div>
+                            <div className="px-5 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {vendor?.vendorName && (
+                                  <div className="flex items-center gap-1.5">
+                                    <User className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span className="text-xs font-bold text-emerald-700">{vendor.vendorName}</span>
+                                  </div>
+                                )}
+                                <div className="w-px h-4 bg-slate-300" />
+                                <span className="text-[10px] font-bold text-slate-500">BLANK</span>
+                                <span className="text-xs font-black text-slate-900">${(basePrice || 0).toFixed(2)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-slate-500">MARGIN</span>
+                                <input
+                                  type="number"
+                                  value={defaultDtgMargin}
+                                  onChange={(e) => setDefaultDtgMargin(parseFloat(e.target.value) || 0)}
+                                  className="w-14 px-2 py-1 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-center"
+                                  min={0} max={99}
+                                />
+                                <span className="text-[10px] text-slate-400">%</span>
+                              </div>
+                            </div>
+                            <div className="px-6 py-5">
+                              <div className="flex items-center gap-6">
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[10px] font-bold text-slate-600 uppercase">Flat Rate ($/pc)</label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={dtgFlatRate}
+                                    onChange={(e) => setDtgFlatRate(parseFloat(e.target.value) || 0)}
+                                    className="px-3 py-1.5 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 w-32"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[10px] font-bold text-slate-600 uppercase">Total Cost</label>
+                                  <span className="text-sm font-bold text-slate-700">${((basePrice || 0) + dtgFlatRate).toFixed(2)}</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-[10px] font-bold text-green-600 uppercase">Sell Price</label>
+                                  <span className="text-sm font-bold text-green-600">
+                                    ${defaultDtgMargin < 100 ? (((basePrice || 0) + dtgFlatRate) / (1 - defaultDtgMargin / 100)).toFixed(2) : '—'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* ─── NO DATA AVAILABLE ─── */
+                          <div className="py-8 text-center">
+                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                              <FileText className="w-5 h-5 text-slate-400" />
+                            </div>
+                            <p className="text-sm font-semibold text-slate-700 mb-1">No Contract Pricing Found</p>
+                            <p className="text-xs text-slate-500">
+                              {vendor?.vendorName} doesn't have {method.toLowerCase()} contract pricing set up yet
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Selected Vendor Badge (when vendor is chosen) */}
-            {selectedImprintMethod === 'Screen Print' && selectedScreenPrintVendor && screenPrintVendors.length > 0 && (
-              <div className="px-6 py-3 bg-amber-50/50 border-b border-amber-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-amber-600" />
-                  <span className="text-xs font-bold text-slate-700">Viewing pricing for:</span>
-                  <span className="text-xs font-black text-amber-700">
-                    {screenPrintVendors.find(v => v.id === selectedScreenPrintVendor)?.name}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSelectedScreenPrintVendor('')}
-                  className="text-xs font-semibold text-amber-600 hover:text-amber-700 underline"
-                >
-                  Change Vendor
-                </button>
-              </div>
-            )}
-
-            {/* Pricing Table */}
-            {selectedImprintMethod && decorationMethods.length > 0 && (selectedImprintMethod === 'Screen Print' && !selectedScreenPrintVendor ? null : (
-            <div className="overflow-x-auto">
-              {loadingContractPricing ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
-                  <span className="ml-2 text-sm text-slate-500">Loading contract pricing...</span>
-                </div>
-              ) : selectedImprintMethod === 'Screen Print' && contractPricingData && selectedScreenPrintVendor ? (
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50">
-                      <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Colors</th>
-                      {(contractPricingData.quantityBrackets || []).map((bracket: string) => (
-                        <th key={bracket} className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">
-                          <div className="flex flex-col items-center gap-0.5">
-                            <span>{bracket}</span>
-                            <span className="text-[9px] font-normal text-slate-400">(Deco Cost)</span>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(contractPricingData.pricingMatrix || []).map((row: any) => (
-                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 bg-amber-50 text-amber-900 text-xs font-bold rounded border border-amber-200">
-                              {row.label}
-                            </span>
-                          </div>
-                        </td>
-                        {(row.prices || []).map((price: string, idx: number) => (
-                          <td key={idx} className="px-4 py-2 text-center">
-                            <span className="text-sm font-bold text-amber-600">
-                              {price ? `$${parseFloat(price).toFixed(2)}` : '—'}
-                            </span>
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : selectedImprintMethod === 'Embroidery' ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">Stitch Count</th>
-                    {getQuantityTiersForMethod(selectedImprintMethod).map(tier => (
-                      <th key={tier} className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-600 uppercase tracking-wide">
-                        {tier}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.keys(embroideryRates).sort((a, b) => {
-                    // Extract numeric value from stitch count strings
-                    const numA = parseInt(a.replace(/[^\d]/g, ''));
-                    const numB = parseInt(b.replace(/[^\d]/g, ''));
-                    return numA - numB;
-                  }).map(stitchCount => {
-                    return (
-                      <tr key={stitchCount} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-2 py-0.5 bg-blue-50 text-blue-900 text-xs font-bold rounded border border-blue-200">
-                              {stitchCount.replace('up to ', '≤')}
-                            </span>
-                          </div>
-                        </td>
-                        {getQuantityTiersForMethod(selectedImprintMethod).map(tier => {
-                          const rate = embroideryRates[stitchCount]?.[tier];
-                          return (
-                            <td key={tier} className="px-4 py-2 text-center">
-                              <span className="text-sm font-bold text-blue-600">
-                                {rate !== undefined ? `$${rate.toFixed(2)}` : '—'}
-                              </span>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              ) : selectedImprintMethod === 'Screen Print' && selectedScreenPrintVendor && !contractPricingData ? (
-                <div className="py-12 text-center">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <FileText className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-700 mb-1">No Contract Pricing Found</p>
-                  <p className="text-xs text-slate-500">
-                    {screenPrintVendors.find(v => v.id === selectedScreenPrintVendor)?.name} doesn't have contract pricing set up yet
-                  </p>
-                </div>
-              ) : (
-                <div className="py-12 text-center text-sm text-slate-500">
-                  No pricing data available for {selectedImprintMethod}
-                </div>
-              )}
-
-              {/* Summary Footer Bar */}
-              {selectedImprintMethod === 'Screen Print' && contractPricingData && selectedScreenPrintVendor && (
-                <div className="px-6 py-3 bg-slate-50 border-t border-slate-200">
-                  <div className="flex items-center gap-6 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-500 uppercase">Avg Blank:</span>
-                      <span className="font-bold text-slate-900">${calculateSummaryAverages().avgBlank.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-500 uppercase">Avg Deco:</span>
-                      <span className="font-bold text-blue-600">${calculateSummaryAverages().avgDeco.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-500 uppercase">Avg Total Cost:</span>
-                      <span className="font-bold text-slate-900">${calculateSummaryAverages().avgTotalCost.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-500 uppercase">Avg Sell Price:</span>
-                      <span className="font-bold text-green-600">${calculateSummaryAverages().avgSellPrice.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-500 uppercase">Margin:</span>
-                      <span className="font-bold text-slate-900">{calculateSummaryAverages().margin.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                );
+              })}
             </div>
-            ))}
-            </>
-            )}
-          </motion.div>
-          ) : (
+          ) : showPricingStructure ? null : (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

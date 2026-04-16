@@ -79,12 +79,12 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-white rounded-3xl shadow-lg p-8"
+            className="bg-white rounded-xl shadow-sm p-5"
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Two-Factor Authentication</h3>
-                <p className="text-sm text-slate-600 mt-1">Add an extra layer of security to your account</p>
+                <h3 className="text-base font-bold text-slate-900">Two-Factor Authentication</h3>
+                <p className="text-xs text-slate-600 mt-0.5">Add an extra layer of security to your account</p>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -97,14 +97,14 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             </div>
 
             {/* 2FA Status */}
-            <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-2xl">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-6 h-6 text-blue-600" />
+            <div className="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-bold text-slate-900 mb-1">Two-Factor Authentication is Disabled</h4>
-                  <p className="text-sm text-slate-600">
+                  <h4 className="font-bold text-sm text-slate-900 mb-0.5">Two-Factor Authentication is Disabled</h4>
+                  <p className="text-xs text-slate-600">
                     Protect your account by enabling two-factor authentication. You'll need to enter a code from your phone in addition to your password when signing in.
                   </p>
                 </div>
@@ -112,28 +112,28 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             </div>
 
             {/* Setup Options */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-slate-900">Choose Authentication Method</h4>
+            <div className="space-y-3">
+              <h4 className="font-bold text-sm text-slate-900">Choose Authentication Method</h4>
               
               {/* Authenticator App */}
               <motion.div
                 whileHover={{ scale: 1.01 }}
-                className="p-6 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:border-blue-400 transition-all group"
+                className="p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 transition-all group"
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
-                    <QrCode className="w-6 h-6 text-slate-700" />
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
+                    <QrCode className="w-4 h-4 text-slate-700" />
                   </div>
                   <div className="flex-1">
-                    <h5 className="font-bold text-slate-900 mb-1">Authenticator App (Recommended)</h5>
-                    <p className="text-sm text-slate-600 mb-3">
+                    <h5 className="font-bold text-sm text-slate-900 mb-0.5">Authenticator App (Recommended)</h5>
+                    <p className="text-xs text-slate-600 mb-2">
                       Use an authentication app like Google Authenticator or Authy to generate verification codes.
                     </p>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setIsAuthenticatorModalOpen(true)}
-                      className="px-5 py-2.5 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-all"
+                      className="px-4 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-all"
                     >
                       Set Up Authenticator
                     </motion.button>
@@ -144,22 +144,22 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               {/* SMS */}
               <motion.div
                 whileHover={{ scale: 1.01 }}
-                className="p-6 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:border-blue-400 transition-all group"
+                className="p-4 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 transition-all group"
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
-                    <Smartphone className="w-6 h-6 text-slate-700" />
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
+                    <Smartphone className="w-4 h-4 text-slate-700" />
                   </div>
                   <div className="flex-1">
-                    <h5 className="font-bold text-slate-900 mb-1">SMS Text Message</h5>
-                    <p className="text-sm text-slate-600 mb-3">
+                    <h5 className="font-bold text-sm text-slate-900 mb-0.5">SMS Text Message</h5>
+                    <p className="text-xs text-slate-600 mb-2">
                       Receive verification codes via SMS to your registered phone number.
                     </p>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setIsSMSModalOpen(true)}
-                      className="px-5 py-2.5 bg-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-300 transition-all"
+                      className="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-300 transition-all"
                     >
                       Set Up SMS
                     </motion.button>
@@ -168,11 +168,11 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               </motion.div>
 
               {/* Backup Codes Notice */}
-              <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-amber-900">Don't forget backup codes</p>
-                  <p className="text-sm text-amber-700 mt-1">
+                  <p className="text-xs font-medium text-amber-900">Don't forget backup codes</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
                     After enabling 2FA, make sure to save your backup codes in a safe place. You'll need them if you lose access to your authentication method.
                   </p>
                 </div>
@@ -188,12 +188,12 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-white rounded-3xl shadow-lg p-8"
+            className="bg-white rounded-xl shadow-sm p-5"
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Reset Password</h3>
-                <p className="text-sm text-slate-600 mt-1">Update your password to keep your account secure</p>
+                <h3 className="text-base font-bold text-slate-900">Reset Password</h3>
+                <p className="text-xs text-slate-600 mt-0.5">Update your password to keep your account secure</p>
               </div>
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -205,9 +205,9 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               </motion.button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Current Password
                 </label>
                 <input
@@ -217,12 +217,12 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                     setPasswordData({ ...passwordData, current: e.target.value })
                   }
                   placeholder="Enter current password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   New Password
                 </label>
                 <input
@@ -232,15 +232,15 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                     setPasswordData({ ...passwordData, new: e.target.value })
                   }
                   placeholder="Enter new password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-1 text-[10px] text-slate-500">
                   Password must be at least 8 characters with uppercase, lowercase, number, and special character.
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Confirm New Password
                 </label>
                 <input
@@ -250,23 +250,23 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                     setPasswordData({ ...passwordData, confirm: e.target.value })
                   }
                   placeholder="Confirm new password"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
-              <div className="pt-4 flex gap-3">
+              <div className="pt-2 flex gap-3">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setActiveSection('profile')}
-                  className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-all"
                 >
                   Cancel
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 px-6 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-all shadow-lg"
+                  className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-all shadow-lg"
                 >
                   Update Password
                 </motion.button>
@@ -282,10 +282,10 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="bg-white rounded-3xl shadow-lg p-8"
+            className="bg-white rounded-xl shadow-sm p-5"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Profile Information</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-900">Profile Information</h3>
               {isEditing && (
                 <div className="flex items-center gap-3">
                   <motion.button
@@ -300,7 +300,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSave}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-500 text-white font-medium rounded-xl hover:bg-blue-600 transition-all"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-all"
                   >
                     <Save className="w-4 h-4" />
                     Save Changes
@@ -309,10 +309,10 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* First Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   First Name
                 </label>
                 <input
@@ -320,13 +320,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Last Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Last Name
                 </label>
                 <input
@@ -334,14 +334,14 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Email - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  <Mail className="w-4 h-4 inline mr-2 text-slate-400" />
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                  <Mail className="w-3.5 h-3.5 inline mr-1.5 text-slate-400" />
                   Email Address
                 </label>
                 <input
@@ -349,13 +349,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Phone Number */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Phone Number
                 </label>
                 <input
@@ -364,13 +364,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   onChange={handlePhoneChange}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Job Title */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Job Title
                 </label>
                 <input
@@ -379,13 +379,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Department - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Department
                 </label>
                 <input
@@ -394,13 +394,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Timezone - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Timezone
                 </label>
                 <TimezonePicker
@@ -416,30 +416,30 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
   };
 
   return (
-    <div className="flex-1 bg-slate-50 p-8 overflow-auto">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="flex-1 bg-slate-50 p-4 overflow-auto">
+      <div className="max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4">
             {/* Profile Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl shadow-lg overflow-hidden"
+              className="bg-white rounded-xl shadow-sm overflow-hidden"
             >
               {/* Gradient Header */}
-              <div className="h-24 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 relative">
-                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
+              <div className="h-16 bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 relative">
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
                   <div className="relative group">
                     {formData.profileImage ? (
                       <img
                         src={formData.profileImage}
                         alt="Profile"
-                        className="w-24 h-24 rounded-full border-4 border-white shadow-xl object-cover"
+                        className="w-20 h-20 rounded-full border-4 border-white shadow-xl object-cover"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-full border-4 border-white shadow-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                        <span className="text-3xl font-bold text-white">{getInitials()}</span>
+                      <div className="w-20 h-20 rounded-full border-4 border-white shadow-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">{getInitials()}</span>
                       </div>
                     )}
                     {isEditing && (
@@ -464,12 +464,12 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               </div>
 
               {/* Profile Info */}
-              <div className="pt-16 pb-6 px-6 text-center">
-                <h2 className="text-xl font-bold text-slate-900 mb-1">
+              <div className="pt-12 pb-4 px-4 text-center">
+                <h2 className="text-base font-bold text-slate-900 mb-0.5">
                   {formData.firstName} {formData.lastName}
                 </h2>
-                <p className="text-sm text-slate-600 mb-1">{formData.jobTitle || 'Administrator'}</p>
-                <p className="text-xs text-slate-500 mb-6">
+                <p className="text-xs text-slate-600 mb-0.5">{formData.jobTitle || 'Administrator'}</p>
+                <p className="text-[10px] text-slate-500 mb-4">
                   Update profile picture (.JPG, .PNG, max 2MB)
                 </p>
 
@@ -492,31 +492,31 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-3xl shadow-lg p-6 text-white"
+              className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-4 text-white"
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <span className="text-2xl font-bold">A</span>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                  <span className="text-lg font-bold">A</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Account Status</h3>
-                  <p className="text-sm text-purple-100">Active & Verified</p>
+                  <h3 className="font-bold text-sm">Account Status</h3>
+                  <p className="text-[11px] text-purple-100">Active & Verified</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-purple-100">Created Date</span>
-                  <span className="font-semibold">Jan, 2024</span>
+                  <span className="text-xs text-purple-100">Created Date</span>
+                  <span className="text-xs font-semibold">Jan, 2024</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-purple-100">Last Login</span>
-                  <span className="font-semibold">Today</span>
+                  <span className="text-xs text-purple-100">Last Login</span>
+                  <span className="text-xs font-semibold">Today</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-purple-100">Email Status</span>
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <Check className="w-4 h-4" />
+                  <span className="text-xs text-purple-100">Email Status</span>
+                  <span className="flex items-center gap-1 text-xs font-semibold">
+                    <Check className="w-3.5 h-3.5" />
                     Verified
                   </span>
                 </div>
@@ -528,24 +528,24 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-3xl shadow-lg p-6"
+              className="bg-white rounded-3xl shadow-lg p-4"
             >
-              <h3 className="font-bold text-slate-900 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
+              <h3 className="font-bold text-sm text-slate-900 mb-3">Quick Actions</h3>
+              <div className="space-y-1.5">
                 <motion.button
                   whileHover={{ x: 4 }}
                   onClick={() => setActiveSection('twoFactor')}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors text-left group ${
-                    activeSection === 'twoFactor' ? 'bg-blue-50 border-2 border-blue-200' : 'hover:bg-slate-50'
+                  className={`w-full flex items-center justify-between p-2.5 rounded-lg transition-colors text-left group ${
+                    activeSection === 'twoFactor' ? 'bg-blue-50 border border-blue-200' : 'hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                       activeSection === 'twoFactor' ? 'bg-blue-200' : 'bg-blue-100 group-hover:bg-blue-200'
                     }`}>
-                      <Shield className="w-5 h-5 text-blue-600" />
+                      <Shield className="w-4 h-4 text-blue-600" />
                     </div>
-                    <span className="font-medium text-slate-700">Two-Factor Auth</span>
+                    <span className="text-xs font-medium text-slate-700">Two-Factor Auth</span>
                   </div>
                   <span className="text-slate-400">›</span>
                 </motion.button>
@@ -553,17 +553,17 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <motion.button
                   whileHover={{ x: 4 }}
                   onClick={() => setActiveSection('password')}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-colors text-left group ${
-                    activeSection === 'password' ? 'bg-orange-50 border-2 border-orange-200' : 'hover:bg-slate-50'
+                  className={`w-full flex items-center justify-between p-2.5 rounded-lg transition-colors text-left group ${
+                    activeSection === 'password' ? 'bg-orange-50 border border-orange-200' : 'hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                       activeSection === 'password' ? 'bg-orange-200' : 'bg-orange-100 group-hover:bg-orange-200'
                     }`}>
-                      <Key className="w-5 h-5 text-orange-600" />
+                      <Key className="w-4 h-4 text-orange-600" />
                     </div>
-                    <span className="font-medium text-slate-700">Reset Password</span>
+                    <span className="text-xs font-medium text-slate-700">Reset Password</span>
                   </div>
                   <span className="text-slate-400">›</span>
                 </motion.button>

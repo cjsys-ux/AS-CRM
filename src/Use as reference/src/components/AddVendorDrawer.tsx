@@ -37,7 +37,7 @@ interface AddVendorDrawerProps {
 }
 
 const VENDOR_STATUSES = ['Active', 'Inactive', 'Pending'];
-const VENDOR_TYPES = ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer'];
+const VENDOR_TYPES = ['Product Distributor', 'Apparel Distributor', 'Promo Supplier', 'Product Manufacturer'];
 const ACCOUNT_TYPES = ['Standalone', 'Parent Company', 'Subsidiary'];
 const PAYMENT_TERMS = ['Prepaid', 'Net 15', 'Net 30', 'Net 45', 'Net 60', 'Net 90', '30/70', '50/50'];
 const COUNTRIES = ['United States', 'China', 'Vietnam', 'India'];

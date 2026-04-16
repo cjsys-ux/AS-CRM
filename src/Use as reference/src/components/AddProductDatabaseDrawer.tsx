@@ -80,7 +80,7 @@ function PortalDropdown({
 }
 
 const VENDOR_TYPES = [
-  'Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer'
+  'Product Distributor', 'Apparel Distributor', 'Promo Supplier', 'Product Manufacturer'
 ];
 
 const PRODUCT_CATEGORIES = [
