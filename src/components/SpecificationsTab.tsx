@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save } from 'lucide-react';
+import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save, Pencil } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
@@ -76,6 +76,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
     { id: '1', material: '', percentage: 0 }
   ]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Dimensions
   const [length, setLength] = useState('');
@@ -194,6 +195,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
       });
       if (!res.ok) throw new Error('Failed to save');
       toast.success('Specifications saved successfully');
+      setIsEditing(false);
     } catch {
       toast.error('Failed to save specifications');
     } finally {
@@ -293,23 +295,45 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
 
   return (
     <div className="space-y-6">
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSaveSpecs}
-          disabled={isSaving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          {isSaving ? 'Saving...' : 'Save Specifications'}
-        </motion.button>
+      {/* Edit / Save buttons */}
+      <div className="flex justify-end gap-3">
+        {isEditing ? (
+          <>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsEditing(false)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleSaveSpecs}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save Specifications'}
+            </motion.button>
+          </>
+        ) : (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+          >
+            <Pencil className="w-4 h-4" />
+            Edit Specifications
+          </motion.button>
+        )}
       </div>
 
-      {/* Product Dimensions & Weight Specifications — shown only when no size variants are defined.
-          When sizes exist, per-size inputs in the Size Variants card take over. */}
-      {sizeVariants.length === 0 && (
+      {/* Product Dimensions & Weight Specifications */}
+      {(
         <>
           {/* Product Dimensions */}
           <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
@@ -327,13 +351,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={length}
                       onChange={(e) => setLength(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['in', 'cm', 'mm']}
                       defaultOption="in"
                       value={lengthUnit}
                       onChange={setLengthUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -345,13 +371,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={width}
                       onChange={(e) => setWidth(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['in', 'cm', 'mm']}
                       defaultOption="in"
                       value={widthUnit}
                       onChange={setWidthUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -363,13 +391,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['in', 'cm', 'mm']}
                       defaultOption="in"
                       value={heightUnit}
                       onChange={setHeightUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -393,13 +423,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={productWeight}
                       onChange={(e) => setProductWeight(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['lbs', 'kg', 'oz', 'g']}
                       defaultOption="lbs"
                       value={productWeightUnit}
                       onChange={setProductWeightUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -411,13 +443,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       placeholder="0.00"
                       value={shippingWeight}
                       onChange={(e) => setShippingWeight(e.target.value)}
-                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                     <UnitDropdown
                       options={['lbs', 'kg', 'oz', 'g']}
                       defaultOption="lbs"
                       value={shippingWeightUnit}
                       onChange={setShippingWeightUnit}
+                      disabled={!isEditing}
                     />
                   </div>
                 </div>
@@ -434,122 +468,82 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
             <Package className="w-5 h-5 text-indigo-600" />
             <h3 className="font-bold text-slate-900">Size Variants</h3>
             <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
-              {sizeVariants.length} size{sizeVariants.length !== 1 ? 's' : ''}
+              {sizeVariants.length} variant{sizeVariants.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-2">
             <AnimatePresence initial={false}>
               {sizeVariants.map((size) => {
                 const vs = variantSpecs[size] ?? emptyVariantSpec();
+                const hasDims = vs.length || vs.width || vs.height;
+                const hasWeight = vs.productWeight;
                 return (
                   <motion.div
                     key={size}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="rounded-xl border border-slate-200 bg-slate-50/60 p-5"
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
+                    style={{ display: 'grid', gridTemplateColumns: '110px 1fr 200px', alignItems: 'center' }}
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-sm">
-                        {size}
-                      </span>
-                      <span className="text-sm font-medium text-slate-600">Dimensions & Weight</span>
+                    {/* Size */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Size</p>
+                      <span className="text-sm font-bold text-indigo-600">{size}</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Length</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={vs.length}
+                    {/* Dimensions */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dimensions (L × W × H)</p>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5">
+                          <input type="number" placeholder="L" value={vs.length}
                             onChange={(e) => updateVariantField(size, 'length', e.target.value)}
-                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                          />
-                          <UnitDropdown
-                            options={['in', 'cm', 'mm']}
-                            defaultOption="in"
-                            value={vs.lengthUnit}
-                            onChange={(v) => updateVariantField(size, 'lengthUnit', v)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Width</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={vs.width}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <span className="text-slate-400 text-xs">×</span>
+                          <input type="number" placeholder="W" value={vs.width}
                             onChange={(e) => updateVariantField(size, 'width', e.target.value)}
-                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                          />
-                          <UnitDropdown
-                            options={['in', 'cm', 'mm']}
-                            defaultOption="in"
-                            value={vs.widthUnit}
-                            onChange={(v) => updateVariantField(size, 'widthUnit', v)}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Height</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={vs.height}
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <span className="text-slate-400 text-xs">×</span>
+                          <input type="number" placeholder="H" value={vs.height}
                             onChange={(e) => updateVariantField(size, 'height', e.target.value)}
-                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                          />
-                          <UnitDropdown
-                            options={['in', 'cm', 'mm']}
-                            defaultOption="in"
-                            value={vs.heightUnit}
-                            onChange={(v) => updateVariantField(size, 'heightUnit', v)}
-                          />
+                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+                          <select
+                            value={vs.lengthUnit || 'in'}
+                            onChange={(e) => {
+                              updateVariantField(size, 'lengthUnit', e.target.value);
+                              updateVariantField(size, 'widthUnit', e.target.value);
+                              updateVariantField(size, 'heightUnit', e.target.value);
+                            }}
+                            className="text-sm text-slate-600 bg-transparent border-none outline-none cursor-pointer ml-1"
+                          >
+                            <option>in</option><option>cm</option><option>mm</option>
+                          </select>
                         </div>
-                      </div>
+                      ) : (
+                        <p className="text-sm italic text-slate-400">
+                          {hasDims ? `${vs.length || '–'} × ${vs.width || '–'} × ${vs.height || '–'} ${vs.lengthUnit}` : 'Not set'}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Product Weight</label>
+                    {/* Weight */}
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Weight</p>
+                      {isEditing ? (
                         <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={vs.productWeight}
+                          <input type="number" placeholder="0.0" value={vs.productWeight}
                             onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
-                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                          />
-                          <UnitDropdown
-                            options={['lbs', 'kg', 'oz', 'g']}
-                            defaultOption="lbs"
+                            className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
+                          <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
                             value={vs.productWeightUnit}
-                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)}
-                          />
+                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1.5">Shipping Weight</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            placeholder="0.00"
-                            value={vs.shippingWeight}
-                            onChange={(e) => updateVariantField(size, 'shippingWeight', e.target.value)}
-                            className="flex-1 min-w-0 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                          />
-                          <UnitDropdown
-                            options={['lbs', 'kg', 'oz', 'g']}
-                            defaultOption="lbs"
-                            value={vs.shippingWeightUnit}
-                            onChange={(v) => updateVariantField(size, 'shippingWeightUnit', v)}
-                          />
-                        </div>
-                      </div>
+                      ) : (
+                        <p className="text-sm italic text-slate-400">
+                          {hasWeight ? `${vs.productWeight} ${vs.productWeightUnit}` : 'Not set'}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -595,18 +589,14 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       <input
                         type="text"
                         value={composition.material || ''}
-                        onClick={(e) => {
-                          e.preventDefault();
+                        onChange={(e) => {
+                          updateMaterialComposition(composition.id, 'material', e.target.value);
                           setOpenDropdownId(composition.id);
                         }}
-                        onFocus={(e) => {
-                          e.preventDefault();
-                          setOpenDropdownId(composition.id);
-                        }}
-                        onBlur={() => setTimeout(() => setOpenDropdownId(null), 200)}
-                        placeholder="Select material..."
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium cursor-pointer"
-                        readOnly
+                        onFocus={() => setOpenDropdownId(composition.id)}
+                        onBlur={() => setTimeout(() => setOpenDropdownId(null), 150)}
+                        placeholder="Type or select material..."
+                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
                       />
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
 
@@ -616,47 +606,32 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 max-h-80 overflow-y-auto"
+                            className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-[200] overflow-y-auto"
+                            style={{ maxHeight: '220px' }}
                           >
-                            {MATERIAL_OPTIONS.map((material, idx) => (
-                              <motion.div
+                            {MATERIAL_OPTIONS.filter(m =>
+                              !composition.material || m.toLowerCase().includes(composition.material.toLowerCase())
+                            ).map((material) => (
+                              <div
                                 key={material}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.02 }}
                                 className={`px-5 py-3 cursor-pointer border-b border-slate-100 last:border-b-0 transition-all ${
                                   composition.material === material
                                     ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold'
-                                    : 'hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 text-slate-900'
+                                    : 'hover:bg-purple-50 text-slate-900'
                                 }`}
-                                onClick={(e) => {
+                                onMouseDown={(e) => {
                                   e.preventDefault();
-                                  e.stopPropagation();
                                   updateMaterialComposition(composition.id, 'material', material);
-                                  if (material !== 'Other') {
-                                    updateMaterialComposition(composition.id, 'customMaterial', '');
-                                  }
                                   setOpenDropdownId(null);
                                 }}
                               >
                                 <span className="text-sm font-medium">{material}</span>
-                              </motion.div>
+                              </div>
                             ))}
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
-                    {composition.material === 'Other' && (
-                      <motion.input
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        type="text"
-                        value={composition.customMaterial || ''}
-                        onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
-                        placeholder="Enter custom material name..."
-                        className="mt-2 w-full px-4 py-3 bg-white border-2 border-purple-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm"
-                      />
-                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
