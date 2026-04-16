@@ -465,8 +465,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     Edit
                   </motion.button>
                 </div>
-                {/* Row 1: Product Name | Customer | Vendor */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Product Name</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.name}</div>
@@ -484,9 +483,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">Vendor</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.vendor || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
                   </div>
-                </div>
-                {/* Row 2: Status | Type | Internal SKU */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Status</div>
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(productInfo.status)}`}>
@@ -506,9 +502,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">Internal SKU</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
-                </div>
-                {/* Row 3: Project Manager | HTS Code | HTS Duty Rate */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.projectManager || <span className="text-slate-400 italic font-normal">Not assigned</span>}</div>
@@ -517,8 +510,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <div className="text-xs font-semibold text-slate-500 mb-1">HTS Duty Rate</div>
+                  <div className="col-span-2 bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-2">HTS Duty Rate</div>
                     {productInfo.htsBaseRate ? (
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
@@ -548,9 +541,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <span className="text-sm text-slate-400 italic font-normal">—</span>
                     )}
                   </div>
-                </div>
-                {/* Row 4: Size Variants */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
                     {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
@@ -565,27 +555,26 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <span className="text-sm text-slate-400 italic font-normal">No sizes defined</span>
                     )}
                   </div>
-                </div>
 
-                {/* Competitor Analysis */}
-                {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
-                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
+                  {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
+                    <>
+                      <div className="col-span-3 pt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                        </div>
                       </div>
-                      <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                      <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
                         <div className="text-sm font-semibold text-slate-900">
                           {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
                         </div>
                       </div>
-                      <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
                         {productInfo.competitorLink ? (
                           <a
@@ -598,15 +587,15 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                           </a>
                         ) : <span className="text-slate-400 font-normal text-sm">—</span>}
                       </div>
-                      <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
                         <div className="text-sm font-bold text-emerald-600">
                           {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
