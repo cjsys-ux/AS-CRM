@@ -10,6 +10,7 @@ interface FileItem {
   id: string;
   name: string;
   type: string;
+  mime: string;
   size: string;
   uploadedBy: string;
   uploadedDate: string;
@@ -48,8 +49,10 @@ const ENTITY_TYPE_SECTION_LABELS: Record<string, string> = {
 };
 
 const isImageType = (type: string) => {
+  if (!type) return false;
   const t = type.toLowerCase();
-  return t === 'image' || t === 'jpg' || t === 'jpeg' || t === 'png' || t === 'gif' || t === 'webp' || t === 'svg';
+  if (t.startsWith('image/')) return true;
+  return t === 'image' || t === 'jpg' || t === 'jpeg' || t === 'png' || t === 'gif' || t === 'webp' || t === 'svg' || t === 'heic' || t === 'heif' || t === 'bmp' || t === 'avif';
 };
 
 const getFileIcon = (type: string) => {
@@ -132,6 +135,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
           id: u.id ?? u._id,
           name: u.fileName ?? 'Unknown',
           type: ext || (u.fileType ?? 'file'),
+          mime: u.fileType ?? '',
           size: sizeStr,
           uploadedBy: u.uploadedBy ?? 'User',
           uploadedDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '',
@@ -172,7 +176,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
       await fetchFiles();
     } catch (err) {
       console.error('File upload error:', err);
-      toast.error('Upload failed');
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
     }
@@ -292,6 +296,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
               id="file-upload-empty"
               type="file"
               multiple
+              accept="*/*"
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
               disabled={isUploading}
@@ -317,6 +322,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
               id="file-upload"
               type="file"
               multiple
+              accept="*/*"
               onChange={(e) => handleFileUpload(e.target.files)}
               className="hidden"
               disabled={isUploading}
@@ -359,7 +365,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {isImageType(file.type) && file.key ? (
+                        {(isImageType(file.type) || isImageType(file.mime)) && file.key ? (
                           <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
                             <img src={`/api/files/image?key=${encodeURIComponent(file.key)}`} alt={file.name} className="w-full h-full object-cover" />
                           </div>
