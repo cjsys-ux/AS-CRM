@@ -95,6 +95,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     competitorName: productData?.competitorName || '',
     competitorLink: productData?.competitorLink || '',
     competitorPrice: productData?.competitorPrice || '',
+    artTemplate: productData?.artTemplate || '',
+    artTemplateName: productData?.artTemplateName || '',
   });
 
   // Project number (fetched from full product record)
@@ -132,6 +134,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
             setProductProjectNumber(data.product.projectNumber);
           }
           // Sync fields from full product record
+          const artTemplateKey = data.product.artTemplateKey;
+          const artTemplateFromGet = data.product.artTemplate
+            || (artTemplateKey ? `/api/files/image?key=${encodeURIComponent(artTemplateKey)}` : '');
           setProductInfo(prev => ({
             ...prev,
             competitorName: data.product.competitorName || prev.competitorName || '',
@@ -142,6 +147,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
             htsBaseRate: data.product.htsBaseRate || prev.htsBaseRate || '',
             htsSection301: data.product.htsSection301 ?? prev.htsSection301 ?? false,
             sizeVariants: data.product.sizeVariants || prev.sizeVariants || [],
+            artTemplate: artTemplateFromGet || prev.artTemplate || '',
+            artTemplateName: data.product.artTemplateName || prev.artTemplateName || '',
           }));
         }
       } catch (err) {

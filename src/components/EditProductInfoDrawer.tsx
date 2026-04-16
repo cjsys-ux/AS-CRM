@@ -222,6 +222,14 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
   const [dbClients, setDbClients] = useState<any[]>([]);
+  const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
+  const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadedArtTemplateKey, setUploadedArtTemplateKey] = useState<string | null>(null);
+  const [resolvedArtTemplateUrl, setResolvedArtTemplateUrl] = useState<string | null>(null);
+  const [isUploadingArtTemplate, setIsUploadingArtTemplate] = useState(false);
+  const [artTemplateCleared, setArtTemplateCleared] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Determine if product has data (prevents going back to "New Product")
   const hasProductData = (() => {
@@ -264,25 +272,116 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
     fetchClients();
   }, [isOpen]);
 
-  // Sync formData when productInfo changes
+  // Sync formData when productInfo changes (and reset transient upload state)
   useEffect(() => {
     setFormData(productInfo);
     setImagePreview(productInfo.image);
+    setUploadedImageKey(null);
+    setResolvedImageUrl(null);
+    setIsUploadingImage(false);
+    setUploadedArtTemplateKey(null);
+    setResolvedArtTemplateUrl(null);
+    setIsUploadingArtTemplate(false);
+    setArtTemplateCleared(false);
+    setSaveError(null);
   }, [productInfo]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setFormData({ ...formData, image: reader.result as string });
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1] ?? '');
       };
+      reader.onerror = reject;
       reader.readAsDataURL(file);
+    });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    setSaveError(null);
+    const localPreview = URL.createObjectURL(file);
+    setImagePreview(localPreview);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch('/api/files/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          entityType: 'project',
+          entityId: productId ?? 'unknown',
+          fileData: base64,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to upload image.');
+      }
+      const { key, fileUrl } = await res.json();
+      setUploadedImageKey(key);
+      setResolvedImageUrl(fileUrl);
+      setImagePreview(fileUrl);
+      setFormData(prev => ({ ...prev, image: fileUrl }));
+    } catch (err) {
+      console.error('Image upload error:', err);
+      setSaveError('Image upload failed. Other changes can still be saved.');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
+  const handleArtTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingArtTemplate(true);
+    setSaveError(null);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch('/api/files/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          entityType: 'project-art-template',
+          entityId: productId ?? 'unknown',
+          fileData: base64,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to upload art template.');
+      }
+      const { key, fileUrl } = await res.json();
+      setUploadedArtTemplateKey(key);
+      setResolvedArtTemplateUrl(fileUrl);
+      setArtTemplateCleared(false);
+      setFormData(prev => ({ ...prev, artTemplate: fileUrl, artTemplateName: file.name }));
+    } catch (err) {
+      console.error('Art template upload error:', err);
+      setSaveError('Art template upload failed. Other changes can still be saved.');
+    } finally {
+      setIsUploadingArtTemplate(false);
+    }
+  };
+
+  const clearArtTemplate = () => {
+    setUploadedArtTemplateKey(null);
+    setResolvedArtTemplateUrl(null);
+    setArtTemplateCleared(true);
+    setFormData(prev => ({ ...prev, artTemplate: '', artTemplateName: '' }));
+  };
+
   const handleSave = async () => {
+    setSaveError(null);
     if (productId) {
       try {
         const payload: Record<string, unknown> = {
@@ -303,18 +402,37 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
           htsSection301: formData.htsSection301,
           sizeVariants: formData.sizeVariants,
         };
+        if (uploadedImageKey) {
+          payload.imageKey = uploadedImageKey;
+        }
+        if (uploadedArtTemplateKey) {
+          payload.artTemplateKey = uploadedArtTemplateKey;
+          payload.artTemplateName = formData.artTemplateName ?? '';
+        } else if (artTemplateCleared) {
+          payload.artTemplateKey = '';
+          payload.artTemplateName = '';
+        }
         const res = await fetch('/api/projects/update', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error('Failed to save changes.');
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to save changes.');
+        }
       } catch (err) {
         console.error('Error saving product info:', err);
+        setSaveError(err instanceof Error ? err.message : 'Failed to save changes.');
         return;
       }
     }
-    onSave(formData);
+    onSave({
+      ...formData,
+      image: resolvedImageUrl ?? formData.image,
+      ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
+      artTemplate: artTemplateCleared ? '' : (resolvedArtTemplateUrl ?? formData.artTemplate),
+    });
     onClose();
   };
 
@@ -387,7 +505,9 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                           className="cursor-pointer border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all h-full flex flex-col items-center justify-center"
                         >
                           <Upload className="w-6 h-6 text-slate-400 mb-1" />
-                          <p className="text-xs font-medium text-slate-600">Click to upload image</p>
+                          <p className="text-xs font-medium text-slate-600">
+                            {isUploadingImage ? 'Uploading…' : 'Click to upload image'}
+                          </p>
                           <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG up to 10MB</p>
                         </motion.div>
                       </label>
@@ -578,7 +698,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                           <span className="text-xs font-medium text-slate-700 truncate">{formData.artTemplateName || 'Template file'}</span>
                         </div>
                         <button
-                          onClick={() => setFormData({ ...formData, artTemplate: '', artTemplateName: '' })}
+                          onClick={clearArtTemplate}
                           className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -591,16 +711,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                         type="file"
                         accept="image/*,.ai,.eps,.pdf,.svg"
                         className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setFormData({ ...formData, artTemplate: reader.result as string, artTemplateName: file.name });
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
+                        onChange={handleArtTemplateUpload}
                       />
                       <motion.div
                         whileHover={{ scale: 1.02 }}
@@ -608,7 +719,9 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                         className="cursor-pointer border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-indigo-400 hover:bg-indigo-50/30 transition-all"
                       >
                         <FileImage className="w-6 h-6 text-indigo-400 mx-auto mb-1" />
-                        <p className="text-xs font-medium text-slate-700">Upload Art Template</p>
+                        <p className="text-xs font-medium text-slate-700">
+                          {isUploadingArtTemplate ? 'Uploading…' : 'Upload Art Template'}
+                        </p>
                         <p className="text-[10px] text-slate-500 mt-0.5">PNG, JPG, AI, EPS, PDF, SVG</p>
                       </motion.div>
                     </label>
@@ -618,23 +731,29 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
             </div>
 
             {/* Footer - compact */}
-            <div className="border-t border-slate-200 px-4 py-3 bg-slate-50 flex gap-2 flex-shrink-0">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onClose}
-                className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition-all text-sm"
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSave}
-                className="flex-1 px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg text-sm"
-              >
-                Save Changes
-              </motion.button>
+            <div className="border-t border-slate-200 px-4 py-3 bg-slate-50 flex-shrink-0">
+              {saveError && (
+                <p className="text-red-600 text-xs font-medium mb-2">{saveError}</p>
+              )}
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition-all text-sm"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSave}
+                  disabled={isUploadingImage || isUploadingArtTemplate}
+                  className="flex-1 px-4 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingImage || isUploadingArtTemplate ? 'Uploading…' : 'Save Changes'}
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </>
