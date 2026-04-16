@@ -123,16 +123,16 @@ function resolveProjectImage(
   uploadByEntityId: Map<string, MongoUpload>,
   s3ImageByProjectId: Map<string, string>
 ): { imageUrl: string; fromMongoImageField: boolean } {
-  // 1. Direct HTTP/HTTPS URL stored in image fields
-  const directImage = project.image ?? project.imageUrl ?? project.thumbnail ?? project.productImage;
-  if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
-    return { imageUrl: directImage, fromMongoImageField: true };
-  }
-
-  // 2. S3 key stored in project document → serve via proxy
+  // 1. S3 key stored in project document → serve via proxy (newest upload wins)
   const s3ObjectKey = project.imageKey ?? project.s3Key ?? project.fileKey ?? project.key;
   if (s3ObjectKey) {
     return { imageUrl: getProxyImageUrl(s3ObjectKey), fromMongoImageField: true };
+  }
+
+  // 2. Direct HTTP/HTTPS URL stored in image fields (legacy seeded data)
+  const directImage = project.image ?? project.imageUrl ?? project.thumbnail ?? project.productImage;
+  if (directImage?.startsWith('http://') || directImage?.startsWith('https://')) {
+    return { imageUrl: directImage, fromMongoImageField: true };
   }
 
   // 3. Non-http image field treated as bare S3 key → serve via proxy
