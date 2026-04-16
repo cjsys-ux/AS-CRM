@@ -827,6 +827,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             <VendorPricingPanel
                               vendor={productVendors.find(v => v.id === expandedVendor)!}
                               productId={productId}
+                              onClose={() => setExpandedVendor(null)}
                               onVendorUpdated={(updatedVendor) => {
                                 setProductVendors(prev => prev.map(v => v.id === updatedVendor.id ? { ...v, ...updatedVendor } : v));
                                 triggerAutoProgress();

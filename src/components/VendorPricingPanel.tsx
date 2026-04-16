@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Save, DollarSign, Clock, Package, Truck, Pencil, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, DollarSign, Clock, Package, Truck, Pencil, X, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -33,6 +33,7 @@ interface VendorPricingPanelProps {
   vendor: Vendor;
   productId: string;
   onVendorUpdated: (vendor: Vendor) => void;
+  onClose?: () => void;
 }
 
 const DDP_METHODS = ['Air Cargo', 'Express Air', 'Fast Boat', 'Slow Boat', 'Rail', 'FTL'];
@@ -52,7 +53,7 @@ const formatQty = (val: number | string): string => {
 const parseCurrency = (val: string): string => val.replace(/[^0-9.]/g, '');
 const parseQty = (val: string): string => val.replace(/[^0-9]/g, '');
 
-export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: VendorPricingPanelProps) {
+export function VendorPricingPanel({ vendor, productId, onVendorUpdated, onClose }: VendorPricingPanelProps) {
   const [isDropship, setIsDropship] = useState(vendor.supportsDropShipping === true);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>(vendor.pricingTiers || []);
   const [moq, setMoq] = useState<string>(String(vendor.moq || ''));
@@ -62,6 +63,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
   const [draggedTierIndex, setDraggedTierIndex] = useState<number | null>(null);
   const [dragOverTierIndex, setDragOverTierIndex] = useState<number | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     setPricingTiers(vendor.pricingTiers || []);
@@ -69,6 +71,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
     setIsDropship(vendor.supportsDropShipping === true);
     setHasChanges(false);
     setIsEditing(false);
+    setIsCollapsed(false);
   }, [vendor.id]);
 
   const canDrag = isEditing || hasChanges;
@@ -219,10 +222,29 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 <X className="w-4 h-4" />
               </motion.button>
             )}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsCollapsed(prev => !prev)}
+              className="flex items-center justify-center w-9 h-9 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all"
+              title={isCollapsed ? 'Expand' : 'Collapse'}
+            >
+              {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onClose?.()}
+              className="flex items-center justify-center w-9 h-9 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all"
+              title="Close"
+            >
+              <X className="w-4 h-4" />
+            </motion.button>
           </div>
         </div>
       </div>
 
+      {!isCollapsed && (
       <div className="p-6 space-y-5 overflow-y-auto flex-1">
         {/* Dropship Info Banner */}
         {isDropship && (
@@ -568,6 +590,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
           )}
         </div>
       </div>
+      )}
     </motion.div>
   );
 }
