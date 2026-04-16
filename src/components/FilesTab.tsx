@@ -3,6 +3,7 @@ import { FileText, Download, Trash2, Upload, File, Image as ImageIcon, FileSprea
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 
 
 interface FileItem {
@@ -157,41 +158,20 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
     setIsUploading(true);
     try {
       for (const file of Array.from(uploadedFiles)) {
-        // 1. Get presigned URL
-        const presignRes = await fetch('/api/files/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            entityType: 'pipeline-file',
-            entityId: productId,
-          }),
-        });
-        if (!presignRes.ok) throw new Error('Failed to get upload URL');
-        const { uploadUrl, key } = await presignRes.json();
-
-        // 2. Upload to S3
-        await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-
-        // 3. Record in MongoDB
-        await fetch('/api/files/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            key,
-            fileName: file.name,
-            fileType: file.type,
-            size: file.size,
-            entityType: 'pipeline-file',
-            entityId: productId,
-            uploadedBy: 'User',
-          }),
+        const { key } = await uploadFileViaApi(file, 'pipeline-file', productId);
+        await recordUpload({
+          key,
+          fileName: file.name,
+          fileType: file.type,
+          size: file.size,
+          entityType: 'pipeline-file',
+          entityId: productId,
         });
       }
       toast.success(`${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded`);
       await fetchFiles();
-    } catch {
+    } catch (err) {
+      console.error('File upload error:', err);
       toast.error('Upload failed');
     } finally {
       setIsUploading(false);

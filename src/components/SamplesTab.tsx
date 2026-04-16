@@ -6,6 +6,7 @@ import { ChecklistWidget } from './ChecklistWidget';
 import { AddSampleDrawer } from './AddSampleDrawer';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
 import { downloadSavedFile } from '../lib/downloadFile';
+import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 
 interface UploadedFile {
   id: string;
@@ -91,25 +92,20 @@ export function SamplesTab({ productId = '' }: SamplesTabProps) {
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const presignRes = await fetch('/api/files/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName: file.name, fileType: file.type, entityType, entityId: productId }),
-        });
-        if (!presignRes.ok) throw new Error('Failed to get upload URL');
-        const { uploadUrl, key } = await presignRes.json();
-
-        await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-
-        await fetch('/api/files/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType, entityId: productId, uploadedBy: 'User' }),
+        const { key } = await uploadFileViaApi(file, entityType, productId);
+        await recordUpload({
+          key,
+          fileName: file.name,
+          fileType: file.type,
+          size: file.size,
+          entityType,
+          entityId: productId,
         });
       }
       toast.success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded`);
       await onDone();
-    } catch {
+    } catch (err) {
+      console.error('Sample upload error:', err);
       toast.error('Upload failed');
     } finally {
       setUploading(false);

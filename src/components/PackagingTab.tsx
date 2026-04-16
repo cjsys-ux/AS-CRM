@@ -11,6 +11,7 @@ import { UnitDropdown } from './UnitDropdown';
 import { FilterDropdown } from './FilterDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { downloadSavedFile } from '../lib/downloadFile';
+import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 
@@ -130,23 +131,15 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   };
 
   const uploadFileToS3 = async (file: File, category: string): Promise<void> => {
-    const presignRes = await fetch('/api/files/presign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        entityType: `pipeline-packaging-${category}`,
-        entityId: productId,
-      }),
-    });
-    if (!presignRes.ok) throw new Error('presign failed');
-    const { uploadUrl, key } = await presignRes.json();
-    await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-    await fetch('/api/files/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: `pipeline-packaging-${category}`, entityId: productId, uploadedBy: 'User' }),
+    const entityType = `pipeline-packaging-${category}`;
+    const { key } = await uploadFileViaApi(file, entityType, productId);
+    await recordUpload({
+      key,
+      fileName: file.name,
+      fileType: file.type,
+      size: file.size,
+      entityType,
+      entityId: productId,
     });
   };
 
