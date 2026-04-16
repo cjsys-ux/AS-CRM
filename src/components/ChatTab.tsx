@@ -3,6 +3,7 @@ import { MessageSquare, Send, Trash2, User, Paperclip, X, Download, FileText, Im
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { uploadFileViaApi } from '../utils/uploadViaApi';
 
 
 interface ChatMessage {
@@ -67,26 +68,16 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
       let attachmentSize: string | undefined;
 
       if (attachedFile) {
-        // Presign → PUT → complete
-        const presignRes = await fetch('/api/files/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: attachedFile.name,
-            fileType: attachedFile.type,
-            entityType: 'pipeline-chat',
-            entityId: productId,
-          }),
-        });
-        if (presignRes.ok) {
-          const { uploadUrl, key } = await presignRes.json();
-          await fetch(uploadUrl, { method: 'PUT', body: attachedFile, headers: { 'Content-Type': attachedFile.type } });
+        try {
+          const { key } = await uploadFileViaApi(attachedFile, 'pipeline-chat', productId);
           attachmentKey = key;
           attachmentName = attachedFile.name;
           attachmentType = attachedFile.type;
           attachmentSize = attachedFile.size > 1024 * 1024
             ? `${(attachedFile.size / (1024 * 1024)).toFixed(1)} MB`
             : `${(attachedFile.size / 1024).toFixed(0)} KB`;
+        } catch (err) {
+          console.error('Chat attachment upload error:', err);
         }
       }
 

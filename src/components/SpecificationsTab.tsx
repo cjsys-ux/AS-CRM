@@ -4,6 +4,7 @@ import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
+import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 
@@ -210,29 +211,19 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
     const fileArray = Array.from(uploadedFiles);
 
     if (productId) {
-      // Upload to S3 and record in MongoDB
       for (const file of fileArray) {
         try {
-          const presignRes = await fetch('/api/files/presign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: file.name,
-              fileType: file.type,
-              entityType: 'pipeline-compliance',
-              entityId: productId,
-            }),
+          const { key } = await uploadFileViaApi(file, 'pipeline-compliance', productId);
+          await recordUpload({
+            key,
+            fileName: file.name,
+            fileType: file.type,
+            size: file.size,
+            entityType: 'pipeline-compliance',
+            entityId: productId,
           });
-          if (!presignRes.ok) throw new Error('presign failed');
-          const { uploadUrl, key } = await presignRes.json();
-          await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-          await fetch('/api/files/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: 'pipeline-compliance', entityId: productId, uploadedBy: 'User' }),
-          });
-        } catch {
-          // silent per-file error; still add to local list
+        } catch (err) {
+          console.error('Compliance upload error:', err);
         }
       }
       await fetchComplianceFiles();
@@ -622,6 +613,9 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   updateMaterialComposition(composition.id, 'material', material);
+                                  if (material !== 'Other') {
+                                    updateMaterialComposition(composition.id, 'customMaterial', '');
+                                  }
                                   setOpenDropdownId(null);
                                 }}
                               >
@@ -632,6 +626,17 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                         )}
                       </AnimatePresence>
                     </div>
+                    {composition.material === 'Other' && (
+                      <motion.input
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        type="text"
+                        value={composition.customMaterial || ''}
+                        onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
+                        placeholder="Enter custom material name..."
+                        className="mt-2 w-full px-4 py-3 bg-white border-2 border-purple-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">
