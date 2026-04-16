@@ -465,7 +465,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     Edit
                   </motion.button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Product Name</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.name}</div>
@@ -516,7 +516,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
-                  <div className="sm:col-span-2 bg-slate-50 rounded-xl p-4">
+                  <div className="col-span-2 bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-2">HTS Duty Rate</div>
                     {productInfo.htsBaseRate ? (
                       <div className="space-y-1.5">
@@ -564,9 +564,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
 
                   {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
                     <>
-                      <div className="sm:col-span-2 lg:col-span-3 pt-2">
+                      <div className="col-span-3 pt-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                          <div className="w-6 h-6 bg-gradient-to-br from-red-500 to-rose-500 rounded-lg flex items-center justify-center">
                             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
@@ -574,14 +574,13 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                           <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
                         </div>
                       </div>
-                      {productInfo.competitorName && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                      <div className="bg-red-50/50 rounded-xl p-4 border border-red-100">
                           <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
-                          <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
-                        </div>
-                      )}
-                      {productInfo.competitorLink && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                          <div className="text-sm font-semibold text-slate-900">
+                            {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
+                          </div>
+                      </div>
+                      <div className="bg-red-50/50 rounded-xl p-4 border border-red-100">
                           <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
@@ -589,16 +588,15 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             rel="noopener noreferrer"
                             className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
                           >
-                            {productInfo.competitorLink}
+                            {productInfo.competitorLink || '—'}
                           </a>
-                        </div>
-                      )}
-                      {productInfo.competitorPrice && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                      </div>
+                      <div className="bg-red-50/50 rounded-xl p-4 border border-red-100">
                           <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
-                          <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
-                        </div>
-                      )}
+                          <div className="text-sm font-bold text-emerald-600">
+                            {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
+                          </div>
+                      </div>
                     </>
                   )}
                 </div>
