@@ -675,9 +675,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <p className="text-sm text-slate-500">Add your first vendor to start tracking pricing and contact info.</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: 'minmax(0,5fr) minmax(0,7fr)' }}>
-                      {/* Left: Vendor Cards */}
-                      <div className="space-y-4">
+                    <div className="space-y-4 sm:space-y-5">
+                      <div className="grid gap-4 sm:grid-cols-2">
                         {productVendors.map((vendor, idx) => {
                           const badge = getPriorityBadge(idx);
                           return (
@@ -712,7 +711,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                               }}
                               onDragEnd={() => { setDraggedVendorId(null); setDragOverVendorId(null); }}
                             >
-                              {/* Priority Badge */}
                               <div className="absolute -top-2 left-3 z-10">
                                 <div className={`${badge.gradient} text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow flex items-center gap-1`}>
                                   {badge.icon && (
@@ -807,7 +805,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                         })}
                       </div>
 
-                      {/* Right: Pricing Panel */}
                       <div>
                         {expandedVendor && productVendors.find(v => v.id === expandedVendor) ? (
                           <div className="flex flex-col gap-0">
@@ -833,7 +830,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             })()}
                           </div>
                         ) : (
-                          <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center h-full min-h-[500px]">
+                          <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center min-h-[340px]">
                             <div className="w-24 h-24 bg-slate-200 rounded-2xl flex items-center justify-center mb-4">
                               <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -841,7 +838,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 mb-2">Select a Vendor</h3>
                             <p className="text-sm text-slate-500 max-w-sm">
-                              Click on a vendor card on the left to view their detailed pricing breakdown, shipping methods, and lead times
+                              Click on a vendor card above to view their detailed pricing breakdown, shipping methods, and lead times
                             </p>
                           </div>
                         )}
