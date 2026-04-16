@@ -574,13 +574,13 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                         </div>
                       </div>
                       {productInfo.competitorName && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                        <div className="bg-slate-50 rounded-xl p-4">
                           <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
                           <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
                         </div>
                       )}
                       {productInfo.competitorLink && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                        <div className="bg-slate-50 rounded-xl p-4">
                           <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
@@ -593,7 +593,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                         </div>
                       )}
                       {productInfo.competitorPrice && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
+                        <div className="bg-slate-50 rounded-xl p-4">
                           <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
                           <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
                         </div>
