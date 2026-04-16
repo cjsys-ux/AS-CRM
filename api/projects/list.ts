@@ -46,6 +46,8 @@ type MongoProject = {
   htsBaseRate?: string;
   htsSection301?: boolean;
   sizeVariants?: string[];
+  artTemplateKey?: string;
+  artTemplateName?: string;
 };
 
 type MongoUpload = {
@@ -194,6 +196,8 @@ function mapProject(
     htsBaseRate: project.htsBaseRate ?? '',
     htsSection301: project.htsSection301 ?? false,
     sizeVariants: project.sizeVariants ?? [],
+    artTemplate: project.artTemplateKey ? getProxyImageUrl(project.artTemplateKey) : '',
+    artTemplateName: project.artTemplateName ?? '',
   };
 }
 

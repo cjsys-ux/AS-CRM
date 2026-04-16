@@ -20,6 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     'projectManager', 'internalSKU', 'targetMargin', 'imageKey',
     'competitorName', 'competitorLink', 'competitorPrice',
     'htsCode', 'htsRate', 'htsBaseRate', 'htsSection301', 'sizeVariants',
+    'artTemplateKey', 'artTemplateName',
   ];
 
   const setPayload: Record<string, unknown> = { updatedAt: new Date() };
