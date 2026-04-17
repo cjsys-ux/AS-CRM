@@ -636,15 +636,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                       Material {index + 1}
                     </label>
                     {isEditing ? (
-                      composition.material === 'Other' ? (
-                        <input
-                          type="text"
-                          value={composition.customMaterial || ''}
-                          onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
-                          placeholder="Enter custom material..."
-                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
-                        />
-                      ) : (
+                      <>
                         <MaterialDropdown
                           value={composition.material}
                           onChange={(v) => {
@@ -654,7 +646,18 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                             }
                           }}
                         />
-                      )
+                        {composition.material === 'Other' && (
+                          <motion.input
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            type="text"
+                            value={composition.customMaterial || ''}
+                            onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
+                            placeholder="Enter custom material name..."
+                            className="mt-2 w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
+                          />
+                        )}
+                      </>
                     ) : (
                       <div className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900">
                         {composition.material === 'Other' && composition.customMaterial
