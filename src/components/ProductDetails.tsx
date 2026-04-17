@@ -73,6 +73,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
   const [isAddVendorDrawerOpen, setIsAddVendorDrawerOpen] = useState(false);
   const [isOrderSampleDrawerOpen, setIsOrderSampleDrawerOpen] = useState(false);
   const [isEditProductInfoDrawerOpen, setIsEditProductInfoDrawerOpen] = useState(false);
+  const [isEditingCompetitor, setIsEditingCompetitor] = useState(false);
+  const [competitorDraft, setCompetitorDraft] = useState({ name: '', link: '', price: '' });
+  const [savingCompetitor, setSavingCompetitor] = useState(false);
   const [sampleRefreshKey, setSampleRefreshKey] = useState(0);
   const [draggedVendorId, setDraggedVendorId] = useState<string | null>(null);
   const [dragOverVendorId, setDragOverVendorId] = useState<string | null>(null);
@@ -244,6 +247,52 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
       onProductUpdate(updatedInfo);
     }
     triggerAutoProgress();
+  };
+
+  const startEditingCompetitor = () => {
+    setCompetitorDraft({
+      name: productInfo.competitorName || '',
+      link: productInfo.competitorLink || '',
+      price: productInfo.competitorPrice || '',
+    });
+    setIsEditingCompetitor(true);
+  };
+
+  const saveCompetitor = async () => {
+    if (!productId) return;
+    setSavingCompetitor(true);
+    try {
+      const res = await fetch('/api/projects/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: productId,
+          competitorName: competitorDraft.name,
+          competitorLink: competitorDraft.link,
+          competitorPrice: competitorDraft.price,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to save competitor info.');
+      }
+      const updated = {
+        ...productInfo,
+        competitorName: competitorDraft.name,
+        competitorLink: competitorDraft.link,
+        competitorPrice: competitorDraft.price,
+      };
+      setProductInfo(updated);
+      onProductUpdate?.(updated);
+      setIsEditingCompetitor(false);
+      toast.success('Competitor info updated');
+      triggerAutoProgress();
+    } catch (err) {
+      console.error('Error saving competitor info:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to save competitor info');
+    } finally {
+      setSavingCompetitor(false);
+    }
   };
 
   const progressPercent = checklistProgress.total > 0
@@ -576,24 +625,73 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
 
                 {/* Competitor Analysis */}
                 <div className="mt-4 pt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                        </svg>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
                       </div>
-                      <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                      {isEditingCompetitor ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingCompetitor(false)}
+                            disabled={savingCompetitor}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={saveCompetitor}
+                            disabled={savingCompetitor}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+                          >
+                            {savingCompetitor ? 'Saving…' : 'Save'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={startEditingCompetitor}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors"
+                        >
+                          <Edit className="w-3 h-3" />
+                          Edit
+                        </button>
+                      )}
                     </div>
                     <div className="grid grid-cols-3 gap-3 sm:gap-4">
                       <div className="bg-slate-50 rounded-xl p-4">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
-                        <div className="text-sm font-semibold text-slate-900">
-                          {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
-                        </div>
+                        {isEditingCompetitor ? (
+                          <input
+                            type="text"
+                            value={competitorDraft.name}
+                            onChange={(e) => setCompetitorDraft(d => ({ ...d, name: e.target.value }))}
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
+                            placeholder="Competitor name"
+                          />
+                        ) : (
+                          <div className="text-sm font-semibold text-slate-900">
+                            {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
+                          </div>
+                        )}
                       </div>
                       <div className="bg-slate-50 rounded-xl p-4">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
-                        {productInfo.competitorLink ? (
+                        {isEditingCompetitor ? (
+                          <input
+                            type="url"
+                            value={competitorDraft.link}
+                            onChange={(e) => setCompetitorDraft(d => ({ ...d, link: e.target.value }))}
+                            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
+                            placeholder="competitor.com/product"
+                          />
+                        ) : productInfo.competitorLink ? (
                           <a
                             href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
                             target="_blank"
@@ -606,9 +704,23 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       </div>
                       <div className="bg-slate-50 rounded-xl p-4">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
-                        <div className="text-sm font-bold text-emerald-600">
-                          {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
-                        </div>
+                        {isEditingCompetitor ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={competitorDraft.price}
+                              onChange={(e) => setCompetitorDraft(d => ({ ...d, price: e.target.value }))}
+                              className="w-full pl-6 pr-2 py-1.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
+                              placeholder="9.99"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-sm font-bold text-emerald-600">
+                            {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
