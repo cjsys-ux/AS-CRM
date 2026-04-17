@@ -514,7 +514,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-sm font-semibold text-slate-900">{productInfo.internalSKU || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
                 </div>
-                {/* Row 3: Project Manager | HTS Code | HTS Duty Rate */}
+                {/* Row 3: Project Manager | HTS Code */}
                 <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-3">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-1">Project Manager</div>
@@ -524,7 +524,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     <div className="text-xs font-semibold text-slate-500 mb-1">HTS Code</div>
                     <div className="text-sm font-semibold text-slate-900">{productInfo.htsCode || <span className="text-slate-400 italic font-normal">—</span>}</div>
                   </div>
-                  <div className="bg-slate-50 rounded-xl p-4">
+                </div>
+                {/* Row 4: HTS Duty Rate | Size Variants */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4 col-span-2">
                     <div className="text-xs font-semibold text-slate-500 mb-1">HTS Duty Rate</div>
                     {productInfo.htsBaseRate ? (
                       <div className="space-y-1.5">
@@ -555,9 +558,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <span className="text-sm text-slate-400 italic font-normal">—</span>
                     )}
                   </div>
-                </div>
-                {/* Row 4: Size Variants */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
                     {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
