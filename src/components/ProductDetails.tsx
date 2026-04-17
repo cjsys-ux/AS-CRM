@@ -559,7 +559,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     )}
                   </div>
 
-                  {/* Size Variants */}
+                  {/* Competitor Analysis Row */}
                   <div className="bg-slate-50 rounded-xl p-4">
                     <div className="text-xs font-semibold text-slate-500 mb-2">Size Variants</div>
                     {productInfo.sizeVariants && productInfo.sizeVariants.length > 0 ? (
@@ -575,46 +575,46 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     )}
                   </div>
 
-                  {/* Competitor Analysis Section */}
-                  {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
-                    <>
-                      <div className="sm:col-span-2 lg:col-span-3 pt-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                          </div>
-                          <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
-                        </div>
+                  <div className="flex items-start pt-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
                       </div>
-                      {productInfo.competitorName && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
-                          <div className="text-sm font-semibold text-slate-900">{productInfo.competitorName}</div>
-                        </div>
-                      )}
-                      {productInfo.competitorLink && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
-                          <a
-                            href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
-                          >
-                            {productInfo.competitorLink}
-                          </a>
-                        </div>
-                      )}
-                      {productInfo.competitorPrice && (
-                        <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
-                          <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
-                          <div className="text-sm font-bold text-emerald-600">${productInfo.competitorPrice}</div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                      <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
+                    {productInfo.competitorLink ? (
+                      <a
+                        href={productInfo.competitorLink.startsWith('http') ? productInfo.competitorLink : `https://${productInfo.competitorLink}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700 underline decoration-blue-300 hover:decoration-blue-500 transition-colors truncate block"
+                      >
+                        {productInfo.competitorLink}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-slate-400 italic font-normal">—</span>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
+                    <div className="text-sm font-bold text-emerald-600">
+                      {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
