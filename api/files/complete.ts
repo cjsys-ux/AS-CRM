@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_mongodb';
 import { getPublicS3Url } from '../_s3';
+import { logTimelineEvent, entityTypeLabel, isPipelineEntityType } from '../_timeline';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -30,6 +31,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     const result = await collection.insertOne(doc);
+
+    // Log a timeline event whenever a file lands in a product-scoped bucket.
+    if (isPipelineEntityType(entityType) && entityId) {
+      const label = entityTypeLabel(entityType) ?? 'Files';
+      await logTimelineEvent(db, {
+        productId: entityId,
+        type: 'file_upload',
+        title: 'File uploaded',
+        description: `${fileName} · ${label}`,
+        user: uploadedBy ?? 'User',
+        icon: 'upload',
+        color: 'blue',
+      });
+    }
 
     return res.status(201).json({
       upload: {

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../../_mongodb';
+import { logTimelineEvent } from '../../_timeline';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -47,6 +48,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       { upsert: true }
     );
+
+    await logTimelineEvent(db, {
+      productId,
+      type: 'edit',
+      title: 'Packaging updated',
+      description: 'Packaging dimensions, type, material, and requirements saved',
+      icon: 'package',
+      color: 'purple',
+    });
 
     return res.status(200).json({ success: true });
   } catch (error) {

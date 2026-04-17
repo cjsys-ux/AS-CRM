@@ -1,19 +1,103 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Package, Upload, FileText, Image as ImageIcon, Download, Box, Trash2, Save, File } from 'lucide-react';
+import { Package, Upload, FileText, Download, Box, Trash2, Save, Edit, ChevronDown, Check } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
+import { UnitDropdown } from './UnitDropdown';
+import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { downloadSavedFile } from '../lib/downloadFile';
+import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
+import { toast } from 'sonner';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const isImageFile = (fileName: string) => {
   const ext = fileName?.split('.').pop()?.toLowerCase() ?? '';
   return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
 };
 const getProxyUrl = (f: any) => f.key ? `/api/files/image?key=${encodeURIComponent(f.key)}` : f.fileUrl;
-import { UnitDropdown } from './UnitDropdown';
-import { FilterDropdown } from './FilterDropdown';
-import { DeleteDocumentModal } from './DeleteDocumentModal';
-import { downloadSavedFile } from '../lib/downloadFile';
-import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
-import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+
+// Portal-based dropdown (reference styling, green accent)
+function PortalDropdown({ value, onChange, options, placeholder, disabled }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const updatePos = useCallback(() => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePos();
+    const onScroll = () => updatePos();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll); };
+  }, [open, updatePos]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (btnRef.current?.contains(e.target as Node)) return;
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        className={`w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-left hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+      >
+        <span className={`text-sm ${value ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+          {value || placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 99999 }}
+          className="bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden"
+        >
+          <div className="max-h-64 overflow-y-auto py-1">
+            {options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => { onChange(option); setOpen(false); }}
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+                  value === option
+                    ? 'bg-green-50 text-green-700 font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{option}</span>
+                {value === option && <Check className="w-3.5 h-3.5 text-green-600" />}
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
 
 const handleDownloadSavedFile = async (f: any) => {
   try {
@@ -28,16 +112,16 @@ interface PackagingTabProps {
 }
 
 export function PackagingTab({ productId = '' }: PackagingTabProps) {
-  const [mockups, setMockups] = useState<File[]>([]);
-  const [dielineFiles, setDielineFiles] = useState<File[]>([]);
-  const [specSheets, setSpecSheets] = useState<File[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [primaryPackaging, setPrimaryPackaging] = useState('');
   const [customPrimaryPackaging, setCustomPrimaryPackaging] = useState('');
   const [packagingMaterial, setPackagingMaterial] = useState('');
   const [customPackagingMaterial, setCustomPackagingMaterial] = useState('');
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number; type: 'mockup' | 'dieline' | 'spec' } | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number } | null>(null);
 
   // Dimensions
   const [length, setLength] = useState('');
@@ -48,11 +132,6 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   const [heightUnit, setHeightUnit] = useState('in');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Saved S3 files per category
-  const [savedMockups, setSavedMockups] = useState<any[]>([]);
-  const [savedDielines, setSavedDielines] = useState<any[]>([]);
-  const [savedSpecSheets, setSavedSpecSheets] = useState<any[]>([]);
-
   useEffect(() => {
     if (productId) {
       fetchPackaging();
@@ -61,6 +140,14 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   }, [productId]);
 
   const fetchPackaging = async () => {
+    // Reset to defaults so switching products doesn't bleed previous values.
+    setLength(''); setLengthUnit('in');
+    setWidth(''); setWidthUnit('in');
+    setHeight(''); setHeightUnit('in');
+    setPrimaryPackaging(''); setCustomPrimaryPackaging('');
+    setPackagingMaterial(''); setCustomPackagingMaterial('');
+    setSpecialRequirements('');
+
     try {
       const res = await fetch(`/api/pipeline/packaging/get?productId=${encodeURIComponent(productId)}`);
       if (!res.ok) return;
@@ -83,20 +170,22 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   };
 
   const fetchSavedFiles = async () => {
-    const fetchCategory = async (category: string) => {
-      const res = await fetch(`/api/files/list?entityType=pipeline-packaging-${category}&entityId=${encodeURIComponent(productId)}`);
+    // Pull from every packaging-related entity type so files previously
+    // uploaded to the legacy mockup/dieline/spec buckets keep showing up
+    // after the UI is unified into one section.
+    const fetchType = async (entityType: string) => {
+      const res = await fetch(`/api/files/list?entityType=${entityType}&entityId=${encodeURIComponent(productId)}`);
       if (!res.ok) return [];
       const { uploads } = await res.json();
       return uploads ?? [];
     };
-    const [m, d, s] = await Promise.all([
-      fetchCategory('mockup'),
-      fetchCategory('dieline'),
-      fetchCategory('spec'),
+    const [combined, legacyMockup, legacyDieline, legacySpec] = await Promise.all([
+      fetchType('pipeline-packaging'),
+      fetchType('pipeline-packaging-mockup'),
+      fetchType('pipeline-packaging-dieline'),
+      fetchType('pipeline-packaging-spec'),
     ]);
-    setSavedMockups(m);
-    setSavedDielines(d);
-    setSavedSpecSheets(s);
+    setSavedFiles([...combined, ...legacyMockup, ...legacyDieline, ...legacySpec]);
   };
 
   const handleSavePackaging = async () => {
@@ -123,6 +212,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       });
       if (!res.ok) throw new Error('Failed to save');
       toast.success('Packaging saved successfully');
+      setIsEditing(false);
     } catch {
       toast.error('Failed to save packaging');
     } finally {
@@ -130,8 +220,13 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
     }
   };
 
-  const uploadFileToS3 = async (file: File, category: string): Promise<void> => {
-    const entityType = `pipeline-packaging-${category}`;
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (productId) fetchPackaging();
+  };
+
+  const uploadFileToS3 = async (file: File): Promise<void> => {
+    const entityType = 'pipeline-packaging';
     const { key } = await uploadFileViaApi(file, entityType, productId);
     await recordUpload({
       key,
@@ -158,52 +253,22 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
     }
   };
 
-  const handleMockupUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    const fileArray = Array.from(files);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploaded = event.target.files;
+    if (!uploaded || uploaded.length === 0) return;
+    const fileArray = Array.from(uploaded);
     if (productId) {
-      for (const f of fileArray) { try { await uploadFileToS3(f, 'mockup'); } catch {} }
+      for (const f of fileArray) { try { await uploadFileToS3(f); } catch {} }
       await fetchSavedFiles();
     } else {
-      setMockups([...mockups, ...fileArray]);
+      setFiles([...files, ...fileArray]);
     }
-    toast.success(`${files.length} mockup${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
-  };
-
-  const handleDielineUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    const fileArray = Array.from(files);
-    if (productId) {
-      for (const f of fileArray) { try { await uploadFileToS3(f, 'dieline'); } catch {} }
-      await fetchSavedFiles();
-    } else {
-      setDielineFiles([...dielineFiles, ...fileArray]);
-    }
-    toast.success(`${files.length} dieline file${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
-  };
-
-  const handleSpecUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    const fileArray = Array.from(files);
-    if (productId) {
-      for (const f of fileArray) { try { await uploadFileToS3(f, 'spec'); } catch {} }
-      await fetchSavedFiles();
-    } else {
-      setSpecSheets([...specSheets, ...fileArray]);
-    }
-    toast.success(`${files.length} spec sheet${files.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
+    toast.success(`${uploaded.length} file${uploaded.length > 1 ? 's' : ''} uploaded successfully`, { duration: 3000 });
   };
 
   const handleDeleteFile = () => {
     if (fileToDelete) {
-      switch (fileToDelete.type) {
-        case 'mockup': setMockups(mockups.filter((_, i) => i !== fileToDelete.index)); break;
-        case 'dieline': setDielineFiles(dielineFiles.filter((_, i) => i !== fileToDelete.index)); break;
-        case 'spec': setSpecSheets(specSheets.filter((_, i) => i !== fileToDelete.index)); break;
-      }
+      setFiles(files.filter((_, i) => i !== fileToDelete.index));
       setDeleteModalOpen(false);
       setFileToDelete(null);
     }
@@ -211,18 +276,34 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSavePackaging}
-          disabled={isSaving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <Save className="w-4 h-4" />
-          {isSaving ? 'Saving...' : 'Save Packaging'}
-        </motion.button>
+      {/* Edit / Save controls */}
+      <div className="flex items-center justify-end gap-2">
+        {isEditing ? (
+          <>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSavePackaging}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm"
+          >
+            <Edit className="w-4 h-4" />
+            Edit Packaging
+          </button>
+        )}
       </div>
 
       {/* Packaging Dimensions */}
@@ -232,7 +313,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
           <h3 className="font-bold text-slate-900">Packaging Dimensions</h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
               <div className="flex items-center gap-2">
@@ -241,9 +322,10 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   placeholder="0.00"
                   value={length}
                   onChange={(e) => setLength(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  disabled={!isEditing}
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={lengthUnit} onChange={setLengthUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={lengthUnit} onChange={setLengthUnit} disabled={!isEditing} />
               </div>
             </div>
             <div>
@@ -254,9 +336,10 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   placeholder="0.00"
                   value={width}
                   onChange={(e) => setWidth(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  disabled={!isEditing}
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={widthUnit} onChange={setWidthUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={widthUnit} onChange={setWidthUnit} disabled={!isEditing} />
               </div>
             </div>
             <div>
@@ -267,9 +350,10 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                   placeholder="0.00"
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  disabled={!isEditing}
+                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} />
+                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} disabled={!isEditing} />
               </div>
             </div>
           </div>
@@ -277,7 +361,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       </div>
 
       {/* Packaging Type */}
-      <div className="bg-white rounded-xl border-2 border-slate-200">
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
           <Package className="w-5 h-5 text-green-600" />
           <h3 className="font-bold text-slate-900">Packaging Type</h3>
@@ -285,63 +369,68 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Primary Packaging</label>
-            <FilterDropdown
-              value={primaryPackaging}
-              onChange={(v) => {
-                setPrimaryPackaging(v);
-                if (v !== 'Custom') setCustomPrimaryPackaging('');
-              }}
-              options={[
-                { value: '', label: 'Select packaging type...' },
-                { value: 'Poly Bag', label: 'Poly Bag' },
-                { value: 'Box', label: 'Box' },
-                { value: 'Blister Pack', label: 'Blister Pack' },
-                { value: 'Clamshell', label: 'Clamshell' },
-                { value: 'Custom', label: 'Custom' }
-              ]}
-              fullWidth
-            />
-            {primaryPackaging === 'Custom' && (
-              <motion.input
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                type="text"
-                value={customPrimaryPackaging}
-                onChange={(e) => setCustomPrimaryPackaging(e.target.value)}
-                placeholder="Enter custom packaging type..."
-                className="mt-2 w-full px-4 py-2.5 bg-white border-2 border-green-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
-              />
+            {isEditing ? (
+              <>
+                <PortalDropdown
+                  value={primaryPackaging}
+                  onChange={(v) => {
+                    setPrimaryPackaging(v);
+                    if (v !== 'Custom') setCustomPrimaryPackaging('');
+                  }}
+                  options={['Poly Bag', 'Box', 'Blister Pack', 'Clamshell', 'Shrink Wrap', 'Envelope', 'Tube', 'Custom']}
+                  placeholder="Select packaging type..."
+                />
+                {primaryPackaging === 'Custom' && (
+                  <motion.input
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    type="text"
+                    value={customPrimaryPackaging}
+                    onChange={(e) => setCustomPrimaryPackaging(e.target.value)}
+                    placeholder="Enter custom packaging type..."
+                    className="mt-2 w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
+                  />
+                )}
+              </>
+            ) : (
+              <div className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900">
+                {primaryPackaging === 'Custom' && customPrimaryPackaging
+                  ? customPrimaryPackaging
+                  : primaryPackaging || <span className="text-slate-400">Not set</span>}
+              </div>
             )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Material</label>
-            <FilterDropdown
-              value={packagingMaterial}
-              onChange={(v) => {
-                setPackagingMaterial(v);
-                if (v !== 'Other') setCustomPackagingMaterial('');
-              }}
-              options={[
-                { value: '', label: 'Select material...' },
-                { value: 'Cardboard', label: 'Cardboard' },
-                { value: 'Plastic', label: 'Plastic' },
-                { value: 'Biodegradable', label: 'Biodegradable' },
-                { value: 'Metal', label: 'Metal' },
-                { value: 'Glass', label: 'Glass' },
-                { value: 'Other', label: 'Other' }
-              ]}
-              fullWidth
-            />
-            {packagingMaterial === 'Other' && (
-              <motion.input
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                type="text"
-                value={customPackagingMaterial}
-                onChange={(e) => setCustomPackagingMaterial(e.target.value)}
-                placeholder="Enter custom material..."
-                className="mt-2 w-full px-4 py-2.5 bg-white border-2 border-green-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
-              />
+            {isEditing ? (
+              <>
+                <PortalDropdown
+                  value={packagingMaterial}
+                  onChange={(v) => {
+                    setPackagingMaterial(v);
+                    if (v !== 'Other') setCustomPackagingMaterial('');
+                  }}
+                  options={['Cardboard', 'Corrugated', 'Plastic', 'Biodegradable', 'Metal', 'Glass', 'Kraft Paper', 'Foam', 'Other']}
+                  placeholder="Select material..."
+                />
+                {packagingMaterial === 'Other' && (
+                  <motion.input
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    type="text"
+                    value={customPackagingMaterial}
+                    onChange={(e) => setCustomPackagingMaterial(e.target.value)}
+                    placeholder="Enter custom material..."
+                    className="mt-2 w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
+                  />
+                )}
+              </>
+            ) : (
+              <div className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900">
+                {packagingMaterial === 'Other' && customPackagingMaterial
+                  ? customPackagingMaterial
+                  : packagingMaterial || <span className="text-slate-400">Not set</span>}
+              </div>
             )}
           </div>
           <div>
@@ -351,168 +440,65 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
               placeholder="Enter any special packaging requirements..."
               value={specialRequirements}
               onChange={(e) => setSpecialRequirements(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+              disabled={!isEditing}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
         </div>
       </div>
 
-      {/* Packaging Mockups */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ImageIcon className="w-5 h-5 text-pink-600" />
-            <h3 className="font-bold text-slate-900">Packaging Mockups</h3>
-          </div>
-          <label htmlFor="mockup-upload">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <Upload className="w-4 h-4" />
-              Upload Mockup
-            </motion.div>
-          </label>
-          <input
-            id="mockup-upload"
-            type="file"
-            multiple
-            accept="*/*"
-            onChange={handleMockupUpload}
-            className="hidden"
-          />
-        </div>
-        <div className="p-6">
-          {savedMockups.length > 0 || mockups.length > 0 ? (
-            <div className="space-y-2">
-              <AnimatePresence>
-                {savedMockups.map((f) => (
-                  <motion.div
-                    key={f.id}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {isImageFile(f.fileName) && f.key ? (
-                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
-                          <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <FileText className="w-5 h-5 text-pink-600" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
-                        <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
-                          <Download className="w-4 h-4" />
-                        </motion.button>
-                      )}
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSavedFile(f.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-                {mockups.map((file, index) => (
-                  <motion.div
-                    key={`local-${index}`}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-pink-600" />
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{file.name}</p>
-                        <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
-                        <Download className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index, type: 'mockup' }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
-                <ImageIcon className="w-8 h-8 text-slate-400" />
-              </div>
-              <h4 className="font-bold text-slate-900 mb-2">No packaging mockups uploaded</h4>
-              <p className="text-sm text-slate-600 mb-4">
-                Upload images of packaging designs or mockups
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Dieline & CAD Files */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
+      {/* Packaging Documents & Files */}
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-purple-600" />
-            <h3 className="font-bold text-slate-900">Dieline & CAD Files</h3>
+            <h3 className="font-bold text-slate-900">Packaging Documents & Files</h3>
           </div>
-          <label htmlFor="dieline-upload">
+          <label htmlFor="packaging-file-upload">
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               <Upload className="w-4 h-4" />
-              Upload Files
+              Upload File
             </motion.div>
           </label>
           <input
-            id="dieline-upload"
+            id="packaging-file-upload"
             type="file"
             multiple
             accept="*/*"
-            onChange={handleDielineUpload}
+            onChange={handleFileUpload}
             className="hidden"
           />
         </div>
         <div className="p-6">
-          {savedDielines.length > 0 || dielineFiles.length > 0 ? (
+          {savedFiles.length > 0 || files.length > 0 ? (
             <div className="space-y-2">
               <AnimatePresence>
-                {savedDielines.map((f) => (
+                {savedFiles.map((f) => (
                   <motion.div
                     key={f.id}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       {isImageFile(f.fileName) && f.key ? (
                         <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
                           <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
                         </div>
                       ) : (
-                        <FileText className="w-5 h-5 text-purple-600" />
+                        <FileText className="w-5 h-5 text-purple-600 shrink-0" />
                       )}
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900 truncate">{f.fileName}</p>
                         <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
                       {(f.key || f.fileUrl) && (
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
@@ -524,26 +510,26 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
                     </div>
                   </motion.div>
                 ))}
-                {dielineFiles.map((file, index) => (
+                {files.map((file, index) => (
                   <motion.div
                     key={`local-${index}`}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{file.name}</p>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <FileText className="w-5 h-5 text-purple-600 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
                         <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
                       <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                         <Download className="w-4 h-4" />
                       </motion.button>
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index, type: 'dieline' }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
                     </div>
@@ -556,113 +542,9 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
               <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
                 <FileText className="w-8 h-8 text-slate-400" />
               </div>
-              <h4 className="font-bold text-slate-900 mb-2">No dieline files uploaded</h4>
+              <h4 className="font-bold text-slate-900 mb-2">No packaging files uploaded</h4>
               <p className="text-sm text-slate-600 mb-4">
-                Upload AI, PDF, or CAD files for packaging production
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Packaging Spec Sheet */}
-      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-visible">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Download className="w-5 h-5 text-orange-600" />
-            <h3 className="font-bold text-slate-900">Packaging Spec Sheet</h3>
-          </div>
-          <label htmlFor="spec-upload">
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <Upload className="w-4 h-4" />
-              Upload Spec Sheet
-            </motion.div>
-          </label>
-          <input
-            id="spec-upload"
-            type="file"
-            multiple
-            accept="*/*"
-            onChange={handleSpecUpload}
-            className="hidden"
-          />
-        </div>
-        <div className="p-6">
-          {savedSpecSheets.length > 0 || specSheets.length > 0 ? (
-            <div className="space-y-2">
-              <AnimatePresence>
-                {savedSpecSheets.map((f) => (
-                  <motion.div
-                    key={f.id}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {isImageFile(f.fileName) && f.key ? (
-                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
-                          <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <FileText className="w-5 h-5 text-orange-600" />
-                      )}
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{f.fileName}</p>
-                        <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(f.key || f.fileUrl) && (
-                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
-                          <Download className="w-4 h-4" />
-                        </motion.button>
-                      )}
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDeleteSavedFile(f.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-                {specSheets.map((file, index) => (
-                  <motion.div
-                    key={`local-${index}`}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-orange-600" />
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{file.name}</p>
-                        <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(2)} KB</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { const url = URL.createObjectURL(file); const a = document.createElement('a'); a.href = url; a.download = file.name; a.click(); URL.revokeObjectURL(url); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
-                        <Download className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => { setFileToDelete({ file, index, type: 'spec' }); setDeleteModalOpen(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
-                <FileText className="w-8 h-8 text-slate-400" />
-              </div>
-              <h4 className="font-bold text-slate-900 mb-2">No spec sheet uploaded</h4>
-              <p className="text-sm text-slate-600 mb-4">
-                Upload detailed packaging specifications
+                Upload mockups, dielines, CAD files, spec sheets, or any packaging documents
               </p>
             </div>
           )}
