@@ -184,6 +184,16 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
   }, [productId]);
 
   const fetchSpecs = async () => {
+    // Reset to defaults so switching products doesn't bleed the previous
+    // product's values into the new one when the new one has no saved spec.
+    setLength(''); setLengthUnit('in');
+    setWidth(''); setWidthUnit('in');
+    setHeight(''); setHeightUnit('in');
+    setProductWeight(''); setProductWeightUnit('lbs');
+    setShippingWeight(''); setShippingWeightUnit('lbs');
+    setCareInstructions('');
+    setMaterialCompositions([{ id: '1', material: '', percentage: 0 }]);
+
     try {
       const res = await fetch(`/api/pipeline/specs/get?productId=${encodeURIComponent(productId)}`);
       if (!res.ok) return;
@@ -203,8 +213,12 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
       if (spec.materialCompositions?.length > 0) {
         setMaterialCompositions(spec.materialCompositions);
       }
+      // Merge, don't replace: the sizeVariants reconcile effect may have
+      // already seeded empty placeholders for the current size set, and
+      // saved `variantSpecs` can be `{}` if the product was saved before
+      // size variants were defined.
       if (spec.variantSpecs && typeof spec.variantSpecs === 'object') {
-        setVariantSpecs(spec.variantSpecs);
+        setVariantSpecs(prev => ({ ...prev, ...spec.variantSpecs }));
       }
     } catch {
       // silent
