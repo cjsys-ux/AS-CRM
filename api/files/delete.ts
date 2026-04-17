@@ -3,6 +3,7 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
 import { getS3Client, getS3Bucket } from '../_s3';
+import { logTimelineEvent, entityTypeLabel, isPipelineEntityType } from '../_timeline';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'DELETE') {
@@ -42,6 +43,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     await db.collection('uploads').deleteOne(filter);
+
+    // Log a timeline event when a product-scoped file is removed.
+    if (isPipelineEntityType(upload.entityType) && upload.entityId) {
+      const label = entityTypeLabel(upload.entityType) ?? 'Files';
+      await logTimelineEvent(db, {
+        productId: upload.entityId,
+        type: 'file_upload',
+        title: 'File deleted',
+        description: `${upload.fileName ?? 'File'} · ${label}`,
+        user: 'User',
+        icon: 'file',
+        color: 'red',
+      });
+    }
 
     return res.status(200).json({ success: true });
   } catch (error) {

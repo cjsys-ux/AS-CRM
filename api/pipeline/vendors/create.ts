@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../../_mongodb';
+import { logTimelineEvent } from '../../_timeline';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -64,6 +65,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     const result = await db.collection('pipeline_vendors').insertOne(doc);
+
+    await logTimelineEvent(db, {
+      productId,
+      type: 'milestone',
+      title: 'Vendor linked',
+      description: `${vendorName}${country ? ` · ${country}` : ''}`,
+      icon: 'package',
+      color: 'indigo',
+    });
 
     return res.status(201).json({
       vendor: { id: result.insertedId.toString(), ...doc },
