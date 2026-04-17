@@ -488,18 +488,19 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   const [addrRowsPerPage, setAddrRowsPerPage] = useState(10);
   const ROWS_PER_PAGE = 10;
 
-  // ─── Fetch full vendor from API (local backend has no /:id endpoint; pull from list) ───
+  // ─── Fetch full vendor from API ───
   const fetchVendor = useCallback(async () => {
     setLoadingVendor(true);
     try {
-      const res = await fetch('/api/vendors/list');
+      const res = await fetch(`/api/vendors/get?id=${encodeURIComponent(vendor.id)}`);
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      const raw = (data.vendors || []).find((v: any) => v.id === vendor.id || v._id === vendor.id);
-      if (raw) {
-        const mapped = mapVendorFromApi(raw);
+      if (data.vendor) {
+        const mapped = mapVendorFromApi(data.vendor);
         setVendorData(mapped);
         setAddresses(mapped.addresses || []);
+        setVendorContacts(mapped.contacts || []);
+        setDocuments(mapped.documents || []);
       }
     } catch (error) {
       console.error('Error fetching vendor:', error);
@@ -512,16 +513,15 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     fetchVendor();
   }, [fetchVendor]);
 
-  // ─── Fetch documents ───
+  // Documents live on vendor.documents — populated by fetchVendor. Expose a
+  // refetch helper that simply re-pulls the vendor doc so the UI can refresh.
   const fetchDocuments = useCallback(async () => {
     setLoadingDocs(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/documents`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDocuments(data.documents || []);
+      const res = await fetch(`/api/vendors/get?id=${encodeURIComponent(vendor.id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDocuments((data.vendor?.documents) || []);
       }
     } catch (error) {
       console.error('Error fetching vendor documents:', error);
@@ -529,10 +529,6 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
       setLoadingDocs(false);
     }
   }, [vendor.id]);
-
-  useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
 
   // ─── Fetch purchase orders ───
   const fetchPurchaseOrders = useCallback(async () => {
@@ -601,15 +597,14 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   }, [fetchActivity]);
 
   // ─── Fetch vendor contacts ───
+  // Contacts live on vendor.contacts — re-pull the vendor doc after a change.
   const fetchContacts = useCallback(async () => {
     setLoadingContacts(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/contacts`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setVendorContacts(data.contacts || []);
+      const res = await fetch(`/api/vendors/get?id=${encodeURIComponent(vendor.id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVendorContacts((data.vendor?.contacts) || []);
       }
     } catch (error) {
       console.error('Error fetching vendor contacts:', error);
@@ -617,10 +612,6 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
       setLoadingContacts(false);
     }
   }, [vendor.id]);
-
-  useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
 
   // ─── Fetch vendor products ───
   const fetchProducts = useCallback(async () => {
@@ -741,14 +732,12 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
       newAddresses = newAddresses.map(a => ({ ...a, isPrimary: a.id === addressForm.id }));
     }
     try {
-      // Note: addresses aren't yet in the allowed-fields list on the server —
-      // request will succeed (`updatedAt` set) without persisting the array.
-      // UI updates optimistically so the user still sees their change.
-      await fetch('/api/vendors/update', {
+      const res = await fetch('/api/vendors/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: vendor.id, addresses: newAddresses }),
       });
+      if (!res.ok) throw new Error('Failed to save address');
       setAddresses(newAddresses);
       setShowAddressModal(false);
       setEditingAddress(null);
@@ -768,11 +757,12 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     setSaving(true);
     const newAddresses = addresses.filter(a => a.id !== deleteAddress.id);
     try {
-      await fetch('/api/vendors/update', {
+      const res = await fetch('/api/vendors/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: vendor.id, addresses: newAddresses }),
       });
+      if (!res.ok) throw new Error('Failed to delete address');
       setAddresses(newAddresses);
       setDeleteAddress(null);
       toast.success('Address deleted');
@@ -790,35 +780,69 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     setUploading(true);
     const resolvedType = uploadDocType === 'Other' && uploadCustomType.trim() ? uploadCustomType.trim() : uploadDocType;
     try {
+      const newDocs: VendorDoc[] = [];
       for (const file of uploadFiles) {
         const sizeStr = file.size > 1024 * 1024
           ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
           : `${(file.size / 1024).toFixed(0)} KB`;
-        const fileData = await new Promise<string>((resolve) => {
+
+        // 1. Read file as base64.
+        const dataUrl = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
           reader.readAsDataURL(file);
         });
-        const isImage = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(file.name);
-        const preview = isImage ? fileData : undefined;
-        const docName = uploadDocTitle.trim() || file.name;
-        const res = await fetch(`${API_URL}/vendors/${vendor.id}/documents`, {
+        const base64Data = dataUrl.split(',')[1] ?? '';
+        const fileType = file.type || (dataUrl.match(/:(.*?);/)?.[1] ?? 'application/octet-stream');
+
+        // 2. Upload bytes to S3.
+        const uploadRes = await fetch('/api/files/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-          body: JSON.stringify({ name: docName, type: resolvedType, size: sizeStr, fileData, preview, uploadedBy: 'Current User' }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType,
+            entityType: 'vendor-document',
+            entityId: vendor.id,
+            fileData: base64Data,
+          }),
         });
-        const data = await res.json();
-        if (data.success && data.document) {
-          setDocuments(prev => [data.document, ...prev]);
-        }
+        if (!uploadRes.ok) throw new Error('File upload failed');
+        const { key, fileUrl } = await uploadRes.json();
+
+        const isImage = /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(file.name);
+        const docName = uploadDocTitle.trim() || file.name;
+        newDocs.push({
+          id: `DOC-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`,
+          vendorId: vendor.id,
+          name: docName,
+          type: resolvedType,
+          size: sizeStr,
+          uploadDate: new Date().toISOString().split('T')[0],
+          createdAt: new Date().toISOString(),
+          preview: isImage ? fileUrl : undefined,
+          uploadedBy: 'Current User',
+          fileKey: key,
+          fileUrl,
+          contentType: fileType,
+        } as any);
       }
+
+      // 3. Persist the combined documents array onto the vendor doc.
+      const nextDocs = [...newDocs, ...documents];
+      const patchRes = await fetch('/api/vendors/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vendor.id, documents: nextDocs }),
+      });
+      if (!patchRes.ok) throw new Error('Failed to save document metadata');
+      setDocuments(nextDocs);
       setShowUploadModal(false);
       setUploadFiles([]);
       setUploadDocType('Other');
       setUploadCustomType('');
       setUploadDocTitle('');
       toast.success('Document uploaded successfully');
-      fetchActivity();
     } catch (error) {
       console.error('Error uploading documents:', error);
       toast.error('Error uploading document');
@@ -831,16 +855,15 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     if (!deleteDoc) return;
     setDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/documents/${deleteDoc.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+      const nextDocs = documents.filter(d => d.id !== deleteDoc.id);
+      const res = await fetch('/api/vendors/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vendor.id, documents: nextDocs }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setDocuments(prev => prev.filter(d => d.id !== deleteDoc.id));
-        toast.success('Document deleted');
-        fetchActivity();
-      }
+      if (!res.ok) throw new Error('Failed to delete document');
+      setDocuments(nextDocs);
+      toast.success('Document deleted');
     } catch (error) {
       console.error('Error deleting document:', error);
       toast.error('Error deleting document');
@@ -851,21 +874,20 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   };
 
   const handleDownload = async (doc: VendorDoc) => {
-    if (!doc.vendorId) return;
-    try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/documents/${doc.id}/download`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await res.json();
-      if (data.success && data.document?.fileData) {
-        const link = document.createElement('a');
-        link.href = data.document.fileData;
-        link.download = doc.name;
-        link.click();
-      }
-    } catch (error) {
-      console.error('Error downloading document:', error);
+    const fileKey = (doc as any).fileKey;
+    const fileUrl = (doc as any).fileUrl || (fileKey ? `/api/files/image?key=${encodeURIComponent(fileKey)}` : null);
+    if (!fileUrl) {
+      toast.error('Document file is not available');
+      return;
     }
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = doc.name;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // ─── Helpers ───
@@ -1185,27 +1207,42 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     setSavingContact(true);
     try {
       const fullName = [contactForm.firstName, contactForm.lastName].filter(Boolean).join(' ');
-      const url = editingContact
-        ? `${API_URL}/vendors/${vendor.id}/contacts/${editingContact.id}`
-        : `${API_URL}/vendors/${vendor.id}/contacts`;
-      const res = await fetch(url, {
-        method: editingContact ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${publicAnonKey}` },
-        body: JSON.stringify({ ...contactForm, name: fullName }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(editingContact ? 'Contact updated' : 'Contact added');
-        setShowContactModal(false);
-        fetchContacts();
-        fetchActivity();
-        // If primary was set, refresh vendor data to reflect updated overview
-        if (contactForm.isPrimary) {
-          fetchVendor();
-        }
-      } else {
-        toast.error(data.error || 'Failed to save contact');
+      const now = new Date().toISOString();
+      const base: VendorContact = editingContact
+        ? {
+            ...editingContact,
+            ...contactForm,
+            name: fullName,
+            updatedAt: now,
+          }
+        : {
+            id: `VC-${Date.now().toString(36).toUpperCase()}`,
+            vendorId: vendor.id,
+            ...contactForm,
+            name: fullName,
+            notes: '',
+            createdAt: now,
+            updatedAt: now,
+          };
+
+      // If this contact is marked primary, clear primary on all others.
+      let nextContacts = editingContact
+        ? vendorContacts.map(c => c.id === editingContact.id ? base : c)
+        : [...vendorContacts, base];
+      if (base.isPrimary) {
+        nextContacts = nextContacts.map(c => ({ ...c, isPrimary: c.id === base.id }));
       }
+
+      const res = await fetch('/api/vendors/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vendor.id, contacts: nextContacts }),
+      });
+      if (!res.ok) throw new Error('Failed to save contact');
+      setVendorContacts(nextContacts);
+      toast.success(editingContact ? 'Contact updated' : 'Contact added');
+      setShowContactModal(false);
+      if (base.isPrimary) fetchVendor();
     } catch (error) {
       console.error('Error saving contact:', error);
       toast.error('Failed to save contact');
@@ -1216,19 +1253,16 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
 
   const handleDeleteContact = async (contact: VendorContact) => {
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/contacts/${contact.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
+      const nextContacts = vendorContacts.filter(c => c.id !== contact.id);
+      const res = await fetch('/api/vendors/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: vendor.id, contacts: nextContacts }),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Contact removed');
-        setDeleteContact(null);
-        fetchContacts();
-        fetchActivity();
-      } else {
-        toast.error(data.error || 'Failed to delete contact');
-      }
+      if (!res.ok) throw new Error('Failed to delete contact');
+      setVendorContacts(nextContacts);
+      toast.success('Contact removed');
+      setDeleteContact(null);
     } catch (error) {
       console.error('Error deleting contact:', error);
       toast.error('Failed to delete contact');

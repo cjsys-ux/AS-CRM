@@ -415,10 +415,10 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
   const fetchAllSheets = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/contractpricing/${vendorId}`, {
+      const res = await fetch(`${API_URL}/contractpricing/list?vendorId=${encodeURIComponent(vendorId)}`, {
         headers: { 'Authorization': `Bearer ${publicAnonKey}` },
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (data.success) {
         const sheetsMap: Record<string, PricingSheet> = {};
         const foundTypes = new Set<string>();
@@ -430,10 +430,10 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
 
         // Also load vendor dec type config
         try {
-          const configRes = await fetch(`${API_URL}/contractpricing/${vendorId}/config`, {
+          const configRes = await fetch(`${API_URL}/contractpricing/config?vendorId=${encodeURIComponent(vendorId)}`, {
             headers: { 'Authorization': `Bearer ${publicAnonKey}` },
           });
-          const configData = await configRes.json();
+          const configData = await configRes.json().catch(() => ({}));
           if (configData.success && configData.enabledTypes && configData.enabledTypes.length > 0) {
             setEnabledDecTypes(configData.enabledTypes);
             if (!configData.enabledTypes.includes(activeDecType)) {
@@ -519,14 +519,15 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
   // Save enabled decoration types config
   const saveDecTypeConfig = async (types: string[]) => {
     try {
-      await fetch(`${API_URL}/contractpricing/${vendorId}/config`, {
-        method: 'PUT',
+      const res = await fetch(`${API_URL}/contractpricing/config`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${publicAnonKey}`,
         },
-        body: JSON.stringify({ enabledTypes: types }),
+        body: JSON.stringify({ vendorId, enabledTypes: types }),
       });
+      if (!res.ok) throw new Error('Failed to save dec type config');
     } catch (err) {
       console.error('Error saving dec type config:', err);
     }
@@ -562,6 +563,9 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
     setSaving(true);
     try {
       const payload = {
+        vendorId,
+        decorationType: activeDecType,
+        year: activeYear,
         pricingMatrix,
         quantityBrackets,
         additionalCharges,
@@ -571,8 +575,8 @@ export function ContractPricingTab({ vendorId, vendorName }: ContractPricingTabP
         notes,
         effectiveDate,
       };
-      const res = await fetch(`${API_URL}/contractpricing/${vendorId}/${activeDecType}/${activeYear}`, {
-        method: 'PUT',
+      const res = await fetch(`${API_URL}/contractpricing/save`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${publicAnonKey}`,

@@ -191,8 +191,8 @@ export function VendorScorecardTab({ vendorId, vendorName, purchaseOrders }: { v
   const fetchScorecard = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/vendor-scorecards/${vendorId}`, { headers: headers_json });
-      const data = await res.json();
+      const res = await fetch(`${API_URL}/vendor-scorecards/get?vendorId=${encodeURIComponent(vendorId)}`, { headers: headers_json });
+      const data = await res.json().catch(() => ({}));
       if (data.success && data.scorecard) {
         setScorecard(data.scorecard);
       } else {
@@ -209,15 +209,10 @@ export function VendorScorecardTab({ vendorId, vendorName, purchaseOrders }: { v
   }, [vendorId]);
 
   const fetchAIAnalysis = useCallback(async () => {
-    try {
-      setAiLoading(true);
-      const res = await fetch(`${API_URL}/vendor-scorecards/${vendorId}/ai-analysis?vendorName=${encodeURIComponent(vendorName)}`, { headers: headers_json });
-      const data = await res.json();
-      if (data.success && data.analysis) {
-        setAiAnalysis(data.analysis);
-      }
-    } catch (err) { console.error('Error fetching AI analysis:', err); }
-    finally { setAiLoading(false); }
+    // AI analysis endpoint is not wired locally; skip silently so the rest of
+    // the scorecard still renders with the persisted metrics and incidents.
+    setAiLoading(false);
+    void vendorName;
   }, [vendorId, vendorName]);
 
   useEffect(() => { fetchScorecard(); }, [fetchScorecard]);
@@ -292,9 +287,10 @@ export function VendorScorecardTab({ vendorId, vendorName, purchaseOrders }: { v
   const saveScorecard = async (card: VendorScorecard) => {
     setSaving(true);
     try {
-      await fetch(`${API_URL}/vendor-scorecards/${vendorId}`, {
-        method: 'PUT', headers: headers_json, body: JSON.stringify(card),
+      const res = await fetch(`${API_URL}/vendor-scorecards/save`, {
+        method: 'POST', headers: headers_json, body: JSON.stringify({ ...card, vendorId }),
       });
+      if (!res.ok) throw new Error('Failed to save scorecard');
     } catch (err) { console.error('Save error:', err); toast.error('Error saving scorecard'); }
     finally { setSaving(false); }
   };
