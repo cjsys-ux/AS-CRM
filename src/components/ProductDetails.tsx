@@ -585,13 +585,13 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <span className="text-xs font-semibold text-slate-500">Competitor Analysis</span>
                     </div>
                     <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                      <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor</div>
                         <div className="text-sm font-semibold text-slate-900">
                           {productInfo.competitorName || <span className="text-slate-400 font-normal">—</span>}
                         </div>
                       </div>
-                      <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Link</div>
                         {productInfo.competitorLink ? (
                           <a
@@ -604,7 +604,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                           </a>
                         ) : <span className="text-slate-400 font-normal text-sm">—</span>}
                       </div>
-                      <div className="bg-slate-50 rounded-xl p-4">
+                      <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-100">
                         <div className="text-xs font-semibold text-slate-500 mb-1">Competitor Price</div>
                         <div className="text-sm font-bold text-emerald-600">
                           {productInfo.competitorPrice ? `$${productInfo.competitorPrice}` : <span className="text-slate-400 font-normal">—</span>}
