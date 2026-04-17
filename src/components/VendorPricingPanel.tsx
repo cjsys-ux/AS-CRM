@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Save, DollarSign, Clock, Package, Truck, Pencil, X, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Save, DollarSign, Clock, Package, Truck, Pencil, X, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -62,6 +62,10 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
   const [draggedTierIndex, setDraggedTierIndex] = useState<number | null>(null);
   const [dragOverTierIndex, setDragOverTierIndex] = useState<number | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isPricingCollapsed, setIsPricingCollapsed] = useState(false);
+  const [showAllTiers, setShowAllTiers] = useState(false);
+  const MAX_VISIBLE_TIERS = 5;
 
   useEffect(() => {
     setPricingTiers(vendor.pricingTiers || []);
@@ -147,7 +151,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
       className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden flex flex-col h-full"
     >
       {/* Header */}
-      <div className="px-6 py-4 flex-shrink-0 bg-gradient-to-r from-slate-800 to-slate-700">
+      <div className="px-6 py-4 flex-shrink-0 bg-gradient-to-r from-slate-800 to-slate-700 cursor-pointer" onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -168,7 +172,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 animate={{ scale: 1, opacity: 1 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={savePricing}
+                onClick={(e) => { e.stopPropagation(); savePricing(); }}
                 disabled={isSaving}
                 className="flex items-center gap-2 px-4 py-2 bg-white font-semibold rounded-xl text-sm shadow-lg transition-all disabled:opacity-50 text-slate-700 hover:bg-slate-50"
               >
@@ -180,7 +184,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setIsEditing(true)}
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                 className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl text-sm transition-all"
               >
                 <Pencil className="w-4 h-4" />
@@ -191,7 +195,8 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsEditing(false);
                   setPricingTiers(vendor.pricingTiers || []);
                   setMoq(String(vendor.moq || ''));
@@ -207,7 +212,8 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsEditing(false);
                   setHasChanges(false);
                   setPricingTiers(vendor.pricingTiers || []);
@@ -219,10 +225,22 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                 <X className="w-4 h-4" />
               </motion.button>
             )}
+            <div className="text-white/60 ml-1">
+              {isPanelCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </div>
           </div>
         </div>
       </div>
 
+      <AnimatePresence>
+      {!isPanelCollapsed && (
+      <motion.div
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="overflow-hidden"
+      >
       <div className="p-6 space-y-5 overflow-y-auto flex-1">
         {/* Dropship Info Banner */}
         {isDropship && (
@@ -316,7 +334,13 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
         {/* Pricing Table */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-slate-900">Pricing Tiers</h4>
+            <button
+              onClick={() => setIsPricingCollapsed(!isPricingCollapsed)}
+              className="flex items-center gap-1.5 text-sm font-bold text-slate-900 hover:text-slate-700 transition-colors"
+            >
+              {isPricingCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+              Pricing Tiers
+            </button>
             <div className="flex items-center gap-3">
               {/* Dropship Toggle */}
               <div className="flex items-center gap-2">
@@ -355,6 +379,15 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
             </div>
           </div>
 
+          <AnimatePresence>
+          {!isPricingCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="overflow-hidden"
+          >
           {isDropship && (
             <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg mb-3">
               <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -407,7 +440,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                   </thead>
                   <tbody>
                     <AnimatePresence>
-                      {pricingTiers.map((tier, index) => (
+                      {(showAllTiers ? pricingTiers : pricingTiers.slice(0, MAX_VISIBLE_TIERS)).map((tier, index) => (
                         <motion.tr
                           key={index}
                           initial={{ opacity: 0 }}
@@ -564,10 +597,28 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                   </tbody>
                 </table>
               </div>
+              {pricingTiers.length > MAX_VISIBLE_TIERS && (
+                <button
+                  onClick={() => setShowAllTiers(!showAllTiers)}
+                  className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-50 border-t border-slate-200 transition-colors flex items-center justify-center gap-1"
+                >
+                  {showAllTiers ? (
+                    <>Show Less <ChevronUp className="w-3 h-3" /></>
+                  ) : (
+                    <>Show {pricingTiers.length - MAX_VISIBLE_TIERS} More <ChevronDown className="w-3 h-3" /></>
+                  )}
+                </button>
+              )}
             </div>
           )}
+          </motion.div>
+          )}
+          </AnimatePresence>
         </div>
       </div>
+      </motion.div>
+      )}
+      </AnimatePresence>
     </motion.div>
   );
 }
