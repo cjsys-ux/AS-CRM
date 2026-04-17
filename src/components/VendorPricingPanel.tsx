@@ -395,14 +395,14 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                       </th>
                       {!isDropship && (
                         <>
-                          <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[14%]">DDP ($)</th>
-                          <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase w-[16%]">Ship</th>
+                          <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '85px' }}>DDP ($)</th>
+                          <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '120px' }}>Ship</th>
                         </>
                       )}
-                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'w-[12%] text-slate-500'}`}>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'text-slate-500'}`} style={!isDropship ? { minWidth: '60px' } : undefined}>
                         {isDropship ? 'Dropship Days' : 'Days'}
                       </th>
-                      <th className="px-2 py-2.5 w-[36px] text-[11px] font-bold text-slate-500 uppercase">Actions</th>
+                      <th className="px-2 py-2.5 w-[36px] text-center text-[11px] font-bold text-slate-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -528,7 +528,7 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                                     ))}
                                   </select>
                                 ) : (
-                                  <span className="px-2 py-1.5 text-sm text-slate-600 font-medium flex justify-center">{tier.ddpMethod}</span>
+                                  <span className="px-2 py-1.5 text-sm text-slate-600 font-medium block text-center whitespace-nowrap">{tier.ddpMethod}</span>
                                 )}
                               </td>
                             </>
