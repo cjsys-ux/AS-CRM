@@ -1,12 +1,13 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save, Pencil } from 'lucide-react';
+import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save, Edit, Check } from 'lucide-react';
 import { ChecklistWidget } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface MaterialComposition {
   id: string;
@@ -67,10 +68,86 @@ const MATERIAL_OPTIONS = [
   'Other'
 ];
 
+function MaterialDropdown({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const updatePos = useCallback(() => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updatePos();
+    const onScroll = () => updatePos();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll); };
+  }, [open, updatePos]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (btnRef.current?.contains(e.target as Node)) return;
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-left hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <span className={`text-sm ${value ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+          {value || 'Select material...'}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 99999 }}
+          className="bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden"
+        >
+          <div className="max-h-64 overflow-y-auto py-1">
+            {MATERIAL_OPTIONS.map((material) => (
+              <button
+                key={material}
+                type="button"
+                onClick={() => { onChange(material); setOpen(false); }}
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+                  value === material
+                    ? 'bg-purple-50 text-purple-700 font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{material}</span>
+                {value === material && <Check className="w-3.5 h-3.5 text-purple-600" />}
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
 export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTabProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ file: File; index: number } | null>(null);
   const [materialCompositions, setMaterialCompositions] = useState<MaterialComposition[]>([
@@ -286,40 +363,33 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
 
   return (
     <div className="space-y-6">
-      {/* Edit / Save buttons */}
-      <div className="flex justify-end gap-3">
+      {/* Edit / Save controls */}
+      <div className="flex items-center justify-end gap-2">
         {isEditing ? (
           <>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={() => setIsEditing(false)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
             >
-              <X className="w-4 h-4" />
               Cancel
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            </button>
+            <button
               onClick={handleSaveSpecs}
               disabled={isSaving}
-              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Specifications'}
-            </motion.button>
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
           </>
         ) : (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors shadow-sm"
           >
-            <Pencil className="w-4 h-4" />
+            <Edit className="w-4 h-4" />
             Edit Specifications
-          </motion.button>
+          </button>
         )}
       </div>
 
@@ -458,11 +528,9 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
           <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3">
             <Package className="w-5 h-5 text-indigo-600" />
             <h3 className="font-bold text-slate-900">Size Variants</h3>
-            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
-              {sizeVariants.length} variant{sizeVariants.length !== 1 ? 's' : ''}
-            </span>
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{sizeVariants.length} variant{sizeVariants.length !== 1 ? 's' : ''}</span>
           </div>
-          <div className="p-4 space-y-2">
+          <div className="p-6 space-y-3">
             <AnimatePresence initial={false}>
               {sizeVariants.map((size) => {
                 const vs = variantSpecs[size] ?? emptyVariantSpec();
@@ -474,67 +542,56 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3"
-                    style={{ display: 'grid', gridTemplateColumns: '110px 1fr 200px', alignItems: 'center' }}
+                    className="bg-slate-50 border border-slate-200 rounded-xl p-4"
                   >
-                    {/* Size */}
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Size</p>
-                      <span className="text-sm font-bold text-indigo-600">{size}</span>
-                    </div>
+                    <div className="grid grid-cols-[120px_1fr_160px] gap-4 items-center">
+                      {/* Size */}
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Size</div>
+                        <div className="text-sm font-semibold text-indigo-700">{size}</div>
+                      </div>
 
-                    {/* Dimensions */}
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Dimensions (L × W × H)</p>
-                      {isEditing ? (
-                        <div className="flex items-center gap-1.5">
-                          <input type="number" placeholder="L" value={vs.length}
-                            onChange={(e) => updateVariantField(size, 'length', e.target.value)}
-                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
-                          <span className="text-slate-400 text-xs">×</span>
-                          <input type="number" placeholder="W" value={vs.width}
-                            onChange={(e) => updateVariantField(size, 'width', e.target.value)}
-                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
-                          <span className="text-slate-400 text-xs">×</span>
-                          <input type="number" placeholder="H" value={vs.height}
-                            onChange={(e) => updateVariantField(size, 'height', e.target.value)}
-                            className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
-                          <select
-                            value={vs.lengthUnit || 'in'}
-                            onChange={(e) => {
-                              updateVariantField(size, 'lengthUnit', e.target.value);
-                              updateVariantField(size, 'widthUnit', e.target.value);
-                              updateVariantField(size, 'heightUnit', e.target.value);
-                            }}
-                            className="text-sm text-slate-600 bg-transparent border-none outline-none cursor-pointer ml-1"
-                          >
-                            <option>in</option><option>cm</option><option>mm</option>
-                          </select>
-                        </div>
-                      ) : (
-                        <p className="text-sm italic text-slate-400">
-                          {hasDims ? `${vs.length || '–'} × ${vs.width || '–'} × ${vs.height || '–'} ${vs.lengthUnit}` : 'Not set'}
-                        </p>
-                      )}
-                    </div>
+                      {/* Dimensions */}
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Dimensions (L × W × H)</div>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <input type="number" placeholder="L" value={vs.length}
+                              onChange={(e) => updateVariantField(size, 'length', e.target.value)}
+                              className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <span className="text-slate-400 text-xs">×</span>
+                            <input type="number" placeholder="W" value={vs.width}
+                              onChange={(e) => updateVariantField(size, 'width', e.target.value)}
+                              className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <span className="text-slate-400 text-xs">×</span>
+                            <input type="number" placeholder="H" value={vs.height}
+                              onChange={(e) => updateVariantField(size, 'height', e.target.value)}
+                              className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <span className="text-xs text-slate-500 ml-1">{vs.lengthUnit || 'in'}</span>
+                          </div>
+                        ) : (
+                          <div className="text-sm font-semibold text-slate-900">
+                            {hasDims ? `${vs.length || '–'}${vs.lengthUnit || 'in'} × ${vs.width || '–'}${vs.lengthUnit || 'in'} × ${vs.height || '–'}${vs.lengthUnit || 'in'}` : <span className="text-slate-400 font-normal">Not set</span>}
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Weight */}
-                    <div>
-                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Weight</p>
-                      {isEditing ? (
-                        <div className="flex items-center gap-2">
-                          <input type="number" placeholder="0.0" value={vs.productWeight}
-                            onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
-                            className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500" />
-                          <UnitDropdown options={['lbs', 'kg', 'oz', 'g']} defaultOption="lbs"
-                            value={vs.productWeightUnit}
-                            onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
-                        </div>
-                      ) : (
-                        <p className="text-sm italic text-slate-400">
-                          {hasWeight ? `${vs.productWeight} ${vs.productWeightUnit}` : 'Not set'}
-                        </p>
-                      )}
+                      {/* Weight */}
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Weight</div>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <input type="number" placeholder="0.0" value={vs.productWeight}
+                              onChange={(e) => updateVariantField(size, 'productWeight', e.target.value)}
+                              className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <UnitDropdown options={['oz', 'lbs', 'g', 'kg']} defaultOption="oz"
+                              value={vs.productWeightUnit}
+                              onChange={(v) => updateVariantField(size, 'productWeightUnit', v)} />
+                          </div>
+                        ) : (
+                          <div className="text-sm font-semibold text-slate-900">{hasWeight ? `${vs.productWeight} ${vs.productWeightUnit}` : <span className="text-slate-400 font-normal">Not set</span>}</div>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 );
@@ -551,15 +608,17 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
             <Layers className="w-5 h-5 text-purple-600" />
             <h3 className="font-bold text-slate-900">Material Specifications</h3>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={addMaterialComposition}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Material
-          </motion.button>
+          {isEditing && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={addMaterialComposition}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Material
+            </motion.button>
+          )}
         </div>
         <div className="p-6 space-y-4">
           <AnimatePresence>
@@ -576,66 +635,32 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                     <label className="block text-xs font-medium text-slate-600 mb-1">
                       Material {index + 1}
                     </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={composition.material || ''}
-                        onChange={(e) => {
-                          updateMaterialComposition(composition.id, 'material', e.target.value);
-                          setOpenDropdownId(composition.id);
-                        }}
-                        onFocus={() => setOpenDropdownId(composition.id)}
-                        onBlur={() => setTimeout(() => setOpenDropdownId(null), 150)}
-                        placeholder="Type or select material..."
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
-                      />
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-
-                      <AnimatePresence>
-                        {openDropdownId === composition.id && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-[200] overflow-y-auto"
-                            style={{ maxHeight: '220px' }}
-                          >
-                            {MATERIAL_OPTIONS.filter(m =>
-                              !composition.material || m.toLowerCase().includes(composition.material.toLowerCase())
-                            ).map((material) => (
-                              <div
-                                key={material}
-                                className={`px-5 py-3 cursor-pointer border-b border-slate-100 last:border-b-0 transition-all ${
-                                  composition.material === material
-                                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold'
-                                    : 'hover:bg-purple-50 text-slate-900'
-                                }`}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  updateMaterialComposition(composition.id, 'material', material);
-                                  if (material !== 'Other') {
-                                    updateMaterialComposition(composition.id, 'customMaterial', '');
-                                  }
-                                  setOpenDropdownId(null);
-                                }}
-                              >
-                                <span className="text-sm font-medium">{material}</span>
-                              </div>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    {composition.material === 'Other' && (
-                      <motion.input
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        type="text"
-                        value={composition.customMaterial || ''}
-                        onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
-                        placeholder="Enter custom material name..."
-                        className="mt-2 w-full px-4 py-3 bg-white border-2 border-purple-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all text-sm"
-                      />
+                    {isEditing ? (
+                      composition.material === 'Other' ? (
+                        <input
+                          type="text"
+                          value={composition.customMaterial || ''}
+                          onChange={(e) => updateMaterialComposition(composition.id, 'customMaterial', e.target.value)}
+                          placeholder="Enter custom material..."
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm"
+                        />
+                      ) : (
+                        <MaterialDropdown
+                          value={composition.material}
+                          onChange={(v) => {
+                            updateMaterialComposition(composition.id, 'material', v);
+                            if (v !== 'Other') {
+                              updateMaterialComposition(composition.id, 'customMaterial', '');
+                            }
+                          }}
+                        />
+                      )
+                    ) : (
+                      <div className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900">
+                        {composition.material === 'Other' && composition.customMaterial
+                          ? composition.customMaterial
+                          : composition.material || <span className="text-slate-400">Not set</span>}
+                      </div>
                     )}
                   </div>
                   <div>
@@ -649,14 +674,15 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
                         max="100"
                         value={composition.percentage || ''}
                         onChange={(e) => updateMaterialComposition(composition.id, 'percentage', Number(e.target.value))}
+                        disabled={!isEditing}
                         placeholder="0"
-                        className="flex-1 px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
+                        className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      <span className="text-slate-600 font-bold text-lg">%</span>
+                      <span className="text-slate-500 font-medium text-sm">%</span>
                     </div>
                   </div>
                 </div>
-                {materialCompositions.length > 1 && (
+                {isEditing && materialCompositions.length > 1 && (
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -674,11 +700,11 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
           <div className="pt-4 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-700">Total Composition</span>
-              <span className={`text-lg font-bold ${
-                totalPercentage === 100 
-                  ? 'text-green-600' 
-                  : totalPercentage > 100 
-                    ? 'text-red-600' 
+              <span className={`text-sm font-bold ${
+                totalPercentage === 100
+                  ? 'text-green-600'
+                  : totalPercentage > 100
+                    ? 'text-red-600'
                     : 'text-orange-600'
               }`}>
                 {totalPercentage}%
@@ -700,7 +726,8 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
               placeholder="Enter care instructions..."
               value={careInstructions}
               onChange={(e) => setCareInstructions(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+              disabled={!isEditing}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -727,6 +754,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
             id="compliance-upload"
             type="file"
             multiple
+            accept=".pdf,.doc,.docx,.jpg,.png"
             onChange={handleFileUpload}
             className="hidden"
           />
