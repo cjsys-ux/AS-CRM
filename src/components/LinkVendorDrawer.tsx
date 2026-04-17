@@ -57,8 +57,15 @@ export function LinkVendorDrawer({ isOpen, onClose, productId, existingVendorIds
     try {
       const res = await fetch(`/api/vendors/list`);
       const data = await res.json();
-      if (data.success && data.vendors) {
-        setVendors(data.vendors);
+      if (data.vendors) {
+        // The API exposes vendor display name as `vendorName`; normalize to `name`
+        // so the rest of the component (search, render, link payload) keeps working.
+        setVendors(
+          data.vendors.map((v: any) => ({
+            ...v,
+            name: v.name || v.vendorName || '',
+          }))
+        );
       }
     } catch (err) {
       console.error('Error fetching global vendors:', err);
