@@ -223,6 +223,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
   const [dbClients, setDbClients] = useState<any[]>([]);
+  const [globalVendors, setGlobalVendors] = useState<string[]>([]);
   const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -269,8 +270,21 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
         console.error('Error fetching clients:', err);
       }
     };
+    const fetchVendors = async () => {
+      try {
+        const res = await fetch(`/api/vendors/list`);
+        const data = await res.json();
+        const names = (data.vendors || [])
+          .map((v: any) => v.vendorName || v.name || '')
+          .filter((n: string) => n.length > 0);
+        setGlobalVendors(names);
+      } catch (err) {
+        console.error('Error fetching vendors for dropdown:', err);
+      }
+    };
     fetchUsers();
     fetchClients();
+    fetchVendors();
   }, [isOpen]);
 
   // Sync formData when productInfo changes (and reset transient upload state)
@@ -437,8 +451,8 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
     onClose();
   };
 
-  // Use linked vendors from vendor network, fallback to empty
-  const vendorOptions = linkedVendors && linkedVendors.length > 0 ? linkedVendors : [];
+  // Vendor dropdown shows all global vendors merged with any already linked to this product.
+  const vendorOptions = Array.from(new Set([...(linkedVendors || []), ...globalVendors]));
 
   return (
     <AnimatePresence>
@@ -540,18 +554,20 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                   <p className="text-[10px] text-blue-500 mt-1 font-medium">Linked to Customers module</p>
                 </div>
 
-                {/* Vendor Dropdown - only linked vendors */}
+                {/* Vendor Dropdown - all global vendors + any linked */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">Vendor</label>
                   <DrawerDropdown
                     value={formData.vendor}
                     onChange={(v) => setFormData({ ...formData, vendor: v })}
                     options={vendorOptions}
-                    placeholder={vendorOptions.length === 0 ? "No vendors linked yet" : "Select a vendor"}
+                    placeholder={vendorOptions.length === 0 ? "No vendors available" : "Select a vendor"}
                   />
                   <div className="flex items-center justify-between mt-1 gap-2">
                     <p className="text-[10px] text-blue-500 font-medium">
-                      {vendorOptions.length > 0 ? `${vendorOptions.length} vendor${vendorOptions.length > 1 ? 's' : ''} linked` : 'Link a vendor to assign one here'}
+                      {linkedVendors && linkedVendors.length > 0
+                        ? `${linkedVendors.length} linked · ${vendorOptions.length} available`
+                        : 'Link a vendor to this product for full pricing & contact info'}
                     </p>
                     {onOpenLinkVendor && (
                       <button
