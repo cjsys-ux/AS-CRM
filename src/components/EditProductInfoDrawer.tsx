@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, Image as ImageIcon, ChevronDown, FileImage, Trash2, Check, AlertCircle } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, ChevronDown, FileImage, Trash2, Check, AlertCircle, Link as LinkIcon, TrendingUp, Plus } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { statuses, productTypes } from '../utils/mockData';
 import { createPortal } from 'react-dom';
@@ -215,13 +215,15 @@ interface EditProductInfoDrawerProps {
   onSave: (updatedInfo: any) => void;
   linkedVendors?: string[];
   checklistProgress?: { completed: number; total: number };
+  onOpenLinkVendor?: () => void;
 }
 
-export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave, linkedVendors, checklistProgress }: EditProductInfoDrawerProps) {
+export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave, linkedVendors, checklistProgress, onOpenLinkVendor }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
   const [dbClients, setDbClients] = useState<any[]>([]);
+  const [globalVendors, setGlobalVendors] = useState<string[]>([]);
   const [uploadedImageKey, setUploadedImageKey] = useState<string | null>(null);
   const [resolvedImageUrl, setResolvedImageUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -268,8 +270,21 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
         console.error('Error fetching clients:', err);
       }
     };
+    const fetchVendors = async () => {
+      try {
+        const res = await fetch(`/api/vendors/list`);
+        const data = await res.json();
+        const names = (data.vendors || [])
+          .map((v: any) => v.vendorName || v.name || '')
+          .filter((n: string) => n.length > 0);
+        setGlobalVendors(names);
+      } catch (err) {
+        console.error('Error fetching vendors for dropdown:', err);
+      }
+    };
     fetchUsers();
     fetchClients();
+    fetchVendors();
   }, [isOpen]);
 
   // Sync formData when productInfo changes (and reset transient upload state)
@@ -436,8 +451,8 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
     onClose();
   };
 
-  // Use linked vendors from vendor network, fallback to empty
-  const vendorOptions = linkedVendors && linkedVendors.length > 0 ? linkedVendors : [];
+  // Vendor dropdown shows all global vendors merged with any already linked to this product.
+  const vendorOptions = Array.from(new Set([...(linkedVendors || []), ...globalVendors]));
 
   return (
     <AnimatePresence>
@@ -539,18 +554,36 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                   <p className="text-[10px] text-blue-500 mt-1 font-medium">Linked to Customers module</p>
                 </div>
 
-                {/* Vendor Dropdown - only linked vendors */}
+                {/* Vendor Dropdown - all global vendors + any linked */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">Vendor</label>
                   <DrawerDropdown
                     value={formData.vendor}
                     onChange={(v) => setFormData({ ...formData, vendor: v })}
                     options={vendorOptions}
-                    placeholder={vendorOptions.length === 0 ? "No vendors linked — add in Vendor Network" : "Select a vendor"}
+                    placeholder={vendorOptions.length === 0 ? "No vendors available" : "Select a vendor"}
                   />
-                  <p className="text-[10px] text-blue-500 mt-1 font-medium">
-                    {vendorOptions.length > 0 ? `${vendorOptions.length} vendor${vendorOptions.length > 1 ? 's' : ''} linked` : 'Link vendors in Vendor Network tab'}
-                  </p>
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p className="text-[10px] text-blue-500 font-medium">
+                      {linkedVendors && linkedVendors.length > 0
+                        ? `${linkedVendors.length} linked · ${vendorOptions.length} available`
+                        : 'Link a vendor to this product for full pricing & contact info'}
+                    </p>
+                    {onOpenLinkVendor && (
+                      <button
+                        type="button"
+                        onClick={() => { onOpenLinkVendor(); onClose(); }}
+                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                          vendorOptions.length === 0
+                            ? 'bg-slate-900 text-white hover:bg-slate-800'
+                            : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                        }`}
+                      >
+                        <Plus className="w-3 h-3" />
+                        Link Vendor
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Status Dropdown */}
@@ -676,6 +709,55 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                     sizes={formData.sizeVariants || []}
                     onChange={(sizes) => setFormData({ ...formData, sizeVariants: sizes })}
                   />
+                </div>
+
+                {/* Competitor Analysis */}
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Competitor Analysis</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Competitor Name</label>
+                      <input
+                        type="text"
+                        value={formData.competitorName || ''}
+                        onChange={(e) => setFormData({ ...formData, competitorName: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                        placeholder="Enter competitor name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Competitor Link</label>
+                      <div className="relative">
+                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input
+                          type="url"
+                          value={formData.competitorLink || ''}
+                          onChange={(e) => setFormData({ ...formData, competitorLink: e.target.value })}
+                          className="w-full pl-8 pr-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                          placeholder="competitor.com/product"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Competitor Price</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={formData.competitorPrice || ''}
+                          onChange={(e) => setFormData({ ...formData, competitorPrice: e.target.value })}
+                          className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                          placeholder="9.99"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Art Template Section */}

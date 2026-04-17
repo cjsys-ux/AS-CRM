@@ -57,8 +57,15 @@ export function LinkVendorDrawer({ isOpen, onClose, productId, existingVendorIds
     try {
       const res = await fetch(`/api/vendors/list`);
       const data = await res.json();
-      if (data.success && data.vendors) {
-        setVendors(data.vendors);
+      if (data.vendors) {
+        // The API exposes vendor display name as `vendorName`; normalize to `name`
+        // so the rest of the component (search, render, link payload) keeps working.
+        setVendors(
+          data.vendors.map((v: any) => ({
+            ...v,
+            name: v.name || v.vendorName || '',
+          }))
+        );
       }
     } catch (err) {
       console.error('Error fetching global vendors:', err);
@@ -95,39 +102,37 @@ export function LinkVendorDrawer({ isOpen, onClose, productId, existingVendorIds
     if (!selectedVendor) return;
     setLinking(true);
     try {
-      const vendorType = resolveVendorType(selectedVendor);
-      const productVendor = {
-        id: selectedVendor.id,
-        name: selectedVendor.name,
-        country: selectedVendor.country || '',
-        contact: {
-          name: resolveContactName(selectedVendor),
-          email: resolveContactEmail(selectedVendor),
-          phone: resolveContactPhone(selectedVendor),
-        },
-        type: vendorType || 'Standalone',
-        platform: 'Direct',
-        priority,
-        moq: 0,
-        pricingTiers: [],
-        linkedFromGlobal: true,
+      const priorityNumber = priority === 'Primary' ? 0 : priority === 'Secondary' ? 1 : 2;
+      const payload: Record<string, unknown> = {
+        productId,
+        vendorName: selectedVendor.name,
         globalVendorId: selectedVendor.id,
-        supportsDropShipping: selectedVendor.supportsDropShipping === true,
+        status: selectedVendor.status ?? 'Active',
+        logo: selectedVendor.logo ?? null,
+        contactName: resolveContactName(selectedVendor),
+        email: resolveContactEmail(selectedVendor),
+        phone: resolveContactPhone(selectedVendor),
+        vendorType: resolveVendorType(selectedVendor) || 'Distributor',
+        accountType: selectedVendor.accountType ?? 'Standalone',
+        website: selectedVendor.website ?? null,
+        country: selectedVendor.country ?? null,
+        priority: priorityNumber,
+        pricingTiers: [],
       };
 
-      const res = await fetch(`/api/pipeline/vendors/link`, {
+      const res = await fetch(`/api/pipeline/vendors/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...productVendor, productId }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.success) {
+      if (res.ok) {
         onVendorLinked?.();
         onClose();
       } else {
-        console.error('Error linking vendor:', data.error);
+        const data = await res.json().catch(() => ({}));
+        console.error('Error linking vendor:', data.error || res.statusText);
       }
     } catch (err) {
       console.error('Error linking vendor:', err);

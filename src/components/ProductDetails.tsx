@@ -575,8 +575,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 </div>
 
                 {/* Competitor Analysis */}
-                {(productInfo.competitorName || productInfo.competitorLink || productInfo.competitorPrice) && (
-                  <div className="mt-4 pt-4 border-t border-slate-200">
+                <div className="mt-4 pt-4 border-t border-slate-200">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -613,7 +612,6 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       </div>
                     </div>
                   </div>
-                )}
               </div>
             </div>
           </div>
@@ -947,6 +945,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
         onSave={handleSaveProductInfo}
         linkedVendors={productVendors.map(v => v.name)}
         checklistProgress={checklistProgress}
+        onOpenLinkVendor={() => {
+          setIsEditProductInfoDrawerOpen(false);
+          setIsAddVendorDrawerOpen(true);
+        }}
       />
 
       {/* Unlink Vendor Confirmation */}
