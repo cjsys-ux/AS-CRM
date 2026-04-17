@@ -663,12 +663,12 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 <div className="space-y-6">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="text-lg sm:text-2xl font-bold text-slate-900">Vendor Network</h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Drag to reorder priority</p>
+                      <h2 className="text-sm sm:text-lg font-bold text-slate-900">Vendor Network</h2>
+                      <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">Drag to reorder priority</p>
                     </div>
                     <motion.button
                       whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium rounded-xl transition-all shadow-lg shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-lg transition-all shadow-lg shrink-0"
                       onClick={() => setIsAddVendorDrawerOpen(true)}
                     >
                       <Plus className="w-4 h-4" />
@@ -743,7 +743,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                               <motion.div
                                 whileHover={{ scale: 1.005 }}
                                 onClick={() => setExpandedVendor(expandedVendor === vendor.id ? null : vendor.id)}
-                                className={`bg-white rounded-xl border-2 p-3 pt-4 cursor-pointer transition-all ${
+                                className={`bg-white rounded-lg border-2 p-2.5 pt-4 cursor-pointer transition-all ${
                                   dragOverVendorId === vendor.id ? 'border-blue-400 ring-2 ring-blue-200' :
                                   draggedVendorId === vendor.id ? 'opacity-50' :
                                   expandedVendor === vendor.id
@@ -751,7 +751,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                     : 'border-slate-200 hover:border-slate-300 shadow-sm'
                                 }`}
                               >
-                                <div className="flex items-start gap-2 mb-2">
+                                <div className="flex items-center gap-2 mb-1.5">
                                   <div
                                     className="mt-0.5 cursor-grab active:cursor-grabbing shrink-0 p-0.5 rounded hover:bg-slate-100 transition-colors"
                                     draggable
@@ -760,19 +760,19 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                   >
                                     <GripVertical className="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 transition-colors" />
                                   </div>
-                                  <div className="w-7 h-7 bg-gradient-to-br from-slate-700 to-slate-600 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  <div className="w-6 h-6 bg-gradient-to-br from-slate-700 to-slate-600 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {(vendor as any).logo ? (
                                       <img src={(vendor as any).logo} alt="" className="w-full h-full object-contain p-0.5" />
                                     ) : (
-                                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                       </svg>
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-bold text-slate-900 truncate">{vendor.name}</h3>
-                                    <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <h3 className="text-xs font-bold text-slate-900 truncate">{vendor.name}</h3>
+                                    <div className="flex items-center gap-0.5 text-[10px] text-slate-500">
+                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                       </svg>
@@ -781,15 +781,15 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                   </div>
                                 </div>
 
-                                <div className="flex items-center gap-1 flex-wrap mb-2">
+                                <div className="flex items-center gap-1 flex-wrap mb-1.5">
                                   {vendor.type && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                                       {vendor.type}
                                     </span>
                                   )}
                                   {vendor.supportsDropShipping && (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
-                                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                      <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a2 2 0 104 0m-4 0a2 2 0 114 0m-8 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
                                       </svg>
                                       Dropship
@@ -798,9 +798,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                 </div>
 
                                 {vendor.contact?.name && (
-                                  <div className="border-t border-slate-100 pt-2 mb-2">
-                                    <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <div className="border-t border-slate-100 pt-1.5 mb-1.5">
+                                    <div className="flex items-center gap-1 text-[10px] text-slate-600">
+                                      <svg className="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                       </svg>
                                       <span className="font-medium truncate">{vendor.contact.name}</span>
@@ -811,9 +811,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                 <div className="flex items-center gap-1.5 mt-1 border-t border-slate-100 pt-2" onClick={e => e.stopPropagation()}>
                                   <button
                                     onClick={() => setUnlinkConfirm({ open: true, vendorId: vendor.id, vendorName: vendor.name })}
-                                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                    className="w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-2.5 h-2.5" />
                                     Unlink
                                   </button>
                                 </div>
