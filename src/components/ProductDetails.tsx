@@ -691,9 +691,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                       <p className="text-sm text-slate-500">Add your first vendor to start tracking pricing and contact info.</p>
                     </div>
                   ) : (
-                    <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: 'minmax(0,5fr) minmax(0,7fr)' }}>
-                      {/* Left: Vendor Cards */}
-                      <div className="space-y-4">
+                    <div className="space-y-4">
+                      {/* Vendor Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {productVendors.map((vendor, idx) => {
                           const badge = getPriorityBadge(idx);
                           return (
@@ -729,10 +729,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                               onDragEnd={() => { setDraggedVendorId(null); setDragOverVendorId(null); }}
                             >
                               {/* Priority Badge */}
-                              <div className="absolute -top-2 left-3 z-10">
-                                <div className={`${badge.gradient} text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow flex items-center gap-1`}>
+                              <div className="absolute -top-2 left-2.5 z-10">
+                                <div className={`${badge.gradient} text-white px-2 py-0.5 rounded-full text-[9px] font-bold shadow flex items-center gap-0.5`}>
                                   {badge.icon && (
-                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
                                   )}
@@ -741,9 +741,9 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                               </div>
 
                               <motion.div
-                                whileHover={{ scale: 1.01 }}
+                                whileHover={{ scale: 1.005 }}
                                 onClick={() => setExpandedVendor(expandedVendor === vendor.id ? null : vendor.id)}
-                                className={`bg-white rounded-xl border-2 p-3 pt-5 cursor-pointer transition-all ${
+                                className={`bg-white rounded-xl border-2 p-3 pt-4 cursor-pointer transition-all ${
                                   dragOverVendorId === vendor.id ? 'border-blue-400 ring-2 ring-blue-200' :
                                   draggedVendorId === vendor.id ? 'opacity-50' :
                                   expandedVendor === vendor.id
@@ -751,20 +751,20 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                                     : 'border-slate-200 hover:border-slate-300 shadow-sm'
                                 }`}
                               >
-                                <div className="flex items-start gap-2.5 mb-2">
+                                <div className="flex items-start gap-2 mb-2">
                                   <div
                                     className="mt-0.5 cursor-grab active:cursor-grabbing shrink-0 p-0.5 rounded hover:bg-slate-100 transition-colors"
                                     draggable
                                     onDragStart={(e) => { e.stopPropagation(); setDraggedVendorId(vendor.id); }}
                                     onClick={e => e.stopPropagation()}
                                   >
-                                    <GripVertical className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
+                                    <GripVertical className="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 transition-colors" />
                                   </div>
-                                  <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  <div className="w-7 h-7 bg-gradient-to-br from-slate-700 to-slate-600 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {(vendor as any).logo ? (
                                       <img src={(vendor as any).logo} alt="" className="w-full h-full object-contain p-0.5" />
                                     ) : (
-                                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                       </svg>
                                     )}
@@ -823,7 +823,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                         })}
                       </div>
 
-                      {/* Right: Pricing Panel */}
+                      {/* Pricing Panel */}
                       <div>
                         {expandedVendor && productVendors.find(v => v.id === expandedVendor) ? (
                           <div className="flex flex-col gap-0">
@@ -849,7 +849,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             })()}
                           </div>
                         ) : (
-                          <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 flex flex-col items-center justify-center text-center h-full min-h-[500px]">
+                          <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
                             <div className="w-24 h-24 bg-slate-200 rounded-2xl flex items-center justify-center mb-4">
                               <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -857,7 +857,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                             </div>
                             <h3 className="text-xl font-bold text-slate-900 mb-2">Select a Vendor</h3>
                             <p className="text-sm text-slate-500 max-w-sm">
-                              Click on a vendor card on the left to view their detailed pricing breakdown, shipping methods, and lead times
+                              Click on a vendor card above to view pricing breakdown, shipping methods, and lead times
                             </p>
                           </div>
                         )}
