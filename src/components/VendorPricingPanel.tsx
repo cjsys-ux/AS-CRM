@@ -546,17 +546,15 @@ export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: Vendo
                               <span className={`px-2 py-1.5 text-sm font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}>{tier.leadTime}</span>
                             )}
                           </td>
-                          <td className="px-2 py-1.5 w-[36px]">
-                            {(isEditing || hasChanges) && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => removeTier(index)}
-                                className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </motion.button>
-                            )}
+                          <td className="px-2 py-1.5 w-[36px] text-center">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => removeTier(index)}
+                              className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors inline-flex items-center justify-center"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </motion.button>
                           </td>
                         </motion.tr>
                       ))}
