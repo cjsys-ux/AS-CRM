@@ -148,8 +148,8 @@ function SalesDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">REVENUE (MTD)</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$583,000</h3>
-              <div className="flex gap-1 mt-1"><span className="px-1.5 py-0.5 bg-blue-100 text-[#3B82F6] text-[10px] font-bold rounded-full">PPE: $448K</span><span className="px-1.5 py-0.5 bg-emerald-100 text-[#10B981] text-[10px] font-bold rounded-full">Promo: $135K</span></div>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$583,000</h3>
+              <div className="flex gap-1 mt-1 flex-wrap"><span className="px-1.5 py-0.5 bg-blue-100 text-[#3B82F6] text-[10px] font-bold rounded-full">PPE: $448K</span><span className="px-1.5 py-0.5 bg-emerald-100 text-[#10B981] text-[10px] font-bold rounded-full">Promo: $135K</span></div>
               <div className="flex items-center gap-1 mt-1"><ArrowUpRight className="w-3 h-3 text-[#10B981]" /><span className="text-[10px] text-[#10B981] font-semibold">vs $412K last Mar (+41%)</span></div>
             </div>
             <div className="w-10 h-10 bg-[#10B981] rounded-full flex items-center justify-center shrink-0"><DollarSign className="w-4 h-4 text-white" /></div>
@@ -159,7 +159,7 @@ function SalesDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">REVENUE (YTD)</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$1.82M</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$1.82M</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Target: $2.1M | Pacing: 87%</p>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1"><div className="h-full bg-[#10B981] rounded-full" style={{ width: '87%' }} /></div>
               <div className="flex items-center gap-1 mt-1"><ArrowUpRight className="w-3 h-3 text-[#10B981]" /><span className="text-[10px] text-[#10B981] font-semibold">vs $1.34M LY (+36%)</span></div>
@@ -171,7 +171,7 @@ function SalesDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">ACTIVE PIPELINE</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$847,000</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$847,000</h3>
               <p className="text-[11px] text-[#64748B] mt-1">34 active deals</p>
               <p className="text-[10px] text-[#3B82F6] font-semibold mt-0.5">Coverage: 3.2x monthly target</p>
             </div>
@@ -182,7 +182,7 @@ function SalesDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">WON (MTD)</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$318,000</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$318,000</h3>
               <p className="text-[11px] text-[#64748B] mt-1">12 deals closed</p>
               <div className="flex items-center gap-1 mt-0.5"><ArrowUpRight className="w-3 h-3 text-[#10B981]" /><span className="text-[10px] text-[#10B981] font-semibold">vs $245K last Mar (+30%)</span></div>
             </div>
@@ -193,7 +193,7 @@ function SalesDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">AVG DEAL SIZE</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$12,400</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$12,400</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Promo: $8.2K | PPE: $34.5K</p>
               <div className="flex items-center gap-1 mt-0.5"><ArrowUpRight className="w-3 h-3 text-[#10B981]" /><span className="text-[10px] text-[#10B981] font-semibold">vs $9.8K LY (+27%)</span></div>
             </div>
@@ -204,7 +204,7 @@ function SalesDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">WIN RATE (MTD)</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">42%</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">42%</h3>
               <p className="text-[11px] text-[#64748B] mt-1">12 won / 29 decisions</p>
               <div className="flex items-center gap-1 mt-0.5"><ArrowUpRight className="w-3 h-3 text-[#10B981]" /><span className="text-[10px] text-[#10B981] font-semibold">vs 38% last Mar (+4 pts)</span></div>
             </div>
@@ -552,8 +552,8 @@ function OperationsDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">ACTIVE ORDERS</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">34</h3>
-              <div className="flex gap-1 mt-1.5">
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">34</h3>
+              <div className="flex gap-1 mt-1.5 flex-wrap">
                 <span className="px-1.5 py-0.5 bg-emerald-100 text-[#10B981] text-[10px] font-bold rounded-full">Promo: 21</span>
                 <span className="px-1.5 py-0.5 bg-blue-100 text-[#3B82F6] text-[10px] font-bold rounded-full">Amazon: 13</span>
               </div>
@@ -565,7 +565,7 @@ function OperationsDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">IN PRODUCTION</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">18</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">18</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Overseas: 8 | Domestic: 10</p>
               <div className="flex items-center gap-1 mt-0.5"><AlertTriangle className="w-3 h-3 text-[#F59E0B]" /><span className="text-[10px] font-semibold text-[#F59E0B]">3 behind schedule</span></div>
             </div>
@@ -576,7 +576,7 @@ function OperationsDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">IN TRANSIT</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">11</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">11</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Ocean: 4 | Air: 2 | Ground: 5</p>
               <p className="text-[10px] text-[#64748B] mt-0.5">Value: $284,000</p>
             </div>
@@ -587,7 +587,7 @@ function OperationsDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">READY TO SHIP</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">7</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">7</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Warehouse: 4 | Turkana: 3</p>
               <p className="text-[10px] font-semibold text-[#10B981] mt-0.5">2 shipping today</p>
             </div>
@@ -598,7 +598,7 @@ function OperationsDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">WAREHOUSE CAPACITY</p>
-              <h3 className="text-[24px] font-bold text-[#F59E0B]">68%</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#F59E0B]">68%</h3>
               <p className="text-[11px] text-[#64748B] mt-1">2,040 / 3,000 sq ft</p>
               <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1"><div className="h-full bg-[#F59E0B] rounded-full" style={{ width: '68%' }} /></div>
             </div>
@@ -609,7 +609,7 @@ function OperationsDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">SHIPMENTS THIS WEEK</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">12</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">12</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Completed: 8 | Pending: 4</p>
               <p className="text-[10px] text-[#10B981] font-semibold mt-0.5">On-time: 91%</p>
             </div>
@@ -969,8 +969,8 @@ function CustomerServiceDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">OPEN TICKETS</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">14</h3>
-              <div className="flex gap-1.5 mt-1.5">
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">14</h3>
+              <div className="flex gap-1.5 mt-1.5 flex-wrap">
                 <span className="px-2 py-0.5 bg-emerald-100 text-[#10B981] text-[11px] font-bold rounded-full">Promo: 9</span>
                 <span className="px-2 py-0.5 bg-blue-100 text-[#3B82F6] text-[11px] font-bold rounded-full">Amazon: 5</span>
               </div>
@@ -985,7 +985,7 @@ function CustomerServiceDashboard({ data: _data }: { data: any }) {
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">URGENT ISSUES</p>
               <div className="flex items-center gap-2">
-                <h3 className="text-[24px] font-bold text-[#EF4444]">3</h3>
+                <h3 className="text-[18px] md:text-[24px] font-bold text-[#EF4444]">3</h3>
                 <span className="relative flex h-2.5 w-2.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#EF4444]"></span></span>
               </div>
               <p className="text-[11px] text-[#64748B] mt-1 leading-tight">1 Amazon DC complaint • 1 misprint • 1 lost shipment</p>
@@ -998,7 +998,7 @@ function CustomerServiceDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">AVG RESOLUTION TIME</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">2.4 days</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">2.4 days</h3>
               <div className="flex items-center gap-1 mt-1"><TrendingDown className="w-3.5 h-3.5 text-[#10B981]" /><span className="text-[12px] font-semibold text-[#10B981]">Improved from 3.1 days</span></div>
             </div>
             <div className="w-11 h-11 bg-[#10B981] rounded-full flex items-center justify-center shrink-0"><Clock className="w-5 h-5 text-white" /></div>
@@ -1009,7 +1009,7 @@ function CustomerServiceDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">RESOLVED THIS WEEK</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">8</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">8</h3>
               <p className="text-[12px] text-[#64748B] mt-1">Promo: 5 | Amazon: 3</p>
               <div className="mt-1.5">
                 <div className="flex justify-between text-[10px] text-[#64748B] mb-0.5"><span>8 of 12 target</span><span>67%</span></div>
@@ -1024,7 +1024,7 @@ function CustomerServiceDashboard({ data: _data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">SLA COMPLIANCE (MTD)</p>
-              <h3 className="text-[24px] font-bold text-[#F59E0B]">87%</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#F59E0B]">87%</h3>
               <p className="text-[11px] text-[#64748B] mt-1">Target: 95% — 2 tickets breached SLA</p>
             </div>
             <div className="w-11 h-11 bg-[#F59E0B] rounded-full flex items-center justify-center shrink-0"><Shield className="w-5 h-5 text-white" /></div>
@@ -1330,7 +1330,7 @@ function FinanceDashboard({ data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">CASH BALANCE</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$142,350</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$142,350</h3>
               <div className="flex items-center gap-1 mt-1"><TrendingUp className="w-3.5 h-3.5 text-[#10B981]" /><span className="text-[12px] font-semibold text-[#10B981]">+$18,200 vs last week</span></div>
             </div>
             <div className="w-11 h-11 bg-[#10B981] rounded-full flex items-center justify-center shrink-0"><Landmark className="w-5 h-5 text-white" /></div>
@@ -1341,7 +1341,7 @@ function FinanceDashboard({ data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">TOTAL AR OUTSTANDING</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$487,200</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$487,200</h3>
               <p className="text-[12px] text-[#64748B] mt-1">IPF/Amazon: $412,000 | Promo: $75,200</p>
             </div>
             <div className="w-11 h-11 bg-[#3B82F6] rounded-full flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-white" /></div>
@@ -1352,7 +1352,7 @@ function FinanceDashboard({ data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">AP DUE NEXT 30 DAYS</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$215,800</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$215,800</h3>
               <p className="text-[12px] text-[#F59E0B] font-semibold mt-1">Due this week: $68,400</p>
             </div>
             <div className="w-11 h-11 bg-[#F59E0B] rounded-full flex items-center justify-center shrink-0"><Calendar className="w-5 h-5 text-white" /></div>
@@ -1363,7 +1363,7 @@ function FinanceDashboard({ data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">REVENUE (MTD)</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$583,000</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$583,000</h3>
               <div className="flex gap-1.5 mt-1.5">
                 <span className="px-2 py-0.5 bg-blue-100 text-[#3B82F6] text-[11px] font-bold rounded-full">PPE $448K</span>
                 <span className="px-2 py-0.5 bg-emerald-100 text-[#10B981] text-[11px] font-bold rounded-full">Promo $135K</span>
@@ -1377,7 +1377,7 @@ function FinanceDashboard({ data }: { data: any }) {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-[12px] font-semibold text-[#64748B] uppercase tracking-[0.5px] mb-1">30-DAY CASH FORECAST</p>
-              <h3 className="text-[24px] font-bold text-[#1E293B]">$94,750</h3>
+              <h3 className="text-[18px] md:text-[24px] font-bold text-[#1E293B]">$94,750</h3>
               <p className="text-[12px] text-[#10B981] font-semibold mt-1">Sufficient runway</p>
             </div>
             <div className="w-11 h-11 bg-[#8B5CF6] rounded-full flex items-center justify-center shrink-0"><Eye className="w-5 h-5 text-white" /></div>
@@ -1632,8 +1632,8 @@ function FinanceDashboard({ data }: { data: any }) {
 }
 
 // ─── Main Dashboard Export ───
-export function Dashboard() {
-  const [department, setDepartment] = useState<Department>('Executive');
+export function Dashboard({ initialDepartment }: { initialDepartment?: Department } = {}) {
+  const [department, setDepartment] = useState<Department>(initialDepartment || 'Executive');
   const [data, setData] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -1765,12 +1765,12 @@ export function Dashboard() {
   const DeptIcon = currentDept.icon;
 
   return (
-    <div className="flex-1 p-8">
+    <div className="flex-1 p-4 md:p-8">
       <div className="max-w-[1800px] mx-auto">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 mb-1">Command Center</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">Command Center</h2>
             <p className="text-slate-500 text-sm">Real-time overview of your operations</p>
           </div>
           <div className="flex items-center gap-3">
