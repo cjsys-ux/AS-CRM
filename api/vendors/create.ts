@@ -11,6 +11,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logoKey,
     status,
     contactName,
+    firstName,
+    lastName,
     email,
     phone,
     wechatId,
@@ -24,6 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     fobState,
     productsSupplied,
     notes,
+    supportsDropShipping,
+    addresses,
+    contacts,
+    documents,
   } = req.body ?? {};
 
   if (!vendorName) {
@@ -38,6 +44,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logoKey: logoKey ?? null,
       status: status ?? 'Active',
       contactName: contactName ?? null,
+      firstName: firstName ?? null,
+      lastName: lastName ?? null,
       email: email ?? null,
       phone: phone ?? null,
       wechatId: wechatId ?? null,
@@ -51,6 +59,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fobState: fobState ?? null,
       productsSupplied: productsSupplied ?? [],
       notes: notes ?? null,
+      supportsDropShipping: supportsDropShipping ?? true,
+      addresses: addresses ?? [],
+      contacts: contacts ?? [],
+      documents: documents ?? [],
       createdAt: new Date(),
     };
 

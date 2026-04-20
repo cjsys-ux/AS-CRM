@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Building2, Search, Check } from 'lucide-react';
+import { X, Building2, Search, Check, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface Vendor {
@@ -19,22 +19,25 @@ interface VendorSelectorProps {
 export function VendorSelector({ isOpen, onClose, selectedVendor, onSelectVendor }: VendorSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
+    setLoading(true);
     fetch('/api/vendors/list')
       .then((r) => r.json())
       .then((data) => {
         setVendors(
           (data.vendors ?? []).map((v: any) => ({
             id: v.id,
-            name: v.vendorName,
-            type: v.vendorType ?? 'Vendor',
-            priority: '1st Choice',
+            name: v.name ?? v.vendorName,
+            type: v.type ?? v.vendorType ?? 'Vendor',
+            priority: v.priority ?? '1st Choice',
           }))
         );
       })
-      .catch(() => setVendors([]));
+      .catch(() => setVendors([]))
+      .finally(() => setLoading(false));
   }, [isOpen]);
 
   const filteredVendors = vendors.filter(vendor =>
@@ -109,7 +112,14 @@ export function VendorSelector({ isOpen, onClose, selectedVendor, onSelectVendor
           {/* Vendors List */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-2">
-              {filteredVendors.map((vendor) => {
+              {loading && (
+                <div className="text-center py-12">
+                  <Loader2 className="w-16 h-16 text-slate-300 mx-auto mb-3 animate-spin" />
+                  <p className="text-slate-600 font-medium">Loading vendors...</p>
+                </div>
+              )}
+
+              {!loading && filteredVendors.map((vendor) => {
                 const isSelected = vendor.name === selectedVendor;
                 
                 return (
@@ -160,7 +170,7 @@ export function VendorSelector({ isOpen, onClose, selectedVendor, onSelectVendor
                 );
               })}
 
-              {filteredVendors.length === 0 && (
+              {!loading && filteredVendors.length === 0 && (
                 <div className="text-center py-12">
                   <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-600 font-medium">No vendors found</p>

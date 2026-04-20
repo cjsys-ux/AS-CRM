@@ -3,9 +3,11 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
 
 const ALLOWED_FIELDS = [
-  'vendorName', 'logoKey', 'status', 'contactName', 'email', 'phone',
-  'wechatId', 'vendorType', 'accountType', 'website', 'paymentTerms',
-  'accountNumber', 'country', 'fobCity', 'fobState', 'productsSupplied', 'notes',
+  'vendorName', 'logoKey', 'status', 'contactName', 'firstName', 'lastName',
+  'email', 'phone', 'wechatId', 'vendorType', 'accountType', 'website',
+  'paymentTerms', 'accountNumber', 'country', 'fobCity', 'fobState',
+  'productsSupplied', 'notes', 'supportsDropShipping',
+  'addresses', 'contacts', 'documents',
 ];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
