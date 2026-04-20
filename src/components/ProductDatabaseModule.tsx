@@ -1,21 +1,153 @@
-import { motion, AnimatePresence } from 'motion/react';
-import { Package, Plus, Search, Filter, Download, TrendingUp, DollarSign, Box, ChevronLeft, ChevronRight, Eye, Edit, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { motion } from 'motion/react';
+import { Package, Plus, Search, Filter, Eye, Edit, Trash2, TrendingUp, DollarSign, Box, ArrowUpDown, X, RefreshCw, Truck, Shirt, Paintbrush, Megaphone, Factory, XCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { AddProductDatabaseDrawer } from './AddProductDatabaseDrawer';
+import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ProductDetailView } from './ProductDetailView';
+import { toast } from 'sonner';
+import { ColumnVisibilityDropdown, ColumnDef } from './ColumnVisibilityDropdown';
+import { ImagePopupModal } from './ImagePopupModal';
 
-const productsData = [];
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Active':
+      return 'bg-green-100 text-green-700 border-green-200';
+    case 'Low Stock':
+      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Out of Stock':
+      return 'bg-red-100 text-red-700 border-red-200';
+    case 'Live':
+      return 'bg-green-100 text-green-700 border-green-200';
+    case 'Discontinued':
+      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'Coming Soon':
+      return 'bg-blue-100 text-blue-700 border-blue-200';
+    default:
+      return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+};
+
+const getCategoryBadgeColor = (category: string) => {
+  switch (category) {
+    case 'Apparel': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'Drinkware': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'Office Supplies': return 'bg-orange-100 text-orange-700 border-orange-200';
+    case 'Bags': return 'bg-pink-100 text-pink-700 border-pink-200';
+    case 'Tech Accessories': return 'bg-cyan-100 text-cyan-700 border-cyan-200';
+    case 'Safety Equipment': return 'bg-red-100 text-red-700 border-red-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+};
 
 export function ProductDatabaseModule() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
-  const [deleteModal, setDeleteModal] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [viewingProduct, setViewingProduct] = useState<any>(null);
-  const itemsPerPage = 10;
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImageName, setPreviewImageName] = useState<string>('');
+  const productColumns: ColumnDef[] = [
+    { key: 'image', label: 'Image' },
+    { key: 'product', label: 'Product' },
+    { key: 'category', label: 'Category' },
+    { key: 'pricing', label: 'Pricing' },
+    { key: 'margin', label: 'Margin' },
+    { key: 'minOrder', label: 'Min Order' },
+    { key: 'leadTime', label: 'Lead Time' },
+    { key: 'status', label: 'Status' },
+    { key: 'created', label: 'Created' },
+    { key: 'actions', label: 'Actions' },
+  ];
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    productColumns.forEach(c => { init[c.key] = true; });
+    return init;
+  });
+  const isColVisible = (key: string) => columnVisibility[key] !== false;
+  const visibleColCount = productColumns.filter(c => isColVisible(c.key)).length;
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      // Pull product-database rows from the dedicated collection and merge in
+      // any "live" pipeline specs so the catalog tab shows both.
+      const [dbRes, pipelineRes] = await Promise.all([
+        fetch('/api/productdb/list'),
+        fetch('/api/products/list'),
+      ]);
+      if (!dbRes.ok) throw new Error('Failed to fetch');
+      const dbData = await dbRes.json();
+      const dbProducts = (dbData.products || []).filter((p: any) => p && p.name);
+
+      let liveProducts: any[] = [];
+      if (pipelineRes.ok) {
+        const pipelineData = await pipelineRes.json();
+        liveProducts = (pipelineData.products || [])
+          .filter((p: any) => p?.source === 'pipeline' && (p.name || p.id))
+          .map((p: any) => ({ ...p, _source: 'pipeline', status: 'Active' }));
+      }
+      setProducts([...dbProducts, ...liveProducts]);
+    } catch (error) {
+      console.error('Error fetching product database:', error);
+      toast.error('Error loading products');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // ESC key to close image preview
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewImage) {
+        setPreviewImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [previewImage]);
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    // Only delete productdb entries, not pipeline entries
+    if (productToDelete._source === 'pipeline') {
+      toast.error('Pipeline products cannot be deleted from Product Database');
+      setDeleteModalOpen(false);
+      setProductToDelete(null);
+      return;
+    }
+    try {
+      const response = await fetch('/api/productdb/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: productToDelete.id }),
+      });
+      if (response.ok) {
+        toast.success('Product deleted successfully');
+        setDeleteModalOpen(false);
+        setProductToDelete(null);
+        fetchProducts();
+      } else {
+        toast.error('Failed to delete product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Error deleting product');
+    }
+  };
 
   // If viewing a product, show the detail view
   if (viewingProduct) {
@@ -24,449 +156,449 @@ export function ProductDatabaseModule() {
         product={viewingProduct}
         onBack={() => setViewingProduct(null)}
         onSave={() => {
-          setViewingProduct(null);
-          // TODO: Add save logic
+          // Don't navigate away — let user verify save persisted
+          // Refetch in background to keep list data fresh
+          fetchProducts();
         }}
       />
     );
   }
 
-  const filteredProducts = productsData.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterCategory === 'all' || product.category === filterCategory;
-    return matchesSearch && matchesFilter;
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = (product.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (product.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (product.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (product.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || product.status === selectedStatus;
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(filteredProducts.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'Active': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'Low Stock': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-      case 'Out of Stock': return 'bg-red-500/10 text-red-600 border-red-500/20';
-      default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleRowsPerPageChange = (value: number) => {
+    setRowsPerPage(value);
+    setCurrentPage(1);
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
   };
 
-  const getCategoryBadgeColor = (category: string) => {
-    switch (category) {
-      case 'Apparel': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'Drinkware': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'Office Supplies': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-      case 'Bags': return 'bg-pink-500/10 text-pink-600 border-pink-500/20';
-      case 'Tech Accessories': return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20';
-      default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
-    }
-  };
+  // Calculate KPIs
+  const totalProductsCount = products.length;
+  const activeProducts = products.filter(p => p.status === 'Active' || p.status === 'Live').length;
+  const inactiveProducts = products.filter(p => p.status === 'Inactive' || p.status === 'Discontinued').length;
+  const productDistributors = products.filter(p => p.vendorType === 'Product Distributor').length;
+  const apparelDistributors = products.filter(p => p.vendorType === 'Apparel Distributor').length;
+  const decorators = products.filter(p => p.vendorType === 'Decorator').length;
+  const promoDistributors = products.filter(p => p.vendorType === 'Promo Supplier' || p.vendorType === 'Promo Distributor').length;
+  const productManufacturers = products.filter(p => p.vendorType === 'Product Manufacturer').length;
 
-  const totalProducts = productsData.length;
-  const activeProducts = productsData.filter(p => p.status === 'Active').length;
-  const lowStockProducts = productsData.filter(p => p.status === 'Low Stock').length;
-  const totalInventoryValue = productsData.reduce((sum, p) => {
-    const price = parseFloat(p.basePrice.replace('$', ''));
-    return sum + (price * p.inStock);
-  }, 0);
+  const activeFilters = (selectedStatus !== 'all' ? 1 : 0) + (selectedCategory !== 'all' ? 1 : 0);
+
+  // Gather unique categories from data
+  const allCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
-      {/* Header Section */}
-      {/* ui-qa-fixer: UI-2026-019 - responsive padding + flex-wrap for mobile header */}
-      <div className="bg-gradient-to-r from-cyan-500 to-blue-600 px-4 md:px-8 py-12 shadow-lg">
+    <>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header Section - matches Customers */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <Package className="w-8 h-8 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">Product Database</h1>
-                <p className="text-cyan-100 text-sm">Internal Products Available for Sale</p>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Product Database</h1>
+                <p className="text-xs text-slate-500">Internal Products Available for Sale</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
               onClick={() => {
                 setEditingProduct(null);
                 setIsDrawerOpen(true);
               }}
-              className="flex items-center gap-2 px-8 py-4 bg-white text-cyan-600 font-bold rounded-2xl shadow-2xl hover:shadow-xl transition-all"
             >
-              <Plus className="w-5 h-5" />
-              Add Product
+              <Plus className="w-4 h-4" />
+              New Product
             </motion.button>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      {/* ui-qa-fixer: UI-2026-019 - responsive padding */}
-      <div className="px-4 md:px-8 -mt-6 mb-6">
+      {/* KPI Strip - compact inline */}
+      <div className="px-6 mt-4 mb-4 relative z-10">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <Package className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="text-sm text-slate-500 mb-1">Total Products</div>
-              <div className="text-2xl font-bold text-slate-900">{totalProducts}</div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                  <Box className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="text-sm text-slate-500 mb-1">Active Products</div>
-              <div className="text-2xl font-bold text-slate-900">{activeProducts}</div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="text-sm text-slate-500 mb-1">Low Stock Items</div>
-              <div className="text-2xl font-bold text-slate-900">{lowStockProducts}</div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="text-sm text-slate-500 mb-1">Inventory Value</div>
-              <div className="text-2xl font-bold text-slate-900">${totalInventoryValue.toLocaleString()}</div>
-            </motion.div>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-3">
+            <div className="flex items-center divide-x divide-slate-200 overflow-x-auto">
+              {[
+                { label: 'Total Products', value: totalProductsCount, icon: Package, color: 'bg-cyan-500' },
+                { label: 'Active', value: activeProducts, icon: Box, color: 'bg-green-500' },
+                { label: 'Inactive', value: inactiveProducts, icon: XCircle, color: 'bg-slate-400' },
+                { label: 'Product Dist.', value: productDistributors, icon: Truck, color: 'bg-indigo-500' },
+                { label: 'Apparel Dist.', value: apparelDistributors, icon: Shirt, color: 'bg-purple-500' },
+                { label: 'Decorator', value: decorators, icon: Paintbrush, color: 'bg-pink-500' },
+                { label: 'Promo Dist.', value: promoDistributors, icon: Megaphone, color: 'bg-orange-500' },
+                { label: 'Manufacturer', value: productManufacturers, icon: Factory, color: 'bg-teal-500' },
+              ].map((kpi, idx) => (
+                <motion.div
+                  key={kpi.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="flex items-center gap-2.5 px-4 py-1 first:pl-1 whitespace-nowrap"
+                >
+                  <div className={`w-8 h-8 ${kpi.color} rounded-lg flex items-center justify-center shrink-0`}>
+                    <kpi.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-slate-400 leading-tight">{kpi.label}</p>
+                    <p className="text-lg font-bold text-slate-900 leading-tight">{kpi.value}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      {/* ui-qa-fixer: UI-2026-019 - responsive padding */}
-      <div className="px-4 md:px-8 mb-6">
+      {/* Filters and Search - matches Customers */}
+      <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search products by name, SKU, or description..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={fetchProducts}
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                title="Refresh"
               >
-                <Filter className="w-5 h-5" />
-                Filters
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Export
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
-            {/* Filter Options */}
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
+            {/* Filters Row */}
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                <Filter className="w-4 h-4" />
+                Filters
+                {activeFilters > 0 && (
+                  <span className="w-5 h-5 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilters}</span>
+                )}
+              </div>
+
+              <select
+                value={selectedStatus}
+                onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              >
+                <option value="all">Status: All</option>
+                <option value="Active">Active</option>
+                <option value="Live">Live</option>
+                <option value="Low Stock">Low Stock</option>
+                <option value="Out of Stock">Out of Stock</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Discontinued">Discontinued</option>
+                <option value="Coming Soon">Coming Soon</option>
+              </select>
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              >
+                <option value="all">Category: All</option>
+                {allCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              {activeFilters > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setSelectedStatus('all'); setSelectedCategory('all'); setCurrentPage(1); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                 >
-                  <div className="pt-4 mt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-slate-700">Category:</span>
-                      <div className="flex gap-2 flex-wrap">
-                        {['all', 'Apparel', 'Drinkware', 'Office Supplies', 'Bags', 'Tech Accessories'].map((category) => (
-                          <button
-                            key={category}
-                            onClick={() => setFilterCategory(category)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                              filterCategory === category
-                                ? 'bg-cyan-600 text-white shadow-sm'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {category === 'all' ? 'All' : category}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                  <X className="w-3.5 h-3.5" />
+                  Clear
+                </motion.button>
               )}
-            </AnimatePresence>
+
+              <div className="ml-auto">
+                <ColumnVisibilityDropdown
+                  columns={productColumns}
+                  visibleColumns={columnVisibility}
+                  onChange={setColumnVisibility}
+                  accentColor="blue"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Products Table */}
-      {/* ui-qa-fixer: UI-2026-019 - responsive padding */}
-      <div className="flex-1 px-4 md:px-8 pb-8 overflow-auto">
+      {/* Scrollable Table Area - matches Customers */}
+      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1600px]">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Product</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Pricing</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Margin</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Min Order</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Lead Time</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Stock</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+              <table className="w-full">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    {isColVisible('image') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider">
+                      Image
+                    </th>}
+                    {isColVisible('product') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider">
+                      Product
+                    </th>}
+                    {isColVisible('category') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('category')}
+                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                      >
+                        Category
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('pricing') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider">
+                      Pricing
+                    </th>}
+                    {isColVisible('margin') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('margin')}
+                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                      >
+                        Margin
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('minOrder') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider whitespace-nowrap">
+                      Min Order
+                    </th>}
+                    {isColVisible('leadTime') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider whitespace-nowrap">
+                      Lead Time
+                    </th>}
+                    {isColVisible('status') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                      <button
+                        onClick={() => handleSort('status')}
+                        className="flex items-center gap-2 whitespace-nowrap hover:text-blue-600 transition-colors"
+                      >
+                        Status
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('created') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider">
+                      Created
+                    </th>}
+                    {isColVisible('actions') && <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 tracking-wider">
+                      Actions
+                    </th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {paginatedProducts.map((product, index) => (
-                    <motion.tr
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="hover:bg-slate-50/50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <Package className="w-6 h-6 text-white" />
-                          </div>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={visibleColCount} className="px-6 py-16 text-center">
+                        <RefreshCw className="w-8 h-8 text-cyan-500 animate-spin mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">Loading products...</p>
+                      </td>
+                    </tr>
+                  ) : paginatedProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={visibleColCount} className="px-6 py-16 text-center">
+                        <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium text-lg mb-1">No products found</p>
+                        <p className="text-slate-400 text-sm">Add your first product to get started</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedProducts.map((product, index) => (
+                      <motion.tr
+                        key={product.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group"
+                      >
+                        {isColVisible('image') && <td className="px-3 py-3">
+                          {product.image ? (
+                            <div 
+                              className="w-14 h-10 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm bg-white cursor-pointer hover:border-blue-400 transition-colors"
+                              onClick={() => {
+                                setPreviewImage(product.image);
+                                setPreviewImageName(product.name);
+                              }}
+                            >
+                              <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+                            </div>
+                          ) : (
+                            <div className="w-14 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                              <Package className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                        </td>}
+                        {isColVisible('product') && <td className="px-3 py-3 whitespace-nowrap">
                           <div>
                             <div className="font-semibold text-slate-900">{product.name}</div>
-                            <div className="text-sm text-slate-500">{product.sku}</div>
+                            <div className="text-xs text-slate-500">{product.sku || product.id}</div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getCategoryBadgeColor(product.category)}`}>
-                          {product.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <div className="text-slate-900 font-medium">Base: {product.basePrice}</div>
-                          <div className="text-slate-500">Retail: {product.retailPrice}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <TrendingUp className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-semibold text-green-600">{product.margin}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-700">{product.minOrder} units</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600">{product.leadTime}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <div className="font-semibold text-slate-900">{product.inStock.toLocaleString()}</div>
-                          <div className="text-xs text-slate-500">units</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusBadgeColor(product.status)}`}>
-                          {product.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setViewingProduct(product);
-                              setIsDrawerOpen(true);
-                            }}
-                            className="p-2 text-slate-600 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-all"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setEditingProduct(product);
-                              setIsDrawerOpen(true);
-                            }}
-                            className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setDeleteModal(true)}
-                            className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </motion.button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
+                        </td>}
+                        {isColVisible('category') && <td className="px-3 py-3 whitespace-nowrap">
+                          {product.category ? (
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getCategoryBadgeColor(product.category)}`}>
+                              {product.category}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-slate-400">—</span>
+                          )}
+                        </td>}
+                        {isColVisible('pricing') && <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="text-sm">
+                            <div className="text-slate-900 font-medium">{product.basePrice || '—'}</div>
+                          </div>
+                        </td>}
+                        {isColVisible('margin') && <td className="px-3 py-3 whitespace-nowrap">
+                          {product.margin ? (
+                            <div className="flex items-center gap-1.5">
+                              <TrendingUp className="w-3.5 h-3.5 text-green-600" />
+                              <span className="text-sm font-semibold text-green-600">{product.margin}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-400">—</span>
+                          )}
+                        </td>}
+                        {isColVisible('minOrder') && <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="text-sm text-slate-700">{product.minOrder ? `${product.minOrder} units` : '—'}</span>
+                        </td>}
+                        {isColVisible('leadTime') && <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="text-sm text-slate-700">{product.leadTime || '—'}</span>
+                        </td>}
+                        {isColVisible('status') && <td className="px-3 py-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(product.status)}`}>
+                            {product.status}
+                          </span>
+                        </td>}
+                        {isColVisible('created') && <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="text-sm text-slate-500">{product.createdAt ? new Date(product.createdAt).toLocaleDateString() : '—'}</span>
+                        </td>}
+                        {isColVisible('actions') && <td className="px-3 py-3">
+                          <div className="flex items-center gap-1">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                              onClick={() => setViewingProduct(product)}
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              onClick={() => {
+                                setEditingProduct(product);
+                                setIsDrawerOpen(true);
+                              }}
+                              title="Edit Product"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              onClick={() => {
+                                setProductToDelete(product);
+                                setDeleteModalOpen(true);
+                              }}
+                              title="Delete Product"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+                        </td>}
+                      </motion.tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Pagination */}
-      <div className="px-8 pb-8">
-        <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
+            {/* Pagination - inside table card, matches Customers */}
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
               <div className="text-sm text-slate-600">
-                Showing <span className="font-semibold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                <span className="font-semibold text-slate-900">{Math.min(currentPage * itemsPerPage, filteredProducts.length)}</span> of{' '}
-                <span className="font-semibold text-slate-900">{filteredProducts.length}</span> products
+                Page {currentPage} of {Math.max(1, totalPages)} · Showing {filteredProducts.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, filteredProducts.length)} of {filteredProducts.length}
               </div>
               <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                <span className="text-sm text-slate-600">Rows per page:</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <ChevronLeft className="w-5 h-5 text-slate-600" />
-                </motion.button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <motion.button
-                    key={page}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      currentPage === page
-                        ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <div className="flex gap-1 ml-4">
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   >
-                    {page}
-                  </motion.button>
-                ))}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 text-slate-600" />
-                </motion.button>
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage >= Math.max(1, totalPages)}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  >
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Delete Modal */}
-      <AnimatePresence>
-        {deleteModal && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDeleteModal(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            />
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-              >
-                <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                      <Trash2 className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Delete Product</h3>
-                      <p className="text-sm text-red-100">This action cannot be undone</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <p className="text-slate-700">
-                    Are you sure you want to delete this product? All associated information will be permanently removed.
-                  </p>
-                </div>
-                <div className="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-slate-200">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setDeleteModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setDeleteModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
-                  >
-                    Delete Product
-                  </motion.button>
-                </div>
-              </motion.div>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Add/Edit Product Drawer */}
       <AddProductDatabaseDrawer
@@ -474,10 +606,31 @@ export function ProductDatabaseModule() {
         onClose={() => {
           setIsDrawerOpen(false);
           setEditingProduct(null);
-          setViewingProduct(null);
         }}
-        productData={editingProduct || viewingProduct}
+        productData={editingProduct}
+        onSuccess={fetchProducts}
+      />
+
+      {/* Delete Confirm Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setProductToDelete(null);
+        }}
+        onConfirm={handleDeleteProduct}
+        itemName={productToDelete?.name || ''}
+        itemType="product"
+      />
+
+      {/* Image Preview Modal */}
+      <ImagePopupModal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        imageUrl={previewImage || ''}
+        productName={previewImageName}
       />
     </div>
+    </>
   );
 }
