@@ -3,11 +3,16 @@ import {
   Target, Plus, Search, X, ChevronDown, RefreshCw, GripVertical, DollarSign,
   Calendar, User, Clock, ArrowRight, MoreHorizontal, Edit, Trash2, Phone, Mail,
   TrendingUp, Zap, MessageSquare, FileText, Building2,
-  BarChart3, AlertTriangle, CheckCircle2, Sparkles, XCircle, ChevronUp, Loader2, Upload, Paperclip
+  BarChart3, AlertTriangle, CheckCircle2, Sparkles, XCircle, ChevronUp, Loader2, Upload, Paperclip,
+  List, LayoutGrid
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef, DragEvent } from 'react';
 import { toast } from 'sonner';
+import { SalesLeadDetailView } from './SalesLeadDetailView';
 
+// Base path for the local API routes. Endpoints that aren't yet wired
+// gracefully fail back to empty-state UI.
+const API_URL = '/api';
 const headers_json = { 'Content-Type': 'application/json' };
 
 const PIPELINE_STAGES = [
@@ -175,7 +180,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
   useEffect(() => {
     if (isOpen && users.length === 0) {
-      fetch('/api/users', { headers: headers_json })
+      fetch('/api/users/list', { headers: headers_json })
         .then(r => r.json())
         .then(data => { if (data.success) setUsers(data.users || []); })
         .catch(() => {});
@@ -285,31 +290,31 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
       {isOpen && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={onClose} />
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-[580px] bg-white shadow-2xl z-50 flex flex-col">
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-[460px] bg-white shadow-2xl z-50 flex flex-col">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 relative overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvc3ZnPg==')] opacity-50" />
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center border border-white/20">
-                    <Target className="w-5 h-5 text-white" />
+                  <div className="w-9 h-9 bg-white/15 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
+                    <Target className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">{lead ? 'Edit Deal' : 'Create Deal'}</h2>
-                    <p className="text-xs text-white/70">Fill out the deal details below</p>
+                    <h2 className="text-sm font-bold text-white">{lead ? 'Edit Deal' : 'Create Deal'}</h2>
+                    <p className="text-[11px] text-white/70">Fill out the deal details below</p>
                   </div>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-white/15 rounded-lg transition-colors"><X className="w-5 h-5 text-white" /></button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Deal Info Section */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Deal Information
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Deal Information
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <label className={labelCls}>Deal Title *</label>
                     <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g., Custom Shirts" className={inputCls} />
@@ -374,7 +379,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Deal Amount ($)</label>
                       <input value={form.amount} onChange={e => setForm({ ...form, amount: formatCurrency(e.target.value) })} placeholder="0.00" className={inputCls} />
@@ -382,7 +387,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     <CustomDropdown label="Pipeline Stage" value={form.stage} options={PIPELINE_STAGES.map(s => ({ value: s.id, label: s.label, color: s.color }))} onChange={v => setForm({ ...form, stage: v })} />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <CustomDropdown label="Lead Source" value={form.source} options={LEAD_SOURCES.map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, source: v })} />
                     <CustomDropdown label="Product Type" value={form.productType} options={PRODUCT_TYPES.map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, productType: v })} />
                     <div>
@@ -391,7 +396,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>In-Hands Date</label>
                       <input type="date" value={form.inHandsDate} onChange={e => setForm({ ...form, inHandsDate: e.target.value })} className={inputCls} />
@@ -431,10 +436,10 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
               {/* Contact Section */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Contact Details
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Contact Details
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {isExistingCompany && form.companyId && (
                     <div ref={contactRef}>
                       <label className={labelCls}>Select Contact</label>
@@ -473,7 +478,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                       )}
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>First Name</label>
                       <input value={form.contactFirstName} onChange={e => setForm({ ...form, contactFirstName: e.target.value })} placeholder="First name" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
@@ -483,7 +488,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                       <input value={form.contactLastName} onChange={e => setForm({ ...form, contactLastName: e.target.value })} placeholder="Last name" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Email</label>
                       <input type="email" value={form.contactEmail} onChange={e => setForm({ ...form, contactEmail: e.target.value })} placeholder="email@company.com" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
@@ -498,8 +503,8 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
               {/* Documents */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Documents
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Documents
                 </h3>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt,.csv" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all">
@@ -523,20 +528,20 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
               {/* Notes */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <div className="w-1 h-4 bg-indigo-500 rounded-full" /> Notes
+                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Notes
                 </h3>
-                <textarea rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional details about this deal..." className={inputCls + " resize-none"} />
+                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional details about this deal..." className={inputCls + " resize-none"} />
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50 flex gap-3">
-              <button onClick={onClose} className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-colors">Cancel</button>
+            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex gap-3">
+              <button onClick={onClose} className="flex-1 px-3 py-2.5 border-2 border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-100 transition-colors">Cancel</button>
               <motion.button
                 whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+                className="flex-1 px-3 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
                 {lead ? 'Update Deal' : 'Create Deal'}
@@ -550,11 +555,12 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 }
 
 // ────── Deal Card (Draggable) ──────
-function DealCard({ lead, stage, onEdit, onDelete, onMove, onDragStart, isSelected, onSelect }: {
+function DealCard({ lead, stage, onEdit, onDelete, onMove, onDragStart, isSelected, onSelect, onView }: {
   lead: SalesLead; stage: typeof PIPELINE_STAGES[0];
   onEdit: () => void; onDelete: () => void; onMove: (newStage: string) => void;
   onDragStart: (e: DragEvent, leadId: string) => void;
   isSelected: boolean; onSelect: (id: string) => void;
+  onView: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -592,51 +598,14 @@ function DealCard({ lead, stage, onEdit, onDelete, onMove, onDragStart, isSelect
               {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
             </button>
             <div className="flex-1 min-w-0">
-              <h4 className="text-[13px] font-bold text-slate-900 truncate leading-tight">{lead.title}</h4>
+              <h4 onClick={(e) => { e.stopPropagation(); onView(); }} className="text-[13px] font-bold text-slate-900 truncate leading-tight cursor-pointer hover:text-indigo-600 transition-colors">{lead.title}</h4>
               <p className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center gap-1">
                 <Building2 className="w-3 h-3 shrink-0" />
                 {lead.company}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-0.5">
-            {/* Direct delete button */}
-            {!confirmDelete ? (
-              <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }} className="p-1 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all" title="Delete deal">
-                <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-500" />
-              </button>
-            ) : (
-              <div className="flex items-center gap-1">
-                <button onClick={(e) => { e.stopPropagation(); onDelete(); setConfirmDelete(false); }} className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded hover:bg-red-600 transition-colors">Yes</button>
-                <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }} className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded hover:bg-slate-300 transition-colors">No</button>
-              </div>
-            )}
-          <div className="relative" ref={menuRef}>
-            <button onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }} className="p-1 hover:bg-slate-100 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
-              <MoreHorizontal className="w-4 h-4 text-slate-400" />
-            </button>
-            <AnimatePresence>
-              {menuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-slate-200 shadow-2xl z-30 py-1.5 overflow-hidden"
-                >
-                  <button onClick={() => { onEdit(); setMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"><Edit className="w-3.5 h-3.5 text-slate-400" />Edit Deal</button>
-                  <div className="border-t border-slate-100 my-1 mx-3" />
-                  {PIPELINE_STAGES.filter(s => s.id !== lead.stage).map(s => (
-                    <button key={s.id} onClick={() => { onMove(s.id); setMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center gap-2.5 text-slate-700">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />Move to {s.label}
-                    </button>
-                  ))}
-                  <div className="border-t border-slate-100 my-1 mx-3" />
-                  <button onClick={() => { onDelete(); setMenuOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2.5"><Trash2 className="w-3.5 h-3.5" />Delete</button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          </div>
+
         </div>
 
         {/* Amount */}
@@ -693,6 +662,7 @@ export function SalesLeadModule() {
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editLead, setEditLead] = useState<SalesLead | null>(null);
+  const [viewingLead, setViewingLead] = useState<SalesLead | null>(null);
   const [showMetrics, setShowMetrics] = useState(true);
   const [sourceFilter, setSourceFilter] = useState('All Sources');
   const [ownerFilter, setOwnerFilter] = useState('All Owners');
@@ -724,7 +694,7 @@ export function SalesLeadModule() {
   const handleBulkDelete = async () => {
     const ids = [...selectedIds];
     try {
-      await Promise.all(ids.map(id => fetch(`/api/sales-leads/${id}`, { method: 'DELETE', headers: headers_json })));
+      await Promise.all(ids.map(id => fetch(`${API_URL}/sales-leads/${id}`, { method: 'DELETE', headers: headers_json })));
       toast.success(`${ids.length} deal(s) deleted`);
       clearSelection();
       fetchLeads();
@@ -738,7 +708,7 @@ export function SalesLeadModule() {
       await Promise.all(ids.map(id => {
         const lead = leads.find(l => l.id === id);
         if (!lead) return Promise.resolve();
-        return fetch(`/api/sales-leads/${id}`, {
+        return fetch(`${API_URL}/sales-leads/${id}`, {
           method: 'PUT', headers: headers_json,
           body: JSON.stringify({ ...lead, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() }),
         });
@@ -757,7 +727,7 @@ export function SalesLeadModule() {
       await Promise.all(ids.map(id => {
         const lead = leads.find(l => l.id === id);
         if (!lead) return Promise.resolve();
-        return fetch(`/api/sales-leads/${id}`, {
+        return fetch(`${API_URL}/sales-leads/${id}`, {
           method: 'PUT', headers: headers_json,
           body: JSON.stringify({ ...lead, owner: newOwner, ownerInitials: initials, lastActivity: new Date().toISOString() }),
         });
@@ -773,9 +743,9 @@ export function SalesLeadModule() {
   const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/sales-leads/list', { headers: headers_json });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) setLeads(data.leads || []);
+      const res = await fetch(`${API_URL}/sales-leads`, { headers: headers_json });
+      const data = await res.json();
+      if (data.success) setLeads(data.leads || []);
     } catch (err) { console.error('Error fetching leads:', err); }
     finally { setLoading(false); }
   }, []);
@@ -787,10 +757,10 @@ export function SalesLeadModule() {
       const isEdit = !!data.id;
       // For new deals, strip any accidental id/companyId that could conflict
       const payload = isEdit ? data : { ...data, id: undefined };
-      const url = isEdit ? `/api/sales-leads/${data.id}` : '/api/sales-leads/list';
+      const url = isEdit ? `${API_URL}/sales-leads/${data.id}` : `${API_URL}/sales-leads`;
       const res = await fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: headers_json, body: JSON.stringify(payload) });
-      const result = await res.json().catch(() => ({}));
-      if (res.ok && !result.error) {
+      const result = await res.json();
+      if (result.success) {
         toast.success(isEdit ? 'Deal updated!' : 'Deal created!');
         setDrawerOpen(false);
         setEditLead(null);
@@ -801,7 +771,7 @@ export function SalesLeadModule() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/sales-leads/${id}`, { method: 'DELETE', headers: headers_json });
+      await fetch(`${API_URL}/sales-leads/${id}`, { method: 'DELETE', headers: headers_json });
       toast.success('Deal deleted');
       fetchLeads();
     } catch { toast.error('Error deleting'); }
@@ -813,7 +783,7 @@ export function SalesLeadModule() {
     // Optimistic update
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() } : l));
     try {
-      await fetch(`/api/sales-leads/${lead.id}`, {
+      await fetch(`${API_URL}/sales-leads/${lead.id}`, {
         method: 'PUT', headers: headers_json,
         body: JSON.stringify({ ...lead, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() }),
       });
@@ -866,6 +836,24 @@ export function SalesLeadModule() {
   const lostValue = filteredLeads.filter(l => l.stage === 'closed-lost').reduce((s, l) => s + l.amount, 0);
   const activeDeals = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').length;
 
+  // When viewing a specific lead, update from latest data
+  const currentViewingLead = viewingLead ? leads.find(l => l.id === viewingLead.id) || viewingLead : null;
+
+  if (currentViewingLead) {
+    return (
+      <>
+        <SalesLeadDetailView
+          lead={currentViewingLead}
+          onBack={() => setViewingLead(null)}
+          onEdit={() => { setEditLead(currentViewingLead); setDrawerOpen(true); }}
+          onDelete={async () => { await handleDelete(currentViewingLead.id); setViewingLead(null); }}
+          onStageChange={(lead, newStage) => handleMove(lead, newStage)}
+        />
+        <LeadDrawer isOpen={drawerOpen} onClose={() => { setDrawerOpen(false); setEditLead(null); }} onSave={handleSave} lead={editLead} />
+      </>
+    );
+  }
+
   return (
     <>
       <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/30 overflow-hidden h-full">
@@ -888,9 +876,23 @@ export function SalesLeadModule() {
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
-                <button onClick={() => setViewMode(viewMode === 'board' ? 'list' : 'board')} className="px-3 sm:px-4 py-2 sm:py-2.5 bg-white text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors border border-slate-200">
-                  {viewMode === 'board' ? 'List View' : 'Board View'}
-                </button>
+                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('board')}
+                    className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 text-sm font-semibold transition-colors ${viewMode === 'board' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    <span className="hidden sm:inline">Board</span>
+                  </button>
+                  <div className="w-px h-5 bg-slate-200" />
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 text-sm font-semibold transition-colors ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    <List className="w-4 h-4" />
+                    <span className="hidden sm:inline">List</span>
+                  </button>
+                </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => { setEditLead(null); setDrawerOpen(true); }}
@@ -938,7 +940,7 @@ export function SalesLeadModule() {
         )}
 
         {/* Search + Filters */}
-        <div className="px-4 sm:px-6 lg:px-8 mb-4 shrink-0">
+        <div className={`px-4 sm:px-6 lg:px-8 mb-4 shrink-0 ${!showMetrics ? 'mt-4 sm:mt-5' : ''}`}>
           <div className="max-w-[2200px] mx-auto">
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
               <div className="flex-1 min-w-[180px] relative">
@@ -991,7 +993,7 @@ export function SalesLeadModule() {
                     onClick={async () => {
                       if (bulkUsers.length === 0) {
                         try {
-                          const res = await fetch('/api/users', { headers: headers_json });
+                          const res = await fetch('/api/users/list', { headers: headers_json });
                           const data = await res.json();
                           if (data.success) setBulkUsers(data.users || []);
                         } catch {}
@@ -1027,9 +1029,10 @@ export function SalesLeadModule() {
         )}
 
         {/* Pipeline Board */}
+        {viewMode === 'board' ? (
         <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 sm:px-6 lg:px-8 pb-4">
           <div className="max-w-[2200px] mx-auto h-full">
-            <div className="flex gap-3 h-full" style={{ minWidth: `${visibleStages.length * 240}px` }}>
+            <div className="flex gap-3 h-full" style={{ minWidth: `${visibleStages.length * 260}px` }}>
               {visibleStages.map((stage) => {
                 const stageLeads = filteredLeads.filter(l => l.stage === stage.id);
                 const stageTotal = stageLeads.reduce((s, l) => s + l.amount, 0);
@@ -1040,7 +1043,7 @@ export function SalesLeadModule() {
                 return (
                   <div
                     key={stage.id}
-                    className={`flex-1 min-w-[220px] max-w-[300px] flex flex-col rounded-2xl transition-all ${
+                    className={`flex-1 min-w-[250px] flex flex-col rounded-2xl transition-all ${
                       isDragOver ? 'bg-indigo-50/70 ring-2 ring-indigo-400 ring-offset-2' : 'bg-white/50'
                     }`}
                     onDragOver={e => onDragOver(e, stage.id)}
@@ -1070,6 +1073,7 @@ export function SalesLeadModule() {
                             onDragStart={onDragStart}
                             isSelected={selectedIds.has(lead.id)}
                             onSelect={toggleSelect}
+                            onView={() => setViewingLead(lead)}
                           />
                         ))}
                       </AnimatePresence>
@@ -1109,6 +1113,143 @@ export function SalesLeadModule() {
             </div>
           </div>
         </div>
+        ) : (
+        /* List View */
+        <div className="flex-1 overflow-auto px-4 sm:px-6 lg:px-8 pb-4">
+          <div className="max-w-[2200px] mx-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-4 py-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.size === filteredLeads.length && filteredLeads.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedIds(new Set(filteredLeads.map(l => l.id)));
+                            else setSelectedIds(new Set());
+                          }}
+                          className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Deal</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Company</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Contact</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Amount</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Stage</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Source</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Owner</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">In-Hands</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Probability</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="px-6 py-12 text-center">
+                          <Target className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="text-sm text-slate-400">No deals found</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredLeads.map((lead, index) => {
+                        const stage = PIPELINE_STAGES.find(s => s.id === lead.stage) || PIPELINE_STAGES[0];
+                        return (
+                          <motion.tr
+                            key={lead.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors group ${selectedIds.has(lead.id) ? 'bg-indigo-50/30' : ''}`}
+                          >
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={() => toggleSelect(lead.id)}
+                                className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span onClick={() => setViewingLead(lead)} className="font-semibold text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors">{lead.title}</span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+                                  <span className="text-white text-[10px] font-bold">{lead.company.charAt(0).toUpperCase()}</span>
+                                </div>
+                                <span className="text-sm text-slate-700">{lead.company}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className="text-sm text-slate-700">{lead.contactName}</span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className="text-sm text-slate-900 font-medium">${lead.amount.toLocaleString()}</span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${stage.bg} ${stage.text} ${stage.border}`}>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stage.color }} />
+                                {stage.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className="text-sm text-slate-700">{lead.source}</span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-full flex items-center justify-center shrink-0">
+                                  <span className="text-[9px] font-bold text-white">{lead.ownerInitials}</span>
+                                </div>
+                                <span className="text-sm text-slate-700">{lead.owner}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <span className="text-sm text-slate-700">{lead.inHandsDate ? new Date(lead.inHandsDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }) : '—'}</span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${lead.probability}%` }} />
+                                </div>
+                                <span className="text-xs font-semibold text-slate-600">{lead.probability}%</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-1">
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => { setEditLead(lead); setDrawerOpen(true); }}
+                                  className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleDelete(lead.id)}
+                                  className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </motion.button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-xs text-slate-500 px-1">
+              <span>Showing {filteredLeads.length} of {leads.length} deals</span>
+              <span>Total pipeline: <span className="font-semibold text-slate-700">${filteredLeads.reduce((s, l) => s + l.amount, 0).toLocaleString()}</span></span>
+            </div>
+          </div>
+        </div>
+        )}
       </div>
 
       <LeadDrawer isOpen={drawerOpen} onClose={() => { setDrawerOpen(false); setEditLead(null); }} onSave={handleSave} lead={editLead} />
