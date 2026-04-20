@@ -8,12 +8,6 @@ import { PurchaseOrderDetailView } from './PurchaseOrderDetailView';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-// Endpoints that aren't yet wired in the current backend return 404 and the
-// UI renders empty-state panels. publicAnonKey kept as a no-op placeholder so
-// the original Authorization headers still assemble without a TypeError.
-const API_URL = '/api';
-const publicAnonKey = '';
-
 // Map a raw DB vendor record (vendorName/vendorType) to the UI shape (name/type)
 function mapVendorFromApi(v: any): any {
   if (!v) return v;
@@ -534,13 +528,10 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   const fetchPurchaseOrders = useCallback(async () => {
     setLoadingPOs(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/purchase-orders`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
+      const res = await fetch(`/api/vendors/purchase-orders?vendorId=${encodeURIComponent(vendor.id)}`);
+      if (!res.ok) throw new Error('Failed');
       const data = await res.json();
-      if (data.success) {
-        setPurchaseOrders(data.purchaseOrders || []);
-      }
+      setPurchaseOrders(data.purchaseOrders || []);
     } catch (error) {
       console.error('Error fetching vendor purchase orders:', error);
     } finally {
@@ -556,13 +547,10 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   const fetchInvoices = useCallback(async () => {
     setLoadingInvoices(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/invoices`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
+      const res = await fetch(`/api/vendors/invoices?vendorId=${encodeURIComponent(vendor.id)}`);
+      if (!res.ok) throw new Error('Failed');
       const data = await res.json();
-      if (data.success) {
-        setInvoices(data.invoices || []);
-      }
+      setInvoices(data.invoices || []);
     } catch (error) {
       console.error('Error fetching vendor invoices:', error);
     } finally {
@@ -578,13 +566,10 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   const fetchActivity = useCallback(async () => {
     setLoadingActivity(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/activity`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
+      const res = await fetch(`/api/vendors/activity?vendorId=${encodeURIComponent(vendor.id)}`);
+      if (!res.ok) throw new Error('Failed');
       const data = await res.json();
-      if (data.success) {
-        setRecentActivity(data.activities || []);
-      }
+      setRecentActivity(data.activity || []);
     } catch (error) {
       console.error('Error fetching vendor activity:', error);
     } finally {
@@ -617,13 +602,10 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   const fetchProducts = useCallback(async () => {
     setLoadingProducts(true);
     try {
-      const res = await fetch(`${API_URL}/vendors/${vendor.id}/products`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
+      const res = await fetch(`/api/vendors/products?vendorId=${encodeURIComponent(vendor.id)}`);
+      if (!res.ok) throw new Error('Failed');
       const data = await res.json();
-      if (data.success) {
-        setVendorProducts(data.products || []);
-      }
+      setVendorProducts(data.products || []);
     } catch (error) {
       console.error('Error fetching vendor products:', error);
     } finally {
