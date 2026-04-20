@@ -72,7 +72,7 @@ export function EditContactDrawer({ isOpen, onClose, contact, onSave }: EditCont
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 drawer-scroll">
               {/* Contact ID */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">

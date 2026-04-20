@@ -16,6 +16,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     country,
     status,
     createdBy,
+    addresses,
+    notes,
+    website,
+    linkedIn,
+    owner,
   } = req.body ?? {};
 
   if (!name || !email) {
@@ -37,6 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: status ?? 'Active',
       lastContact: now,
       createdBy: createdBy ?? null,
+      addresses: Array.isArray(addresses) ? addresses : [],
+      notes: notes ?? '',
+      website: website ?? null,
+      linkedIn: linkedIn ?? null,
+      owner: owner ?? null,
       createdAt: now,
       updatedAt: now,
     };
