@@ -10,9 +10,6 @@ import { useState, useEffect, useCallback, useRef, DragEvent } from 'react';
 import { toast } from 'sonner';
 import { SalesLeadDetailView } from './SalesLeadDetailView';
 
-// Base path for the local API routes. Endpoints that aren't yet wired
-// gracefully fail back to empty-state UI.
-const API_URL = '/api';
 const headers_json = { 'Content-Type': 'application/json' };
 
 const PIPELINE_STAGES = [
@@ -694,7 +691,13 @@ export function SalesLeadModule() {
   const handleBulkDelete = async () => {
     const ids = [...selectedIds];
     try {
-      await Promise.all(ids.map(id => fetch(`${API_URL}/sales-leads/${id}`, { method: 'DELETE', headers: headers_json })));
+      await Promise.all(ids.map(id =>
+        fetch('/api/sales-leads/delete', {
+          method: 'DELETE',
+          headers: headers_json,
+          body: JSON.stringify({ id }),
+        })
+      ));
       toast.success(`${ids.length} deal(s) deleted`);
       clearSelection();
       fetchLeads();
@@ -708,9 +711,10 @@ export function SalesLeadModule() {
       await Promise.all(ids.map(id => {
         const lead = leads.find(l => l.id === id);
         if (!lead) return Promise.resolve();
-        return fetch(`${API_URL}/sales-leads/${id}`, {
-          method: 'PUT', headers: headers_json,
-          body: JSON.stringify({ ...lead, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() }),
+        return fetch('/api/sales-leads/update', {
+          method: 'PATCH',
+          headers: headers_json,
+          body: JSON.stringify({ id, stage: newStage, probability: (stageInfo?.weight || 0) * 100 }),
         });
       }));
       toast.success(`${ids.length} deal(s) moved to ${stageInfo?.label}`);
@@ -727,9 +731,10 @@ export function SalesLeadModule() {
       await Promise.all(ids.map(id => {
         const lead = leads.find(l => l.id === id);
         if (!lead) return Promise.resolve();
-        return fetch(`${API_URL}/sales-leads/${id}`, {
-          method: 'PUT', headers: headers_json,
-          body: JSON.stringify({ ...lead, owner: newOwner, ownerInitials: initials, lastActivity: new Date().toISOString() }),
+        return fetch('/api/sales-leads/update', {
+          method: 'PATCH',
+          headers: headers_json,
+          body: JSON.stringify({ id, owner: newOwner, ownerInitials: initials }),
         });
       }));
       toast.success(`${ids.length} deal(s) assigned to ${newOwner}`);
@@ -743,9 +748,9 @@ export function SalesLeadModule() {
   const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/sales-leads`, { headers: headers_json });
+      const res = await fetch('/api/sales-leads/list', { headers: headers_json });
       const data = await res.json();
-      if (data.success) setLeads(data.leads || []);
+      setLeads(data.leads || []);
     } catch (err) { console.error('Error fetching leads:', err); }
     finally { setLoading(false); }
   }, []);
@@ -755,23 +760,40 @@ export function SalesLeadModule() {
   const handleSave = async (data: any) => {
     try {
       const isEdit = !!data.id;
-      // For new deals, strip any accidental id/companyId that could conflict
-      const payload = isEdit ? data : { ...data, id: undefined };
-      const url = isEdit ? `${API_URL}/sales-leads/${data.id}` : `${API_URL}/sales-leads`;
-      const res = await fetch(url, { method: isEdit ? 'PUT' : 'POST', headers: headers_json, body: JSON.stringify(payload) });
-      const result = await res.json();
-      if (result.success) {
-        toast.success(isEdit ? 'Deal updated!' : 'Deal created!');
-        setDrawerOpen(false);
-        setEditLead(null);
-        fetchLeads();
-      } else toast.error(result.error || 'Failed');
+      if (isEdit) {
+        const res = await fetch('/api/sales-leads/update', {
+          method: 'PATCH',
+          headers: headers_json,
+          body: JSON.stringify(data),
+        });
+        const result = await res.json();
+        if (!res.ok) { toast.error(result.error || 'Failed'); return; }
+        toast.success('Deal updated!');
+      } else {
+        const { id: _ignored, ...body } = data;
+        void _ignored;
+        const res = await fetch('/api/sales-leads/create', {
+          method: 'POST',
+          headers: headers_json,
+          body: JSON.stringify(body),
+        });
+        const result = await res.json();
+        if (!res.ok) { toast.error(result.error || 'Failed'); return; }
+        toast.success('Deal created!');
+      }
+      setDrawerOpen(false);
+      setEditLead(null);
+      fetchLeads();
     } catch { toast.error('Error saving deal'); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`${API_URL}/sales-leads/${id}`, { method: 'DELETE', headers: headers_json });
+      await fetch('/api/sales-leads/delete', {
+        method: 'DELETE',
+        headers: headers_json,
+        body: JSON.stringify({ id }),
+      });
       toast.success('Deal deleted');
       fetchLeads();
     } catch { toast.error('Error deleting'); }
@@ -783,9 +805,10 @@ export function SalesLeadModule() {
     // Optimistic update
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() } : l));
     try {
-      await fetch(`${API_URL}/sales-leads/${lead.id}`, {
-        method: 'PUT', headers: headers_json,
-        body: JSON.stringify({ ...lead, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() }),
+      await fetch('/api/sales-leads/update', {
+        method: 'PATCH',
+        headers: headers_json,
+        body: JSON.stringify({ id: lead.id, stage: newStage, probability: (stageInfo?.weight || 0) * 100 }),
       });
       toast.success(`Moved to ${stageInfo?.label}`);
     } catch {
