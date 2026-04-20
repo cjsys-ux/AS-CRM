@@ -3,23 +3,17 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
 
 const ALLOWED_FIELDS = [
-  'customer', 'customerId', 'email', 'status', 'paymentStatus',
-  'items', 'total', 'shipping', 'date', 'notes',
-  'projectName', 'eventType', 'stage', 'inHandsDate', 'terms', 'currency',
-  'taxRate', 'defaultMargin', 'customerPO', 'isSampleOrder',
-  'introduction', 'billingContact', 'billingAddress',
-  'shippingContact', 'shippingAddress', 'subtotal', 'taxAmount',
-  'totalMargin', 'lineItems', 'orderDate', 'sourcePONumber', 'sourcePOId',
-  'project', 'shipDate', 'vendor', 'shipToAddresses', 'contacts', 'documents',
+  'trackingNumber', 'carrier', 'service', 'status', 'shipDate',
+  'estimatedDelivery', 'deliveredAt', 'fromAddress', 'toAddress',
+  'lineItems', 'notes', 'orderId', 'poId', 'vendorId', 'customerId',
 ];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'PATCH') {
+  if (req.method !== 'PATCH' && req.method !== 'PUT') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { id, ...fields } = req.body ?? {};
-
   if (!id) {
     return res.status(400).json({ error: 'id is required.' });
   }
@@ -40,17 +34,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = await getDb();
-    const result = await db
-      .collection('orders')
-      .updateOne(filter, { $set: setPayload });
-
+    const result = await db.collection('shipments').updateOne(filter, { $set: setPayload });
     if (result.matchedCount === 0) {
-      return res.status(404).json({ error: 'Order not found.' });
+      return res.status(404).json({ error: 'Shipment not found.' });
     }
-
     return res.status(200).json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to update order.';
+    const message = error instanceof Error ? error.message : 'Failed to update shipment.';
     return res.status(500).json({ error: message });
   }
 }
