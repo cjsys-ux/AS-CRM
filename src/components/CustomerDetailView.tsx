@@ -195,12 +195,10 @@ export function CustomerDetailView({ customerId, onBack, onCustomerUpdated }: Cu
     } catch (error) { console.error('Error adding note:', error); toast.error('Error adding note'); }
   };
 
-  // Activity feed doesn't have a dedicated endpoint yet — fails silently so
-  // the UI renders its empty state without error toasts.
   const fetchActivities = async () => {
     setLoadingActivity(true);
     try {
-      const res = await fetch(`/api/customers/activity?customerId=${encodeURIComponent(customerId)}`);
+      const res = await fetch(`/api/customers/activity/list?customerId=${encodeURIComponent(customerId)}`);
       if (res.ok) {
         const data = await res.json();
         setActivities(data.activities || []);
@@ -236,18 +234,15 @@ export function CustomerDetailView({ customerId, onBack, onCustomerUpdated }: Cu
     } catch (e) { console.error('Error deleting note:', e); toast.error('Error deleting note'); }
   };
 
-  // Billing endpoints don't exist yet — keep empty state.
   const fetchBilling = async () => {
     setLoadingBilling(true);
     try {
-      const res = await fetch(`/api/customers/billing?customerId=${encodeURIComponent(customerId)}`);
+      const res = await fetch(`/api/customers/billing/list?customerId=${encodeURIComponent(customerId)}`);
       if (res.ok) {
         const data = await res.json();
         setBillingInvoices(data.invoices || []);
-      } else {
-        setBillingInvoices([]);
       }
-    } catch { setBillingInvoices([]); }
+    } catch (e) { console.error('Error fetching billing:', e); }
     finally { setLoadingBilling(false); }
   };
 
@@ -258,14 +253,14 @@ export function CustomerDetailView({ customerId, onBack, onCustomerUpdated }: Cu
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customerId, ...invoiceForm, amount: parseFloat(invoiceForm.amount) || 0 }),
       });
-      if (!res.ok) throw new Error('Billing endpoint not available');
+      if (!res.ok) throw new Error('Failed to create invoice');
       const data = await res.json();
       if (data.invoice) setBillingInvoices([data.invoice, ...billingInvoices]);
       setShowAddInvoice(false);
       setInvoiceForm({ invoiceNumber: '', amount: '', dueDate: '', description: '', status: 'Open' });
       toast.success('Invoice created');
       fetchActivities();
-    } catch (e) { console.error('Error creating invoice:', e); toast.error('Billing is not available yet'); }
+    } catch (e) { console.error('Error creating invoice:', e); toast.error('Error creating invoice'); }
   };
 
   const handleUpdateInvoiceStatus = async (invoiceId: string, status: string) => {
@@ -275,11 +270,11 @@ export function CustomerDetailView({ customerId, onBack, onCustomerUpdated }: Cu
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: invoiceId, status }),
       });
-      if (!res.ok) throw new Error('Billing endpoint not available');
+      if (!res.ok) throw new Error('Failed to update invoice');
       setBillingInvoices(billingInvoices.map(inv => inv.id === invoiceId ? { ...inv, status } : inv));
       toast.success(`Invoice marked as ${status}`);
       fetchActivities();
-    } catch (e) { console.error('Error updating invoice:', e); toast.error('Billing is not available yet'); }
+    } catch (e) { console.error('Error updating invoice:', e); toast.error('Error updating invoice'); }
   };
 
   const handleAddContact = async (contact: Contact) => {
@@ -354,10 +349,23 @@ export function CustomerDetailView({ customerId, onBack, onCustomerUpdated }: Cu
     }
   };
 
-  // No dedicated primary-toggle endpoint yet — update state optimistically.
   const handleSetPrimaryAddress = async (id: string) => {
+    const prev = addresses;
+    // Optimistic update.
     setAddresses(addresses.map(a => ({ ...a, isPrimary: a.id === id })));
-    toast.success('Primary address updated');
+    try {
+      const res = await fetch('/api/customers/addresses/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isPrimary: true }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      toast.success('Primary address updated');
+    } catch (error) {
+      console.error('Error updating primary address:', error);
+      setAddresses(prev);
+      toast.error('Error updating primary address');
+    }
   };
 
   // File upload uses the existing presign/complete S3 flow.
