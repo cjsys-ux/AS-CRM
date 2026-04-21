@@ -5,6 +5,7 @@ import { getDb } from '../_mongodb';
 const ALLOWED_FIELDS = [
   'name', 'email', 'phone', 'company', 'position',
   'type', 'country', 'status', 'lastContact',
+  'addresses', 'notes', 'website', 'linkedIn', 'owner',
 ];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

@@ -13,18 +13,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const {
-    customer,
-    email,
-    status,
-    paymentStatus,
-    items,
-    total,
-    shipping,
-    date,
-    notes,
-    createdBy,
-  } = req.body ?? {};
+  const body = req.body ?? {};
+  const { customer, email, createdBy } = body;
 
   if (!customer || !email) {
     return res.status(400).json({ error: 'customer and email are required.' });
@@ -35,17 +25,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const orderNumber = generateOrderNumber();
 
-    const doc = {
+    const doc: Record<string, unknown> = {
       orderNumber,
       customer: customer as string,
+      customerId: body.customerId ?? null,
       email: email as string,
-      status: status ?? 'Pending',
-      paymentStatus: paymentStatus ?? 'Pending',
-      items: typeof items === 'number' ? items : 1,
-      total: total ?? '$0.00',
-      shipping: shipping ?? 'Standard',
-      date: date ?? new Date().toISOString().split('T')[0],
-      notes: notes ?? '',
+      status: body.status ?? 'Pending',
+      paymentStatus: body.paymentStatus ?? 'Pending',
+      items: typeof body.items === 'number' ? body.items : 1,
+      total: body.total ?? '$0.00',
+      shipping: body.shipping ?? 'Standard',
+      date: body.date ?? new Date().toISOString().split('T')[0],
+      notes: body.notes ?? '',
+      projectName: body.projectName ?? null,
+      eventType: body.eventType ?? null,
+      stage: body.stage ?? null,
+      inHandsDate: body.inHandsDate ?? null,
+      terms: body.terms ?? null,
+      currency: body.currency ?? 'USD',
+      taxRate: typeof body.taxRate === 'number' ? body.taxRate : null,
+      defaultMargin: typeof body.defaultMargin === 'number' ? body.defaultMargin : null,
+      customerPO: body.customerPO ?? null,
+      isSampleOrder: body.isSampleOrder === true,
+      introduction: body.introduction ?? '',
+      billingContact: body.billingContact ?? null,
+      billingAddress: body.billingAddress ?? null,
+      shippingContact: body.shippingContact ?? null,
+      shippingAddress: body.shippingAddress ?? null,
+      subtotal: body.subtotal ?? null,
+      taxAmount: body.taxAmount ?? null,
+      totalMargin: body.totalMargin ?? null,
+      lineItems: Array.isArray(body.lineItems) ? body.lineItems : [],
+      sourcePONumber: body.sourcePONumber ?? null,
+      sourcePOId: body.sourcePOId ?? null,
+      project: body.project ?? null,
+      shipDate: body.shipDate ?? null,
+      vendor: body.vendor ?? null,
+      shipToAddresses: Array.isArray(body.shipToAddresses) ? body.shipToAddresses : [],
+      contacts: Array.isArray(body.contacts) ? body.contacts : [],
+      documents: Array.isArray(body.documents) ? body.documents : [],
       createdBy: createdBy ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),

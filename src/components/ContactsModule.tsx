@@ -1,38 +1,124 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Plus, Search, Filter, Download, Mail, Phone, Building2, ChevronLeft, ChevronRight, Eye, Edit, Trash2, X, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { Users, Plus, Search, Filter, Download, Mail, Phone, Building2, ChevronLeft, ChevronRight, Eye, Edit, Trash2, X, ChevronDown, RefreshCw, ArrowUpDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { ContactDrawer } from './ContactDrawer';
 import { ContactDetailView } from './ContactDetailView';
+import { toast } from 'sonner';
+import { ColumnVisibilityDropdown, ColumnDef } from './ColumnVisibilityDropdown';
 
+const CONTACT_TYPES = ['Vendor', 'Customer', 'Lead'];
+const CONTACT_STATUSES = ['Active', 'Inactive', 'Prospect', 'Cold'];
+
+// Custom dropdown component (matching VendorsPage)
+function ContactFilterDropdown({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (val: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const allLabel = options[0];
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${
+          value !== allLabel
+            ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+            : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+        }`}
+      >
+        <span className="text-slate-500 font-medium">{label}:</span>
+        <span>{value}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ duration: 0.15 }}
+            className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl border border-slate-200 shadow-xl z-30 overflow-hidden"
+          >
+            <div className="py-1.5">
+              {options.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => { onChange(opt); setOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${
+                    value === opt
+                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {opt}
+                  {value === opt && (
+                    <span className="float-right text-indigo-500 font-bold">&#10003;</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 export function ContactsModule() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [typeFilter, setTypeFilter] = useState('All Types');
+  const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<any>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isContactDetailViewOpen, setIsContactDetailViewOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
-  const [editFromDetailView, setEditFromDetailView] = useState(false);
   const [contactsData, setContactsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const itemsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Column visibility
+  const contactColumns: ColumnDef[] = [
+    { key: 'name', label: 'Name' },
+    { key: 'company', label: 'Company' },
+    { key: 'position', label: 'Position' },
+    { key: 'contactInfo', label: 'Contact Info' },
+    { key: 'type', label: 'Type' },
+    { key: 'status', label: 'Status' },
+    { key: 'owner', label: 'Owner' },
+    { key: 'createdAt', label: 'Created' },
+    { key: 'lastContact', label: 'Last Contact' },
+    { key: 'actions', label: 'Actions' },
+  ];
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    contactColumns.forEach(c => { init[c.key] = true; });
+    return init;
+  });
+  const isColVisible = (key: string) => columnVisibility[key] !== false;
+  const visibleColCount = contactColumns.filter(c => isColVisible(c.key)).length;
 
   // Fetch contacts from database
   const fetchContacts = async () => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/contacts/list');
-      if (!res.ok) throw new Error('Failed to fetch contacts');
-      const data = await res.json();
-      setContactsData(data.contacts ?? []);
-    } catch {
-      toast.error('Failed to load contacts');
-      setContactsData([]);
+      setLoading(true);
+      const response = await fetch('/api/contacts/list');
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      setContactsData(data.contacts || []);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
     } finally {
       setLoading(false);
     }
@@ -43,60 +129,90 @@ export function ContactsModule() {
   }, []);
 
   // Save contact (create or update)
-  const handleSaveContact = (contactData: any) => {
-    fetchContacts();
-    setIsContactDrawerOpen(false);
-    setSelectedContact(null);
+  const handleSaveContact = async (contactData: any) => {
+    try {
+      const isEdit = !!contactData.id;
+      const url = isEdit ? '/api/contacts/update' : '/api/contacts/create';
+      const method = isEdit ? 'PATCH' : 'POST';
+      const body = isEdit ? contactData : (() => { const { id: _drop, ...rest } = contactData; void _drop; return rest; })();
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to ${isEdit ? 'update' : 'create'} contact`);
+      }
+
+      await fetchContacts();
+      setIsContactDrawerOpen(false);
+      setSelectedContact(null);
+      toast.success(`Contact ${isEdit ? 'updated' : 'created'} successfully`);
+    } catch (error) {
+      console.error('Error saving contact:', error);
+      toast.error(error instanceof Error ? error.message : `Error ${contactData.id ? 'updating' : 'creating'} contact`);
+    }
   };
 
   // Delete contact
   const handleDeleteContact = async () => {
     if (!contactToDelete) return;
 
-    setIsDeleting(true);
     try {
-      const res = await fetch('/api/contacts/delete', {
+      const response = await fetch('/api/contacts/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: contactToDelete.id }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? 'Failed to delete contact');
-      }
-      toast.success('Contact deleted');
+      if (!response.ok) throw new Error('Failed to delete');
+
       await fetchContacts();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete contact');
-    } finally {
-      setIsDeleting(false);
       setDeleteModal(false);
       setContactToDelete(null);
+      toast.success('Contact deleted successfully');
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      toast.error('Error deleting contact');
+    }
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
   };
 
   const filteredContacts = contactsData.filter(contact => {
-    const matchesSearch = (contact.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (contact.email ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (contact.company ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (contact.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (contact.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (contact.company || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     // If no filters are active, show all
-    if (activeFilters.length === 0) return matchesSearch;
+    if (typeFilter === 'All Types' && statusFilter === 'All Statuses') return matchesSearch;
     
     // Check if contact matches any of the active filters
-    const typeFilters = activeFilters.filter(f => f === 'Vendor' || f === 'Customer');
-    const statusFilters = activeFilters.filter(f => f === 'Active' || f === 'Inactive');
-    
-    let matchesType = typeFilters.length === 0 || typeFilters.includes(contact.type);
-    let matchesStatus = statusFilters.length === 0 || statusFilters.includes(contact.status);
+    let matchesType = typeFilter === 'All Types' || typeFilter === contact.type;
+    let matchesStatus = statusFilter === 'All Statuses' || statusFilter === contact.status;
     
     return matchesSearch && matchesType && matchesStatus;
+  }).sort((a, b) => {
+    if (!sortColumn) return 0;
+    const aValue = a[sortColumn];
+    const bValue = b[sortColumn];
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
-  const totalPages = Math.ceil(filteredContacts.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredContacts.length / rowsPerPage);
   const paginatedContacts = filteredContacts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
   );
 
   const getTypeBadgeColor = (type: string) => {
@@ -118,98 +234,138 @@ export function ContactsModule() {
     }
   };
 
+  const activeFilterCount = [typeFilter !== 'All Types', statusFilter !== 'All Statuses'].filter(Boolean).length;
+
+  const handleExportExcel = () => {
+    if (filteredContacts.length === 0) {
+      toast.error('No contacts to export');
+      return;
+    }
+    const headers = ['Name', 'Email', 'Phone', 'Company', 'Position', 'Type', 'Status', 'Owner', 'Country', 'Created', 'Last Contact'];
+    const rows = filteredContacts.map(c => [
+      c.name || '',
+      c.email || '',
+      c.phone || '',
+      c.company || '',
+      c.position || '',
+      c.type || '',
+      c.status || '',
+      c.owner || 'No Owner',
+      c.country || '',
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+      c.lastContact ? new Date(c.lastContact).toLocaleDateString() : '',
+    ]);
+    const escapeCell = (val: string) => {
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(escapeCell).join(','))].join('\n');
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredContacts.length} contacts`);
+  };
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, typeFilter, statusFilter]);
+
   return (
     <>
       {/* Contact Detail View - Full Screen */}
       {isContactDetailViewOpen && selectedContact ? (
-        <>
-          <ContactDetailView 
-            contact={selectedContact}
-            onBack={() => {
-              setIsContactDetailViewOpen(false);
-              setEditFromDetailView(false);
-            }}
-            onEdit={() => {
-              setIsContactDrawerOpen(true);
-              setEditFromDetailView(true);
-            }}
-            onDelete={() => {
-              setIsContactDetailViewOpen(false);
-              setDeleteModal(true);
-              setContactToDelete(selectedContact);
-            }}
-          />
-          {/* Edit Contact Drawer that overlays the detail view */}
-          <ContactDrawer 
-            isOpen={isContactDrawerOpen && editFromDetailView} 
-            onClose={() => {
-              setIsContactDrawerOpen(false);
-            }} 
-            contact={selectedContact}
-            onSave={handleSaveContact}
-          />
-        </>
+        <ContactDetailView 
+          contact={selectedContact}
+          onBack={() => {
+            setIsContactDetailViewOpen(false);
+          }}
+          onDelete={() => {
+            setIsContactDetailViewOpen(false);
+            setDeleteModal(true);
+            setContactToDelete(selectedContact);
+          }}
+          onContactUpdated={(updatedContact) => {
+            setSelectedContact(updatedContact);
+            fetchContacts();
+          }}
+        />
       ) : (
     <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
       {/* Header Section */}
-      {/* ui-qa-fixer: UI-2026-018 - responsive padding + flex-wrap for mobile header */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-4 md:px-8 py-8 shadow-lg">
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <Users className="w-7 h-7 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white mb-1">Contacts</h1>
-                <p className="text-indigo-100 text-sm">Vendor, Customer, and Lead Contacts</p>
+                <h1 className="text-xl font-bold text-slate-900">Contacts</h1>
+                <p className="text-slate-500 text-sm">Vendor, Customer, and Lead Contacts</p>
               </div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsContactDrawerOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-white text-indigo-600 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-            >
-              <Plus className="w-5 h-5" />
-              Add Contact
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleExportExcel}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-700 text-sm font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsContactDrawerOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-white text-slate-700 text-sm font-semibold rounded-xl border-2 border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Add Contact
+              </motion.button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      {/* ui-qa-fixer: UI-2026-018 - responsive padding */}
-      <div className="px-4 md:px-8 -mt-6 mb-6">
+      <div className="px-6 mt-4 mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
+              className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <div className="text-sm text-slate-500 mb-1">Total Contacts</div>
-              <div className="text-2xl font-bold text-slate-900">{contactsData.length}</div>
+              <div className="text-[11px] font-medium text-slate-500 mb-0.5">Total Contacts</div>
+              <div className="text-xl font-bold text-slate-900">{contactsData.length}</div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
+              className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <div className="text-sm text-slate-500 mb-1">Active Vendors</div>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-[11px] font-medium text-slate-500 mb-0.5">Active Vendors</div>
+              <div className="text-xl font-bold text-slate-900">
                 {contactsData.filter(c => c.type === 'Vendor' && c.status === 'Active').length}
               </div>
             </motion.div>
@@ -218,15 +374,15 @@ export function ContactsModule() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
+              className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <div className="text-sm text-slate-500 mb-1">Active Customers</div>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-[11px] font-medium text-slate-500 mb-0.5">Active Customers</div>
+              <div className="text-xl font-bold text-slate-900">
                 {contactsData.filter(c => c.type === 'Customer' && c.status === 'Active').length}
               </div>
             </motion.div>
@@ -235,15 +391,15 @@ export function ContactsModule() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg"
+              className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-9 h-9 bg-gradient-to-br from-slate-500 to-slate-600 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-white" />
                 </div>
               </div>
-              <div className="text-sm text-slate-500 mb-1">Inactive Contacts</div>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-[11px] font-medium text-slate-500 mb-0.5">Inactive Contacts</div>
+              <div className="text-xl font-bold text-slate-900">
                 {contactsData.filter(c => c.status === 'Inactive').length}
               </div>
             </motion.div>
@@ -252,152 +408,136 @@ export function ContactsModule() {
       </div>
 
       {/* Filters and Search */}
-      {/* ui-qa-fixer: UI-2026-018 - responsive padding */}
-      <div className="px-4 md:px-8 mb-6">
+      <div className="px-6 pb-0 shrink-0 mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search contacts by name, email, or company..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 />
               </div>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={fetchContacts}
+                className="p-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                title="Refresh"
               >
-                <Filter className="w-5 h-5" />
-                Filters
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Export
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
             </div>
 
-            {/* Filter Options */}
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
+            {/* Filters */}
+            <div className="flex items-center gap-2.5 mt-3">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <Filter className="w-3.5 h-3.5" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="w-5 h-5 bg-indigo-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
+                )}
+              </div>
+
+              <ContactFilterDropdown
+                label="Type"
+                value={typeFilter}
+                options={['All Types', ...CONTACT_TYPES]}
+                onChange={setTypeFilter}
+              />
+
+              <ContactFilterDropdown
+                label="Status"
+                value={statusFilter}
+                options={['All Statuses', ...CONTACT_STATUSES]}
+                onChange={setStatusFilter}
+              />
+
+              {activeFilterCount > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { setTypeFilter('All Types'); setStatusFilter('All Statuses'); }}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
                 >
-                  <div className="pt-4 mt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-slate-700">Type:</span>
-                        <div className="flex gap-2">
-                          {['Vendor', 'Customer'].map((type) => {
-                            const toggleFilter = () => {
-                              if (activeFilters.includes(type)) {
-                                setActiveFilters(activeFilters.filter(t => t !== type));
-                              } else {
-                                setActiveFilters([...activeFilters, type]);
-                              }
-                            };
-
-                            return (
-                              <button
-                                key={type}
-                                onClick={toggleFilter}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                  activeFilters.includes(type)
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                              >
-                                {type}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-slate-700">Status:</span>
-                        <div className="flex gap-2">
-                          {['Active', 'Inactive'].map((status) => {
-                            const toggleFilter = () => {
-                              if (activeFilters.includes(status)) {
-                                setActiveFilters(activeFilters.filter(s => s !== status));
-                              } else {
-                                setActiveFilters([...activeFilters, status]);
-                              }
-                            };
-
-                            return (
-                              <button
-                                key={status}
-                                onClick={toggleFilter}
-                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                                  activeFilters.includes(status)
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                              >
-                                {status}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                  <X className="w-3.5 h-3.5" />
+                  Clear
+                </motion.button>
               )}
-            </AnimatePresence>
+
+              <div className="ml-auto">
+                <ColumnVisibilityDropdown
+                  columns={contactColumns}
+                  visibleColumns={columnVisibility}
+                  onChange={setColumnVisibility}
+                  accentColor="indigo"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Contacts Table */}
-      {/* ui-qa-fixer: UI-2026-018 - responsive padding */}
-      <div className="flex-1 px-4 md:px-8 pb-8 overflow-auto">
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1600px]">
+              <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Company</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Position</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Contact Info</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Last Contact</th>
-                    <th className="text-left px-6 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                    {isColVisible('name') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('name')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Name <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('company') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('company')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Company <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('position') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('position')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Position <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('contactInfo') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Contact Info</th>}
+                    {isColVisible('type') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('type')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Type <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('status') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('status')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Status <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('owner') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('owner')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Owner <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('createdAt') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('createdAt')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Created <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('lastContact') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      <button onClick={() => handleSort('lastContact')} className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                        Last Contact <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </th>}
+                    {isColVisible('actions') && <th className="text-left px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {loading && (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center">
-                        <Loader2 className="w-6 h-6 animate-spin text-indigo-500 mx-auto" />
-                      </td>
-                    </tr>
-                  )}
-                  {!loading && paginatedContacts.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
-                        No contacts found.
-                      </td>
-                    </tr>
-                  )}
-                  {!loading && paginatedContacts.map((contact, index) => (
+                  {paginatedContacts.map((contact, index) => (
                     <motion.tr
                       key={contact.id}
                       initial={{ opacity: 0, y: 20 }}
@@ -405,48 +545,66 @@ export function ContactsModule() {
                       transition={{ delay: index * 0.03 }}
                       className="hover:bg-slate-50/50 transition-colors"
                     >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-semibold text-sm">
-                              {(contact.name ?? '?').split(' ').map((n: string) => n[0]).join('')}
+                      {isColVisible('name') && <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-semibold text-xs">
+                              {(contact.name || '?').split(' ').map((n: string) => n[0]).join('')}
                             </span>
                           </div>
-                          <div className="font-semibold text-slate-900">{contact.name}</div>
+                          <div className="text-sm font-semibold text-slate-900 whitespace-nowrap">{contact.name}</div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-slate-900">{contact.company}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">{contact.country}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-slate-700">{contact.position}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-sm text-slate-600 mb-1">
-                          <Mail className="w-4 h-4 text-slate-400" />
+                      </td>}
+                      {isColVisible('company') && <td className="px-4 py-3">
+                        <div className="text-xs font-medium text-slate-900 whitespace-nowrap">{contact.company}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">{contact.country}</div>
+                      </td>}
+                      {isColVisible('position') && <td className="px-4 py-3">
+                        <div className="text-xs text-slate-700">{contact.position}</div>
+                      </td>}
+                      {isColVisible('contactInfo') && <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600 mb-0.5">
+                          <Mail className="w-3.5 h-3.5 text-slate-400" />
                           {contact.email}
                         </div>
-                        <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                          <Phone className="w-4 h-4 text-slate-400" />
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                          <Phone className="w-3.5 h-3.5 text-slate-400" />
                           {contact.phone}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getTypeBadgeColor(contact.type)}`}>
+                      </td>}
+                      {isColVisible('type') && <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${getTypeBadgeColor(contact.type)}`}>
                           {contact.type}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${getStatusBadgeColor(contact.status)}`}>
+                      </td>}
+                      {isColVisible('status') && <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium border ${getStatusBadgeColor(contact.status)}`}>
                           {contact.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600">{contact.lastContact}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      </td>}
+                      {isColVisible('owner') && <td className="px-4 py-3">
+                        {contact.owner ? (
+                          <div className="text-xs font-medium text-slate-700 whitespace-nowrap">{contact.owner}</div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">No Owner</span>
+                        )}
+                      </td>}
+                      {isColVisible('createdAt') && <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-xs text-slate-600">{contact.createdAt ? (() => {
+                          const d = new Date(contact.createdAt);
+                          if (isNaN(d.getTime())) return contact.createdAt;
+                          return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${d.getFullYear()}`;
+                        })() : '—'}</span>
+                      </td>}
+                      {isColVisible('lastContact') && <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-xs text-slate-600">{contact.lastContact ? (() => {
+                          const d = new Date(contact.lastContact);
+                          if (isNaN(d.getTime())) return contact.lastContact;
+                          return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}-${d.getFullYear()}`;
+                        })() : '—'}</span>
+                      </td>}
+                      {isColVisible('actions') && <td className="px-4 py-3">
+                        <div className="flex items-center gap-0.5">
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
@@ -454,7 +612,7 @@ export function ContactsModule() {
                               setSelectedContact(contact);
                               setIsContactDetailViewOpen(true);
                             }}
-                            className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                           >
                             <Eye className="w-4 h-4" />
                           </motion.button>
@@ -464,9 +622,8 @@ export function ContactsModule() {
                             onClick={() => {
                               setSelectedContact(contact);
                               setIsContactDrawerOpen(true);
-                              setEditFromDetailView(false);
                             }}
-                            className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           >
                             <Edit className="w-4 h-4" />
                           </motion.button>
@@ -477,65 +634,54 @@ export function ContactsModule() {
                               setDeleteModal(true);
                               setContactToDelete(contact);
                             }}
-                            className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
                           </motion.button>
                         </div>
-                      </td>
+                      </td>}
                     </motion.tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Pagination */}
-      <div className="px-8 pb-8">
-        <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
+            {/* Pagination - inside table card */}
+            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
               <div className="text-sm text-slate-600">
-                Showing <span className="font-semibold text-slate-900">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                <span className="font-semibold text-slate-900">{Math.min(currentPage * itemsPerPage, filteredContacts.length)}</span> of{' '}
-                <span className="font-semibold text-slate-900">{filteredContacts.length}</span> contacts
+                Page {currentPage} of {Math.max(1, totalPages)} · Showing {Math.min((currentPage - 1) * rowsPerPage + 1, filteredContacts.length)} to {Math.min(currentPage * rowsPerPage, filteredContacts.length)} of {filteredContacts.length}
               </div>
               <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                <span className="text-sm text-slate-600">Rows per page:</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={e => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
-                  <ChevronLeft className="w-5 h-5 text-slate-600" />
-                </motion.button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <motion.button
-                    key={page}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      currentPage === page
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+                <div className="flex gap-1 ml-4">
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   >
-                    {page}
-                  </motion.button>
-                ))}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="p-2 rounded-lg border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 text-slate-600" />
-                </motion.button>
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                    disabled={currentPage >= Math.max(1, totalPages)}
+                    onClick={() => setCurrentPage(p => Math.min(Math.max(1, totalPages), p + 1))}
+                  >
+                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -586,14 +732,12 @@ export function ContactsModule() {
                     Cancel
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: isDeleting ? 1 : 1.02 }}
-                    whileTap={{ scale: isDeleting ? 1 : 0.98 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleDeleteContact}
-                    disabled={isDeleting}
-                    className={`px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 ${isDeleting ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
                   >
-                    {isDeleting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {isDeleting ? 'Deleting...' : 'Delete Contact'}
+                    Delete Contact
                   </motion.button>
                 </div>
               </motion.div>
@@ -604,7 +748,7 @@ export function ContactsModule() {
 
       {/* Unified Contact Drawer (for both add and edit) */}
       <ContactDrawer 
-        isOpen={isContactDrawerOpen && !editFromDetailView} 
+        isOpen={isContactDrawerOpen} 
         onClose={() => {
           setIsContactDrawerOpen(false);
           setSelectedContact(null);

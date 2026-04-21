@@ -1007,17 +1007,14 @@ export function WMSShippingTab() {
   const menuBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [customBoxPresets, setCustomBoxPresets] = useState<CustomBoxPreset[]>([]);
 
-  // Load custom box presets from KV
+  // Load custom box presets from the DB-backed settings row
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/settings/box-presets', {
-          method: 'GET',
-          headers: {  },
-        });
-        if (!res.ok) { console.error('Box presets endpoint returned', res.status); return; }
+        const res = await fetch('/api/settings/box-presets/get');
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.success && data.presets) {
+        if (data.presets) {
           setCustomBoxPresets(Array.isArray(data.presets) ? data.presets : []);
         }
       } catch (err) { console.error('Error loading custom box presets (will retry on next load):', err); }
@@ -1026,8 +1023,8 @@ export function WMSShippingTab() {
 
   const saveCustomBoxPresets = async (presets: CustomBoxPreset[]) => {
     try {
-      await fetch('/api/settings/box-presets', {
-        method: 'PUT', headers,
+      await fetch('/api/settings/box-presets/save', {
+        method: 'POST', headers,
         body: JSON.stringify({ presets }),
       });
     } catch (err) { console.error('Error saving custom box presets:', err); toast.error('Failed to save preset'); }
@@ -1070,9 +1067,10 @@ export function WMSShippingTab() {
   const fetchShipRecords = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/pick-lists/list', { headers });
+      const res = await fetch('/api/pick-lists/list');
+      if (!res.ok) return;
       const data = await res.json();
-      if (data.success) {
+      {
         // Convert completed/packed/shipped/delivered picks into ship records
         const picks = (data.pickLists || []).filter((p: any) => ['Completed', 'Packed', 'Shipped', 'Delivered'].includes(p.status));
         const shipRecords: ShipRecord[] = picks.map((p: any) => {
@@ -1110,9 +1108,12 @@ export function WMSShippingTab() {
   const handleStatusChange = async (record: ShipRecord, newStatus: string) => {
     if (record.pickListId) {
       try {
-        await fetch(`/api/pick-lists/${record.pickListId}`, {
-          method: 'PUT', headers,
-          body: JSON.stringify({ status: newStatus === 'Shipped' || newStatus === 'Delivered' ? newStatus : 'Packed' })
+        await fetch('/api/pick-lists/update', {
+          method: 'PATCH', headers,
+          body: JSON.stringify({
+            id: record.pickListId,
+            status: newStatus === 'Shipped' || newStatus === 'Delivered' ? newStatus : 'Packed',
+          }),
         });
         toast.success(`Status updated to ${newStatus}`);
         fetchShipRecords();
@@ -1153,10 +1154,10 @@ export function WMSShippingTab() {
           ].map((s, i) => {
             const Icon = s.icon;
             return (
-              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-                <div className="flex items-center justify-between mb-3"><div className={`w-12 h-12 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center`}><Icon className="w-6 h-6 text-white" /></div></div>
+              <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+                <div className="flex items-center justify-between mb-2"><div className={`w-10 h-10 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center`}><Icon className="w-5 h-5 text-white" /></div></div>
                 <div className="text-sm text-slate-500 mb-1">{s.label}</div>
-                <div className="text-2xl font-bold text-slate-900">{s.value}</div>
+                <div className="text-xl font-bold text-slate-900">{s.value}</div>
               </motion.div>
             );
           })}
@@ -1167,7 +1168,7 @@ export function WMSShippingTab() {
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input type="text" placeholder="Search shipments by ID, order, customer..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all" />
+              <input type="text" placeholder="Search shipments by ID, order, customer..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all" />
             </div>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500">
               <option>All Status</option>
@@ -1179,7 +1180,7 @@ export function WMSShippingTab() {
               <option>Shipped</option>
               <option>Delivered</option>
             </select>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchShipRecords} className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100">
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchShipRecords} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100">
               <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
             </motion.button>
           </div>
@@ -1207,12 +1208,12 @@ export function WMSShippingTab() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={12} className="px-8 py-20">
+                  <tr><td colSpan={12} className="px-6 py-12">
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-4">
                         <Truck className="w-10 h-10 text-slate-400" />
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900 mb-1">No Shipments Ready</h3>
+                      <h3 className="text-sm font-bold text-slate-900 mb-1">No Shipments Ready</h3>
                       <p className="text-sm text-slate-500 max-w-md">Complete pick lists to see shipments here.</p>
                     </div>
                   </td></tr>

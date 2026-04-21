@@ -1,12 +1,13 @@
 import { motion, AnimatePresence } from 'motion/react';
+import { DatePicker } from './DatePicker';
 import { X, User, Upload, Mail, Phone, Building2, MapPin, FileText, Tag, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
-
 
 interface AddContactDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (contact?: any) => void;
+  customerId?: string;
   contactData?: {
     id?: string;
     firstName?: string;
@@ -68,7 +69,84 @@ const AVAILABLE_TAGS = [
   'After Hours',
 ];
 
-export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: AddContactDrawerProps) {
+const COUNTRIES = [
+  'United States',
+  'Canada',
+  'Mexico',
+  'United Kingdom',
+  'Germany',
+  'France',
+  'Italy',
+  'Spain',
+  'Netherlands',
+  'Belgium',
+  'Switzerland',
+  'Austria',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Finland',
+  'Ireland',
+  'Portugal',
+  'Poland',
+  'Czech Republic',
+  'Hungary',
+  'Romania',
+  'Greece',
+  'Australia',
+  'New Zealand',
+  'Japan',
+  'China',
+  'South Korea',
+  'Taiwan',
+  'Hong Kong',
+  'Singapore',
+  'Malaysia',
+  'Thailand',
+  'Vietnam',
+  'Indonesia',
+  'Philippines',
+  'India',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Israel',
+  'Turkey',
+  'South Africa',
+  'Brazil',
+  'Argentina',
+  'Chile',
+  'Colombia',
+  'Peru',
+  'Other',
+];
+
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+  'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+  'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+  'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+  'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+  'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming',
+];
+
+const CONTACT_CHANNELS = [
+  'WeChat',
+  'WhatsApp',
+  'Telegram',
+  'Signal',
+  'Slack',
+  'Microsoft Teams',
+  'Discord',
+  'Line',
+  'Viber',
+  'Skype',
+];
+
+export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess, customerId }: AddContactDrawerProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -85,7 +163,8 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
     lastName: contactData?.lastName || '',
     email: contactData?.email || '',
     phone: contactData?.phone || '',
-    wechatId: contactData?.wechatId || '',
+    channelType: contactData?.channelType || '',
+    channelId: contactData?.channelId || '',
     jobTitle: contactData?.jobTitle || '',
     company: contactData?.company || '',
     department: contactData?.department || '',
@@ -96,6 +175,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
     city: contactData?.city || '',
     state: contactData?.state || '',
     zipCode: contactData?.zipCode || '',
+    country: contactData?.country || 'United States',
     notes: contactData?.notes || '',
   });
 
@@ -118,6 +198,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
         city: contactData.city || '',
         state: contactData.state || '',
         zipCode: contactData.zipCode || '',
+        country: contactData.country || 'United States',
         notes: contactData.notes || '',
       });
       setUploadedImage(contactData.image || null);
@@ -140,6 +221,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
         city: '',
         state: '',
         zipCode: '',
+        country: 'United States',
         notes: '',
       });
       setUploadedImage(null);
@@ -158,14 +240,12 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       reader.onloadend = async () => {
         const base64String = reader.result as string;
         
+        // Background removal service isn't wired locally; preview the
+        // original image and let the save flow upload it to S3.
+        setUploadedImage(base64String);
+        setFormData({ ...formData, profileImage: base64String });
         if (removeBackground) {
-          // Use original image since background removal requires server
-          setUploadedImage(base64String);
-          setFormData({ ...formData, profileImage: base64String });
-        } else {
-          // Use original image
-          setUploadedImage(base64String);
-          setFormData({ ...formData, profileImage: base64String });
+          console.info('Background removal unavailable — using original image');
         }
         
         setIsProcessingImage(false);
@@ -203,16 +283,28 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
     });
   };
 
-  // Search for companies
+  // Search for companies. We hit /api/customers/list (the company catalog we
+  // maintain locally) and filter client-side — the reference's dedicated
+  // search-companies endpoint isn't wired here.
   const handleCompanySearch = async (query: string) => {
     if (query.length < 3) {
       setCompanies([]);
       setShowCompanyDropdown(false);
       return;
     }
-
-    setCompanies([]);
-    setShowCompanyDropdown(false);
+    try {
+      const response = await fetch('/api/customers/list');
+      if (!response.ok) throw new Error('Failed');
+      const data = await response.json();
+      const q = query.toLowerCase();
+      const matched = (data.customers ?? [])
+        .filter((c: any) => (c.name || '').toLowerCase().includes(q))
+        .slice(0, 10);
+      setCompanies(matched);
+      setShowCompanyDropdown(matched.length > 0);
+    } catch (error) {
+      console.error('Error searching companies:', error);
+    }
   };
 
   // Handle company selection
@@ -239,7 +331,8 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       lastName: formData.lastName,
       email: formData.email,
       phone: formData.phone,
-      wechatId: formData.wechatId,
+      channelType: formData.channelType,
+      channelId: formData.channelId,
       jobTitle: formData.jobTitle,
       company: formData.company,
       department: formData.department,
@@ -250,39 +343,105 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
       city: formData.city,
       state: formData.state,
       zipCode: formData.zipCode,
+      country: formData.country,
       notes: formData.notes,
       lastContacted: formData.lastContacted,
       profileImage: formData.profileImage,
     };
 
-    setIsSaving(true);
     try {
-      onSuccess?.();
-      onClose();
-      // Reset form
-      setFormData({
-        image: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        company: '',
-        jobTitle: '',
-        department: '',
-        contactType: 'Other',
-        tags: [],
-        addressLine1: '',
-        addressLine2: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        notes: '',
-      });
-      setUploadedImage(null);
-      setCompanySearch('');
-      setIsSaving(false);
+      setIsSaving(true);
+      // Map the drawer's firstName/lastName fields to the single `name`
+      // column our contacts collection stores, and flatten the address
+      // block into the embedded `addresses` array.
+      const name = [formData.firstName, formData.lastName].filter(Boolean).join(' ').trim();
+      const addressBlock = formData.addressLine1 || formData.city ? [{
+        id: `addr-${Date.now()}`,
+        line1: formData.addressLine1 || '',
+        line2: formData.addressLine2 || '',
+        city: formData.city || '',
+        state: formData.state || '',
+        zipCode: formData.zipCode || '',
+        country: formData.country || '',
+        isPrimary: true,
+      }] : [];
+
+      const basePayload: Record<string, any> = {
+        name: name || formData.firstName || formData.email,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company || null,
+        position: formData.jobTitle || null,
+        type: formData.contactType || 'Customer',
+        country: formData.country || 'United States',
+        notes: formData.notes || '',
+      };
+      if (addressBlock.length) basePayload.addresses = addressBlock;
+
+      if (contactData?.id) {
+        // Update existing contact
+        const response = await fetch('/api/contacts/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: contactData.id, ...basePayload }),
+        });
+        if (!response.ok) throw new Error('Failed to update contact');
+        onSuccess?.({ ...contactData, ...basePayload, id: contactData.id });
+        onClose();
+      } else {
+        // Create new contact
+        const response = await fetch('/api/contacts/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(basePayload),
+        });
+        if (!response.ok) throw new Error('Failed to create contact');
+        const data = await response.json();
+        const saved = data.contact ?? { ...basePayload, ...contact };
+        // If this drawer is scoped to a customer (used by CustomerDetailView),
+        // mirror the row into customer_contacts so the customer's contacts
+        // tab picks it up.
+        if (customerId) {
+          await fetch('/api/customers/contacts/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerId,
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
+              role: formData.jobTitle || null,
+            }),
+          }).catch(() => undefined);
+        }
+        onSuccess?.(saved);
+        onClose();
+        setFormData({
+          image: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          company: '',
+          jobTitle: '',
+          department: '',
+          contactType: 'Other',
+          tags: [],
+          addressLine1: '',
+          addressLine2: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'United States',
+          notes: '',
+        });
+        setUploadedImage(null);
+        setCompanySearch('');
+      }
     } catch (error) {
       console.error('Error saving contact:', error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -309,7 +468,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
             className="fixed right-0 top-0 h-full w-full max-w-2xl bg-slate-50 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 px-8 py-8 flex items-center justify-between shadow-xl">
+            <div className="bg-slate-800 px-8 py-8 flex items-center justify-between shadow-xl">
               <div className="flex items-center gap-5">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
@@ -349,7 +508,7 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 drawer-scroll">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Profile Image */}
                 <motion.div
@@ -517,19 +676,6 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                         />
                       </div>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        WeChat ID
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="wechat_username"
-                        value={formData.wechatId}
-                        onChange={(e) => setFormData({ ...formData, wechatId: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium"
-                      />
-                    </div>
                   </div>
                 </motion.div>
 
@@ -567,82 +713,17 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                       </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-5">
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
-                          Company <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Type to search or create new..."
-                            value={companySearch || formData.company}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setCompanySearch(value);
-                              setFormData({ ...formData, company: value });
-                              handleCompanySearch(value);
-                            }}
-                            onFocus={() => {
-                              if (companySearch.length >= 3 || companies.length > 0) {
-                                setShowCompanyDropdown(true);
-                              }
-                            }}
-                            onBlur={() => setTimeout(() => setShowCompanyDropdown(false), 200)}
-                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
-                            required
-                          />
-                          <AnimatePresence>
-                            {showCompanyDropdown && companies.length > 0 && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="absolute left-0 right-0 top-full mt-2 bg-white border-2 border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto"
-                              >
-                                {companies.map((company, index) => (
-                                  <motion.div
-                                    key={company.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="px-5 py-3 cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-50 border-b border-slate-100 last:border-b-0 transition-all"
-                                    onMouseDown={() => handleSelectCompany(company)}
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                                        <span className="text-white text-xs font-bold">
-                                          {company.name.charAt(0).toUpperCase()}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <div className="text-sm font-bold text-slate-900">{company.name}</div>
-                                        {company.industry && (
-                                          <div className="text-xs text-slate-500">{company.industry}</div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2">Type to search existing companies or create new</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
-                          Department
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Purchasing"
-                          value={formData.department}
-                          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                        Department
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Purchasing"
+                        value={formData.department}
+                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all font-medium"
+                      />
                     </div>
 
                     <div>
@@ -661,6 +742,41 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                          Contact Channel
+                        </label>
+                        <select
+                          value={formData.channelType}
+                          onChange={(e) => setFormData({ ...formData, channelType: e.target.value, channelId: '' })}
+                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1rem_center] bg-no-repeat pr-12 cursor-pointer"
+                        >
+                          <option value="">None</option>
+                          {CONTACT_CHANNELS.map((channel) => (
+                            <option key={channel} value={channel}>
+                              {channel}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {formData.channelType && (
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-2">
+                            {formData.channelType} ID/Username
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={`Enter ${formData.channelType} ID`}
+                            value={formData.channelId}
+                            onChange={(e) => setFormData({ ...formData, channelId: e.target.value })}
+                            className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -805,13 +921,18 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                         <label className="block text-sm font-bold text-slate-700 mb-2">
                           State
                         </label>
-                        <input
-                          type="text"
-                          placeholder="State"
+                        <select
                           value={formData.state}
                           onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500 transition-all font-medium"
-                        />
+                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500 transition-all font-medium appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1rem_center] bg-no-repeat pr-12 cursor-pointer"
+                        >
+                          <option value="">Select state</option>
+                          {US_STATES.map((state) => (
+                            <option key={state} value={state}>
+                              {state}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
@@ -833,13 +954,18 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                         <label className="block text-sm font-bold text-slate-700 mb-2">
                           Country
                         </label>
-                        <input
-                          type="text"
-                          placeholder="Country"
+                        <select
                           value={formData.country}
                           onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500 transition-all font-medium"
-                        />
+                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-pink-500 transition-all font-medium appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3c%2Fpolyline%3E%3c%2Fsvg%3E')] bg-[length:1.25rem] bg-[right_1rem_center] bg-no-repeat pr-12 cursor-pointer"
+                        >
+                          <option value="">Select country</option>
+                          {COUNTRIES.map((country) => (
+                            <option key={country} value={country}>
+                              {country}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -890,11 +1016,9 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess }: Ad
                       <label className="block text-sm font-bold text-slate-700 mb-2">
                         Last Contacted
                       </label>
-                      <input
-                        type="date"
-                        value={formData.lastContacted}
-                        onChange={(e) => setFormData({ ...formData, lastContacted: e.target.value })}
-                        className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all font-medium"
+                      <DatePicker
+                        value={formData.lastContacted || ''}
+                        onChange={(date) => setFormData({ ...formData, lastContacted: date })}
                       />
                       <p className="text-xs text-slate-500 mt-2">When did you last contact this person?</p>
                     </div>

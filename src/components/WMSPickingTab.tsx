@@ -303,9 +303,10 @@ export function WMSPickingTab() {
   const fetchPickLists = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/pick-lists/list', { headers });
+      const res = await fetch('/api/pick-lists/list');
+      if (!res.ok) return;
       const data = await res.json();
-      if (data.success) setPickLists(data.pickLists || []);
+      setPickLists(data.pickLists || []);
     } catch (err) { console.error('Error:', err); }
     finally { setLoading(false); }
   }, []);
@@ -314,33 +315,36 @@ export function WMSPickingTab() {
 
   const handleSave = async (data: any) => {
     try {
-      const res = await fetch('/api/pick-lists/list', { method: 'POST', headers, body: JSON.stringify(data) });
-      const result = await res.json();
-      if (result.success) { toast.success('Pick list created!'); setDrawerOpen(false); fetchPickLists(); }
-      else toast.error(result.error || 'Failed');
+      const res = await fetch('/api/pick-lists/create', { method: 'POST', headers, body: JSON.stringify(data) });
+      if (res.ok) { toast.success('Pick list created!'); setDrawerOpen(false); fetchPickLists(); }
+      else { const result = await res.json().catch(() => ({})); toast.error(result.error || 'Failed'); }
     } catch { toast.error('Error creating pick list'); }
   };
 
   const handleUpdate = async (updated: PickList) => {
     try {
-      await fetch(`/api/pick-lists/${updated.id}`, { method: 'PUT', headers, body: JSON.stringify(updated) });
+      await fetch('/api/pick-lists/update', {
+        method: 'PATCH', headers, body: JSON.stringify({ id: updated.id, ...updated }),
+      });
 
       // When pick is completed and it's an inventory shipment, update inventory:
       // Move onOrder → allocated (available drops to 0, item is out of warehouse)
       if (updated.status === 'Completed' && (updated as any).sourceType === 'inventory-shipment' && (updated as any).sourceInventoryId) {
         try {
           const invId = (updated as any).sourceInventoryId;
-          const invRes = await fetch(`/api/inventory/${invId}`, { headers });
-          const invData = await invRes.json();
-          if (invData.success && invData.item) {
-            const shippedQty = updated.items.reduce((s, it) => s + it.quantity, 0);
-            const newOnOrder = Math.max((invData.item.onOrder || 0) - shippedQty, 0);
-            const newAllocated = (invData.item.allocated || 0) + shippedQty;
-            await fetch(`/api/inventory/${invId}`, {
-              method: 'PUT',
-              headers,
-              body: JSON.stringify({ onOrder: newOnOrder, allocated: newAllocated }),
-            });
+          const invRes = await fetch(`/api/inventory/get?id=${encodeURIComponent(invId)}`);
+          if (invRes.ok) {
+            const invData = await invRes.json();
+            if (invData.item) {
+              const shippedQty = updated.items.reduce((s, it) => s + it.quantity, 0);
+              const newOnOrder = Math.max((invData.item.onOrder || 0) - shippedQty, 0);
+              const newAllocated = (invData.item.allocated || 0) + shippedQty;
+              await fetch('/api/inventory/update', {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ id: invId, onOrder: newOnOrder, allocated: newAllocated }),
+              });
+            }
           }
         } catch (invErr) {
           console.error('Error updating inventory on pick completion:', invErr);
@@ -353,7 +357,7 @@ export function WMSPickingTab() {
   };
 
   const handleDelete = async (id: string) => {
-    try { await fetch(`/api/pick-lists/${id}`, { method: 'DELETE', headers }); toast.success('Deleted'); fetchPickLists(); }
+    try { await fetch('/api/pick-lists/delete', { method: 'DELETE', headers, body: JSON.stringify({ id }) }); toast.success('Deleted'); fetchPickLists(); }
     catch { toast.error('Error'); }
   };
 
@@ -382,10 +386,10 @@ export function WMSPickingTab() {
             ].map((s, i) => {
               const Icon = s.icon;
               return (
-                <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-                  <div className="flex items-center justify-between mb-3"><div className={`w-12 h-12 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center`}><Icon className="w-6 h-6 text-white" /></div></div>
+                <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+                  <div className="flex items-center justify-between mb-2"><div className={`w-10 h-10 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center`}><Icon className="w-5 h-5 text-white" /></div></div>
                   <div className="text-sm text-slate-500 mb-1">{s.label}</div>
-                  <div className="text-2xl font-bold text-slate-900">{s.value}</div>
+                  <div className="text-xl font-bold text-slate-900">{s.value}</div>
                 </motion.div>
               );
             })}
@@ -396,10 +400,10 @@ export function WMSPickingTab() {
             <div className="flex items-center gap-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input type="text" placeholder="Search pick lists..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" />
+                <input type="text" placeholder="Search pick lists..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all" />
               </div>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchPickLists} className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100"><RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} /></motion.button>
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setDrawerOpen(true)} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl"><Plus className="w-5 h-5" />New Pick List</motion.button>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchPickLists} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100"><RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} /></motion.button>
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setDrawerOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl text-sm"><Plus className="w-4 h-4" />New Pick List</motion.button>
             </div>
           </div>
 
@@ -424,9 +428,9 @@ export function WMSPickingTab() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={11} className="px-8 py-16 text-center">
+                    <tr><td colSpan={11} className="px-6 py-12 text-center">
                       <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                      <h3 className="text-lg font-bold text-slate-900 mb-1">No Pick Lists</h3>
+                      <h3 className="text-sm font-bold text-slate-900 mb-1">No Pick Lists</h3>
                       <p className="text-sm text-slate-500">Create a pick list to start fulfilling orders.</p>
                     </td></tr>
                   ) : filtered.map((p, i) => {

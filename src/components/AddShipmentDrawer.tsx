@@ -1,14 +1,31 @@
 import { motion, AnimatePresence } from 'motion/react';
+import { DatePicker } from './DatePicker';
 import { X, Truck, Package, MapPin, DollarSign, Weight, FileText, Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
 import { DynamicPackageDetails } from './DynamicPackageDetails';
+import { toast } from 'sonner';
+import { QuantityStepper } from './QuantityStepper';
+
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+  'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+  'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+  'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+  'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+  'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming',
+];
 
 interface AddShipmentDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
+export function AddShipmentDrawer({ isOpen, onClose, onSave }: AddShipmentDrawerProps) {
   const [formData, setFormData] = useState({
     trackingNumber: '',
     orderId: '',
@@ -99,10 +116,54 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('New Shipment:', formData);
-    alert('Shipment created successfully!');
+    try {
+      const shipmentPayload = {
+        masterTracking: formData.trackingNumber,
+        poNumber: formData.referenceNumber || '',
+        orderNumber: formData.orderId,
+        orderLabel: formData.orderId,
+        customer: formData.customer,
+        quantity: parseInt(formData.items) || 0,
+        itemName: formData.customer + ' Shipment',
+        project: formData.customer,
+        carrier: formData.carrier,
+        serviceLevel: formData.serviceType,
+        status: formData.status,
+        shipDate: formData.shipDate,
+        estDelivery: formData.estimatedDelivery,
+        hasIssue: false,
+        weight: formData.weight || '',
+        dimensions: formData.dimensions || '',
+        packageType: formData.packageType,
+        declaredValue: formData.declaredValue,
+        shippingCost: formData.shippingCost,
+        insuranceAmount: formData.insuranceAmount,
+        originAddress: formData.origin,
+        destinationAddress: formData.destinationAddress,
+        destinationCity: formData.destinationCity,
+        destinationState: formData.destinationState,
+        destinationZip: formData.destinationZip,
+        referenceNumber: formData.referenceNumber,
+        specialInstructions: formData.specialInstructions,
+      };
+      const response = await fetch('/api/shipments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shipmentPayload),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        toast.error(`Failed to create shipment: ${result.error || 'Unknown error'}`);
+      } else {
+        toast.success('Shipment created successfully!');
+        onSave?.();
+      }
+    } catch (error) {
+      console.error('Error creating shipment:', error);
+      toast.error(`Error creating shipment: ${error}`);
+    }
     onClose();
   };
 
@@ -127,41 +188,33 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl z-50 flex flex-col"
           >
-            {/* Simple Flat Header */}
-            <div className="bg-emerald-600 px-6 py-5 flex items-center justify-between">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-emerald-500 to-teal-600">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Truck className="w-6 h-6 text-white" />
+                <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                  <Truck className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Add New Shipment</h2>
-                  <p className="text-emerald-100 text-sm">Submit a new shipment to the system</p>
+                  <h2 className="text-lg font-bold text-white">Add New Shipment</h2>
+                  <p className="text-xs text-emerald-100">Submit a new shipment to the system</p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
-              >
-                <X className="w-5 h-5" />
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
             {/* Form Content */}
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto bg-slate-50">
-              <div className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto bg-slate-50 drawer-scroll">
+              <div className="p-6 space-y-5">
                 {/* Basic Information */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
-                      <Package className="w-5 h-5 text-white" />
-                    </div>
-                    Basic Information
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Basic Information</h3>
                   
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Tracking Number <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -170,11 +223,11 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                           onChange={(e) => setFormData({ ...formData, trackingNumber: e.target.value })}
                           placeholder="TRK-2024-001234"
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Order ID <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -183,13 +236,13 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                           onChange={(e) => setFormData({ ...formData, orderId: e.target.value })}
                           placeholder="ORD-1001"
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Customer Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -198,33 +251,31 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
                         placeholder="Acme Corporation"
                         required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Number of Items <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="number"
-                          value={formData.items}
-                          onChange={(e) => setFormData({ ...formData, items: e.target.value })}
-                          placeholder="5"
-                          required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        <QuantityStepper
+                          value={parseInt(formData.items) || 0}
+                          onChange={(val) => setFormData({ ...formData, items: String(val) })}
+                          min={1}
+                          wide
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Package Type <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={formData.packageType}
                           onChange={(e) => setFormData({ ...formData, packageType: e.target.value })}
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         >
                           <option value="Box">Box</option>
                           <option value="Envelope">Envelope</option>
@@ -238,24 +289,19 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                 </div>
 
                 {/* Shipping Details */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-white" />
-                    </div>
-                    Shipping Details
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Shipping Details</h3>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Origin <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.origin}
                         onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
                         required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       >
                         <option value="Warehouse A, Los Angeles">Warehouse A, Los Angeles</option>
                         <option value="Warehouse B, Dallas">Warehouse B, Dallas</option>
@@ -264,7 +310,7 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Destination Address <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -273,13 +319,13 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         onChange={(e) => setFormData({ ...formData, destinationAddress: e.target.value })}
                         placeholder="123 Main Street"
                         required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
                       <div className="col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           City <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -288,26 +334,28 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                           onChange={(e) => setFormData({ ...formData, destinationCity: e.target.value })}
                           placeholder="New York"
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           State <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={formData.destinationState}
                           onChange={(e) => setFormData({ ...formData, destinationState: e.target.value })}
-                          placeholder="NY"
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                        />
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        >
+                          {US_STATES.map(state => (
+                            <option key={state} value={state}>{state}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         ZIP Code <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -316,32 +364,27 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         onChange={(e) => setFormData({ ...formData, destinationZip: e.target.value })}
                         placeholder="10001"
                         required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Carrier & Service */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <Truck className="w-5 h-5 text-white" />
-                    </div>
-                    Carrier Information
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Carrier Information</h3>
 
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Shipment Type <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={formData.shipmentType}
                           onChange={(e) => handleShipmentTypeChange(e.target.value)}
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         >
                           <option value="Small Package">Small Package</option>
                           <option value="Ocean Freight">Ocean Freight</option>
@@ -351,14 +394,14 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Carrier <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={formData.carrier}
                           onChange={(e) => handleCarrierChange(e.target.value)}
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         >
                           {carrierOptions[formData.shipmentType as keyof typeof carrierOptions]?.map(carrier => (
                             <option key={carrier} value={carrier}>{carrier}</option>
@@ -368,14 +411,14 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Service Type <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.serviceType}
                         onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
                         required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       >
                         {serviceTypeOptions[formData.carrier]?.map(service => (
                           <option key={service} value={service}>{service}</option>
@@ -384,14 +427,14 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                         Status <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={formData.status}
                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                         required
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       >
                         <option value="Processing">Processing</option>
                         <option value="In Transit">In Transit</option>
@@ -404,27 +447,25 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Ship Date <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={formData.shipDate}
-                          onChange={(e) => setFormData({ ...formData, shipDate: e.target.value })}
+                          onChange={(date) => setFormData({ ...formData, shipDate: date })}
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Est. Delivery <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={formData.estimatedDelivery}
-                          onChange={(e) => setFormData({ ...formData, estimatedDelivery: e.target.value })}
+                          onChange={(date) => setFormData({ ...formData, estimatedDelivery: date })}
                           required
-                          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
                       </div>
                     </div>
@@ -435,102 +476,94 @@ export function AddShipmentDrawer({ isOpen, onClose }: AddShipmentDrawerProps) {
                 <DynamicPackageDetails shipmentType={formData.shipmentType} />
 
                 {/* Financial Information */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-white" />
-                    </div>
-                    Financial Information
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Financial Information</h3>
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Declared Value</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Declared Value</label>
                       <input
                         type="number"
                         step="0.01"
                         value={formData.declaredValue}
                         onChange={(e) => setFormData({ ...formData, declaredValue: e.target.value })}
                         placeholder="500.00"
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Shipping Cost</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Shipping Cost</label>
                       <input
                         type="number"
                         step="0.01"
                         value={formData.shippingCost}
                         onChange={(e) => setFormData({ ...formData, shippingCost: e.target.value })}
                         placeholder="125.50"
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Insurance</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Insurance Amount</label>
                       <input
                         type="number"
                         step="0.01"
                         value={formData.insuranceAmount}
                         onChange={(e) => setFormData({ ...formData, insuranceAmount: e.target.value })}
                         placeholder="50.00"
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Additional Information */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5">
-                  <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <div className="w-9 h-9 bg-indigo-500 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-white" />
-                    </div>
-                    Additional Information
-                  </h3>
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Additional Information</h3>
 
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Reference Number</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Reference Number</label>
                       <input
                         type="text"
                         value={formData.referenceNumber}
                         onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
                         placeholder="REF-12345"
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Special Instructions</label>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">Special Instructions</label>
                       <textarea
                         value={formData.specialInstructions}
                         onChange={(e) => setFormData({ ...formData, specialInstructions: e.target.value })}
                         placeholder="Add any special handling or delivery instructions..."
                         rows={3}
-                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
+                        className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 resize-none"
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Simple Footer */}
-              <div className="sticky bottom-0 bg-white border-t border-slate-200 px-6 py-4 flex items-center gap-3">
+              {/* Footer */}
+              <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 px-6 py-4 flex items-center gap-3">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  className="flex-1 px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
                 >
                   Cancel
                 </button>
-                <button
+                <motion.button
                   type="submit"
-                  className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex-1 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all flex items-center justify-center gap-2"
                 >
                   <Package className="w-4 h-4" />
                   Add Shipment
-                </button>
+                </motion.button>
               </div>
             </form>
           </motion.div>

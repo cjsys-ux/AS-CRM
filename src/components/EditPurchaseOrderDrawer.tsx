@@ -76,7 +76,7 @@ export function EditPurchaseOrderDrawer({
             className="fixed right-0 top-0 h-full w-full md:w-[600px] bg-white shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-500 px-8 py-6 overflow-hidden">
+            <div className="relative bg-slate-800 px-8 py-6 overflow-hidden">
               <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-400/20 rounded-full blur-2xl" />
               
@@ -101,7 +101,7 @@ export function EditPurchaseOrderDrawer({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-8 drawer-scroll">
               <div className="space-y-6">
                 {/* PO Number - Read Only */}
                 <div>

@@ -116,13 +116,17 @@ export function ReceivingDetailView({
     const fetchLocations = async () => {
       try {
         const [locRes, whRes] = await Promise.all([
-          fetch('/api/wms/warehouse-locations-all', { headers }),
-          fetch('/api/wms/warehouses', { headers }),
+          fetch('/api/warehouse-locations/list'),
+          fetch('/api/warehouses/list'),
         ]);
-        const locData = await locRes.json().catch(() => ({}));
-        const whData = await whRes.json().catch(() => ({}));
-        if (locRes.ok) setWarehouseLocations(locData.locations || []);
-        if (whRes.ok) setWarehouseList(whData.warehouses || []);
+        if (locRes.ok) {
+          const locData = await locRes.json();
+          setWarehouseLocations(locData.locations || []);
+        }
+        if (whRes.ok) {
+          const whData = await whRes.json();
+          setWarehouseList(whData.warehouses || []);
+        }
       } catch (e) {
         console.log('[ReceivingDetail] Error fetching warehouse locations:', e);
       }
@@ -143,50 +147,44 @@ export function ReceivingDetailView({
         let order: any = null;
         // Strategy 1: fetch by sourceOrderId
         if (receipt.sourceOrderId) {
-          if (receipt.sourceOrderType === 'purchase-order') {
-            const res = await fetch(`/api/purchasing/get?id=${encodeURIComponent(receipt.sourceOrderId)}`, { headers });
+          const endpoint = receipt.sourceOrderType === 'purchase-order'
+            ? `/api/purchasing/get?id=${encodeURIComponent(receipt.sourceOrderId)}`
+            : `/api/orders/get?id=${encodeURIComponent(receipt.sourceOrderId)}`;
+          const res = await fetch(endpoint);
+          if (res.ok) {
             const data = await res.json();
             order = data.purchaseOrder || data.order;
-            console.log('[ReceivingDetail] Source PO keys:', order ? Object.keys(order).join(',') : 'no order', 'shippingMethod:', order?.shippingMethod);
-          } else {
-            const res = await fetch('/api/orders/list', { headers });
-            const data = await res.json();
-            order = (data.orders || []).find((o: any) => o.id === receipt.sourceOrderId) || null;
-            console.log('[ReceivingDetail] Source order:', order ? `shippingMethod=${order.shippingMethod}` : 'not found');
           }
         }
         // Strategy 2: search all POs by poNumber
         if ((!order || !order.shippingMethod || order.shippingMethod === 'Not Set') && receipt.poNumber) {
-          console.log('[ReceivingDetail] Trying poNumber lookup:', receipt.poNumber);
-          const res = await fetch('/api/purchasing/list', { headers });
-          const data = await res.json();
-          const poList = data.purchaseOrders || data.orders || [];
-          if (poList.length) {
-            const match = poList.find((po: any) => po.poNumber === receipt.poNumber);
+          const res = await fetch('/api/purchasing/list');
+          if (res.ok) {
+            const data = await res.json();
+            const list = data.purchaseOrders || data.orders || [];
+            const match = list.find((po: any) => po.poNumber === receipt.poNumber);
             if (match) {
-              // Prefer this match for ship date even if shippingMethod isn't set
               if (!order?.shipDate && match.shipDate) order = { ...order, ...match };
               if (match.shippingMethod && match.shippingMethod !== 'Not Set') {
                 order = match;
               }
             }
-            console.log('[ReceivingDetail] PO match by poNumber:', match ? `found, shippingMethod=${match.shippingMethod}` : 'not found');
           }
         }
         // Strategy 3: search orders list
         if ((!order || !order.shippingMethod || order.shippingMethod === 'Not Set') && receipt.sourceOrderId) {
-          console.log('[ReceivingDetail] Trying orders list lookup');
-          const res = await fetch('/api/orders/list', { headers });
-          const data = await res.json();
-          if (data.orders) {
-            const match = data.orders.find((o: any) => o.id === receipt.sourceOrderId);
-            if (match) {
-              if (!order?.shipDate && match.shipDate) order = { ...order, ...match };
-              if (match.shippingMethod && match.shippingMethod !== 'Not Set') {
-                order = match;
+          const res = await fetch('/api/orders/list');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.orders) {
+              const match = data.orders.find((o: any) => o.id === receipt.sourceOrderId);
+              if (match) {
+                if (!order?.shipDate && match.shipDate) order = { ...order, ...match };
+                if (match.shippingMethod && match.shippingMethod !== 'Not Set') {
+                  order = match;
+                }
               }
             }
-            console.log('[ReceivingDetail] Order match:', match ? `found, shippingMethod=${match.shippingMethod}` : 'not found');
           }
         }
         // Extract ship date from source order
@@ -198,10 +196,10 @@ export function ReceivingDetailView({
           setSourcePOShippingMethod(order.shippingMethod);
           // Persist back so it sticks on future loads
           try {
-            await fetch(`/api/wms/receiving/${receipt.id}`, {
-              method: 'PUT',
+            await fetch('/api/receiving/update', {
+              method: 'PATCH',
               headers,
-              body: JSON.stringify({ carrierType: order.shippingMethod }),
+              body: JSON.stringify({ id: receipt.id, carrierType: order.shippingMethod }),
             });
           } catch (e) { console.log('[ReceivingDetail] Failed to persist carrierType backfill:', e); }
         } else if (needsCarrierType) {
@@ -332,9 +330,12 @@ export function ReceivingDetailView({
         })),
         receivedAt: progress === 100 ? new Date().toISOString() : receipt.receivedAt,
       };
-      const res = await fetch(`/api/wms/receiving/${receipt.id}`, { method: 'PUT', headers, body: JSON.stringify(updatedReceipt) });
-      const result = await res.json();
-      if (result.success) {
+      const res = await fetch('/api/receiving/update', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ id: receipt.id, ...updatedReceipt }),
+      });
+      if (res.ok) {
         toast.success(localStatus === 'Completed' || localStatus === 'Delivered' ? 'Receiving completed!' : 'Progress saved!');
         onUpdate(updatedReceipt);
       } else {
@@ -396,9 +397,13 @@ export function ReceivingDetailView({
         })),
       } as any;
       // Save receiving record (with inventoryCreated flag)
-      const res = await fetch(`/api/wms/receiving/${receipt.id}`, { method: 'PUT', headers, body: JSON.stringify(updatedReceipt) });
-      const result = await res.json();
-      if (!result.success) {
+      const res = await fetch('/api/receiving/update', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ id: receipt.id, ...updatedReceipt }),
+      });
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
         toast.error(result.error || 'Failed to save receiving');
         return;
       }
@@ -406,9 +411,9 @@ export function ReceivingDetailView({
       // Also check server-side: look for existing inventory items from this receipt
       let existingInventoryCount = 0;
       try {
-        const invCheckRes = await fetch('/api/inventory/list', { headers });
-        const invCheckData = await invCheckRes.json();
-        if (invCheckData.success) {
+        const invCheckRes = await fetch('/api/inventory/list');
+        if (invCheckRes.ok) {
+          const invCheckData = await invCheckRes.json();
           existingInventoryCount = (invCheckData.items || []).filter(
             (inv: any) => inv.notes && inv.notes.includes(`from receiving ${receipt.id}`)
           ).length;
@@ -476,7 +481,7 @@ export function ReceivingDetailView({
           const formattedCostPerUnit = `$${allInCostPerUnit.toFixed(2)}`;
           const formattedShipping = `$${allocatedShipping.toFixed(2)}`;
 
-          const invRes = await fetch('/api/inventory/list', {
+          const invRes = await fetch('/api/inventory/create', {
             method: 'POST',
             headers,
             body: JSON.stringify({

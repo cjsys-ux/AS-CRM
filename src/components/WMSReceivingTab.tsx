@@ -200,9 +200,10 @@ function VendorDropdown({ value, onChange }: { value: string; onChange: (v: stri
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/vendors/list', { headers: {  } });
+        const res = await fetch('/api/vendors/list');
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.success) setVendors((data.vendors || []).map((v: any) => ({ id: v.id, name: v.name || v.companyName || v.id })));
+        setVendors((data.vendors || []).map((v: any) => ({ id: v.id, name: v.name || v.vendorName || v.companyName || v.id })));
       } catch { /* ignore */ }
     })();
   }, []);
@@ -337,28 +338,28 @@ function AddReceivingDrawer({ isOpen, onClose, onSave }: { isOpen: boolean; onCl
       {isOpen && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-[560px] bg-white shadow-2xl z-50 flex flex-col">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200">
-              <h2 className="text-xl font-bold text-slate-900">New Inbound Shipment</h2>
-              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5 text-slate-500" /></button>
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-[440px] bg-white shadow-2xl z-50 flex flex-col">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+              <h2 className="text-base font-semibold text-slate-900">New Inbound Shipment</h2>
+              <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg"><X className="w-4 h-4 text-slate-500" /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="flex-1 overflow-y-auto p-5 space-y-3.5">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">PO Number</label>
-                  <input value={form.poNumber} onChange={e => setForm({ ...form, poNumber: e.target.value })} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">PO Number</label>
+                  <input value={form.poNumber} onChange={e => setForm({ ...form, poNumber: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Vendor *</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Vendor *</label>
                   <VendorDropdown value={form.vendor} onChange={v => setForm({ ...form, vendor: v })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Expected Date *</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Expected Date *</label>
                   <DatePicker value={form.expectedDate} onChange={v => setForm({ ...form, expectedDate: v })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Dock</label>
-                  <input value={form.dock} onChange={e => setForm({ ...form, dock: e.target.value })} placeholder="e.g. Dock A" className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Dock</label>
+                  <input value={form.dock} onChange={e => setForm({ ...form, dock: e.target.value })} placeholder="e.g. Dock A" className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
                 </div>
                 <CarrierSelector
                   carrierType={form.carrierType}
@@ -367,18 +368,18 @@ function AddReceivingDrawer({ isOpen, onClose, onSave }: { isOpen: boolean; onCl
                   onCarrierChange={v => setForm({ ...form, carrier: v })}
                 />
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tracking #</label>
-                  <input value={form.trackingNumber} onChange={e => setForm({ ...form, trackingNumber: e.target.value })} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-mono" />
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Tracking #</label>
+                  <input value={form.trackingNumber} onChange={e => setForm({ ...form, trackingNumber: e.target.value })} className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-mono" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Notes</label>
-                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none" />
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Notes</label>
+                <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none" />
               </div>
               {/* Line Items */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-bold text-slate-700">Expected Items</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Expected Items</label>
                   <button onClick={addItem} className="text-sm text-indigo-600 font-semibold hover:text-indigo-700 flex items-center gap-1"><Plus className="w-4 h-4" />Add Item</button>
                 </div>
                 <div className="space-y-3">
@@ -411,9 +412,9 @@ function AddReceivingDrawer({ isOpen, onClose, onSave }: { isOpen: boolean; onCl
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
-              <button onClick={onClose} className="flex-1 px-4 py-3 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50">Cancel</button>
-              <button onClick={handleSubmit} className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg">Create Inbound</button>
+            <div className="px-5 py-3 border-t border-slate-200 flex gap-3">
+              <button onClick={onClose} className="flex-1 px-4 py-2.5 border-2 border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 text-sm">Cancel</button>
+              <button onClick={handleSubmit} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg text-sm">Create Inbound</button>
             </div>
           </motion.div>
         </>
@@ -477,19 +478,20 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
     const fetchLogos = async () => {
       try {
         const [vendorRes, customerRes] = await Promise.all([
-          fetch('/api/vendors/list', { headers: {  } }),
-          fetch('/api/customers/list', { headers: {  } }),
+          fetch('/api/vendors/list'),
+          fetch('/api/customers/list'),
         ]);
-        const vendorData = await vendorRes.json();
-        const customerData = await customerRes.json();
-        if (vendorData.success) {
+        if (vendorRes.ok) {
+          const vendorData = await vendorRes.json();
           const logoMap: Record<string, string> = {};
           (vendorData.vendors || []).forEach((v: any) => {
-            if (v.name && v.logo) logoMap[v.name.trim().toLowerCase()] = v.logo;
+            const name = v.name || v.vendorName;
+            if (name && v.logo) logoMap[name.trim().toLowerCase()] = v.logo;
           });
           setVendorLogoMap(logoMap);
         }
-        if (customerData.success) {
+        if (customerRes.ok) {
+          const customerData = await customerRes.json();
           const map: Record<string, string> = {};
           (customerData.customers || []).forEach((c: any) => { if (c.name && c.logo) map[c.name.trim().toLowerCase()] = c.logo; });
           setCustomerLogoMap(map);
@@ -504,9 +506,10 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
   const fetchReceipts = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/wms/receiving', { headers });
+      const res = await fetch('/api/receiving/list');
+      if (!res.ok) throw new Error('Failed');
       const data = await res.json();
-      if (data.success) setReceipts(data.receipts || []);
+      setReceipts(data.receiving || data.receipts || []);
     } catch (err) {
       console.error('Error fetching receipts:', err);
     } finally { setLoading(false); }
@@ -516,24 +519,26 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
 
   const handleSave = async (data: any) => {
     try {
-      const res = await fetch('/api/wms/receiving', { method: 'POST', headers, body: JSON.stringify(data) });
-      const result = await res.json();
-      if (result.success) { toast.success('Inbound shipment created!'); setDrawerOpen(false); fetchReceipts(); }
-      else toast.error(result.error || 'Failed to create');
+      const res = await fetch('/api/receiving/create', { method: 'POST', headers, body: JSON.stringify(data) });
+      if (res.ok) { toast.success('Inbound shipment created!'); setDrawerOpen(false); fetchReceipts(); }
+      else { const result = await res.json().catch(() => ({})); toast.error(result.error || 'Failed to create'); }
     } catch { toast.error('Error creating inbound shipment'); }
   };
 
   const handleUpdate = async (updated: ReceivingItem) => {
     try {
-      const res = await fetch(`/api/receiving/${updated.id}`, { method: 'PUT', headers, body: JSON.stringify(updated) });
-      const result = await res.json();
-      if (result.success) { toast.success(updated.status === 'Completed' ? 'Receiving completed!' : 'Progress saved!'); fetchReceipts(); }
+      const res = await fetch('/api/receiving/update', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ id: updated.id, ...updated }),
+      });
+      if (res.ok) { toast.success(updated.status === 'Completed' ? 'Receiving completed!' : 'Progress saved!'); fetchReceipts(); }
     } catch { toast.error('Error updating receipt'); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/receiving/${id}`, { method: 'DELETE', headers });
+      await fetch('/api/receiving/delete', { method: 'DELETE', headers, body: JSON.stringify({ id }) });
       toast.success('Receipt deleted');
       setSelectedRows(prev => prev.filter(r => r !== id));
       fetchReceipts();
@@ -543,7 +548,7 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
   const handleBulkDelete = async () => {
     try {
       for (const id of selectedRows) {
-        await fetch(`/api/receiving/${id}`, { method: 'DELETE', headers });
+        await fetch('/api/receiving/delete', { method: 'DELETE', headers, body: JSON.stringify({ id }) });
       }
       toast.success(`Deleted ${selectedRows.length} receipts`);
       setSelectedRows([]);
@@ -604,8 +609,8 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
 
   return (
     <>
-      <div className="p-8">
-        <div className="max-w-[1800px] mx-auto space-y-6">
+      <div className="p-6">
+        <div className="max-w-[1800px] mx-auto space-y-4">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
@@ -616,35 +621,35 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
             ].map((s, i) => {
               const Icon = s.icon;
               return (
-                <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center`}><Icon className="w-6 h-6 text-white" /></div>
+                <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`w-10 h-10 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center`}><Icon className="w-5 h-5 text-white" /></div>
                   </div>
-                  <div className="text-sm text-slate-500 mb-1">{s.label}</div>
-                  <div className="text-2xl font-bold text-slate-900">{s.value}</div>
+                  <div className="text-[11px] font-medium text-slate-500 mb-0.5">{s.label}</div>
+                  <div className="text-xl font-bold text-slate-900">{s.value}</div>
                 </motion.div>
               );
             })}
           </div>
 
           {/* Search & Filters */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg">
+            <div className="flex items-center gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input type="text" placeholder="Search by receipt ID, vendor, or PO..." value={search} onChange={e => handleSearchChange(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="text" placeholder="Search by receipt ID, vendor, or PO..." value={search} onChange={e => handleSearchChange(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all" />
               </div>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchReceipts} className="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-slate-100 transition-colors">
-                <RefreshCw className={`w-5 h-5 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={fetchReceipts} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors">
+                <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
               </motion.button>
-              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setDrawerOpen(true)} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
-                <Plus className="w-5 h-5" />New Inbound
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setDrawerOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all text-sm">
+                <Plus className="w-4 h-4" />New Inbound
               </motion.button>
             </div>
-            <div className="flex items-center gap-3 mt-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Filter className="w-4 h-4" />Filters{activeFilterCount > 0 && <span className="w-5 h-5 bg-amber-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>}</div>
+            <div className="flex items-center gap-3 mt-3">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-500"><Filter className="w-3.5 h-3.5" />Filters{activeFilterCount > 0 && <span className="w-5 h-5 bg-amber-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>}</div>
               <RcvFilterDropdown label="Status" value={statusFilter} options={['All Status', ...ALL_STATUSES]} onChange={(v) => { setStatusFilter(v); setCurrentPage(1); }} />
-              {activeFilterCount > 0 && <button onClick={() => { setStatusFilter('All Status'); setCurrentPage(1); }} className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100"><X className="w-3.5 h-3.5" />Clear</button>}
+              {activeFilterCount > 0 && <button onClick={() => { setStatusFilter('All Status'); setCurrentPage(1); }} className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100"><X className="w-3.5 h-3.5" />Clear</button>}
             </div>
           </div>
 
@@ -693,12 +698,12 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
           </AnimatePresence>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-4 w-12">
+                    <th className="px-3 py-3 w-12">
                       <input
                         type="checkbox"
                         className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-2 focus:ring-amber-500/20"
@@ -706,29 +711,29 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
                         onChange={(e) => handleSelectAll(e.target.checked)}
                       />
                     </th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Image</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project #</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Receipt ID</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO #</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">SKU</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Product</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Vendor</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Customer</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Expected</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Qty</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Carrier</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th className="text-left px-4 py-4 text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Image</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Project #</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Receipt ID</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">PO #</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">SKU</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Product</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Vendor</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Customer</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Expected</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Qty</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Carrier</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginated.length === 0 ? (
-                    <tr><td colSpan={14} className="px-8 py-20">
+                    <tr><td colSpan={14} className="px-6 py-12">
                       <div className="flex flex-col items-center justify-center text-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center mb-3">
                           <PackageCheck className="w-10 h-10 text-slate-400" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">No Inbound Shipments</h3>
+                        <h3 className="text-sm font-bold text-slate-900 mb-1">No Inbound Shipments</h3>
                         <p className="text-sm text-slate-500 max-w-md">Create a new inbound to start tracking deliveries.</p>
                       </div>
                     </td></tr>

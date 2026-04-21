@@ -3,15 +3,14 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
 
 const ALLOWED_FIELDS = [
-  'customer',
-  'email',
-  'status',
-  'paymentStatus',
-  'items',
-  'total',
-  'shipping',
-  'date',
-  'notes',
+  'customer', 'customerId', 'email', 'status', 'paymentStatus',
+  'items', 'total', 'shipping', 'date', 'notes',
+  'projectName', 'eventType', 'stage', 'inHandsDate', 'terms', 'currency',
+  'taxRate', 'defaultMargin', 'customerPO', 'isSampleOrder',
+  'introduction', 'billingContact', 'billingAddress',
+  'shippingContact', 'shippingAddress', 'subtotal', 'taxAmount',
+  'totalMargin', 'lineItems', 'orderDate', 'sourcePONumber', 'sourcePOId',
+  'project', 'shipDate', 'vendor', 'shipToAddresses', 'contacts', 'documents',
 ];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
