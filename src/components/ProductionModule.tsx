@@ -1,18 +1,12 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect, useCallback } from 'react';
-import {
-  Factory, Plus, Search, Filter, Download, Play, CheckCircle, Clock,
-  Eye, Edit2, Trash2, ArrowUpDown, ChevronDown, X, RefreshCw,
-  AlertTriangle, Loader2, Package, Gauge
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { Factory, Plus, Search, Filter, Download, Play, CheckCircle, Clock, Eye, Edit2, Trash2, ArrowUpDown, ChevronDown, X, RefreshCw, AlertTriangle, Loader2, Package, Gauge, Check } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { EnhancedProductionGanttView } from './EnhancedProductionGanttView';
 import { DeleteProductionOrderModal } from './DeleteProductionOrderModal';
 import { ColumnVisibilityDropdown, ColumnDef } from './ColumnVisibilityDropdown';
+import { toast } from 'sonner';
 import { DatePicker } from './DatePicker';
 import { QuantityStepper } from './QuantityStepper';
-
-// ── Types ──────────────────────────────────────────────────────────────
 
 interface ProductionOrder {
   id: string;
@@ -29,87 +23,348 @@ interface ProductionOrder {
   createdAt?: string;
 }
 
-type SortField = 'orderName' | 'client' | 'status' | 'quality' | 'dueDate';
-type SortDir = 'asc' | 'desc';
-
-// ── Helpers ────────────────────────────────────────────────────────────
+const STATUSES = ['Pending', 'In Progress', 'Quality Check', 'Completed', 'On Hold', 'Cancelled'];
+const PRIORITIES = ['Low', 'Medium', 'High'];
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'Completed':
-      return 'bg-green-100 text-green-700 border-green-200';
-    case 'In Progress':
-      return 'bg-blue-100 text-blue-700 border-blue-200';
-    case 'Quality Check':
-      return 'bg-purple-100 text-purple-700 border-purple-200';
-    case 'Pending':
-      return 'bg-orange-100 text-orange-700 border-orange-200';
-    case 'On Hold':
-      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'Cancelled':
-      return 'bg-red-100 text-red-700 border-red-200';
-    default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
+    case 'In Progress': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'Quality Check': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'On Hold': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+};
+
+const getStatusDot = (status: string) => {
+  switch (status) {
+    case 'Completed': return 'bg-green-500';
+    case 'In Progress': return 'bg-blue-500';
+    case 'Quality Check': return 'bg-purple-500';
+    case 'Pending': return 'bg-amber-500';
+    case 'On Hold': return 'bg-yellow-500';
+    case 'Cancelled': return 'bg-red-500';
+    default: return 'bg-slate-400';
   }
 };
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
-    case 'High':
-      return 'bg-red-100 text-red-700 border-red-200';
-    case 'Medium':
-      return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-    case 'Low':
-      return 'bg-slate-100 text-slate-700 border-slate-200';
-    default:
-      return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'High': return 'bg-red-100 text-red-700 border-red-200';
+    case 'Medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Low': return 'bg-slate-100 text-slate-700 border-slate-200';
+    default: return 'bg-slate-100 text-slate-700 border-slate-200';
   }
 };
 
-const STATUS_OPTIONS = ['Pending', 'In Progress', 'Quality Check', 'Completed', 'On Hold', 'Cancelled'];
-const PRIORITY_OPTIONS = ['Low', 'Medium', 'High'];
-const LINE_OPTIONS = ['Line A', 'Line B', 'Line C', 'Line D'];
+const getPriorityDot = (priority: string) => {
+  switch (priority) {
+    case 'High': return 'bg-red-500';
+    case 'Medium': return 'bg-yellow-500';
+    case 'Low': return 'bg-slate-400';
+    default: return 'bg-slate-400';
+  }
+};
 
-// ── Add Production Order Drawer ────────────────────────────────────────
+// ========= CUSTOM DROPDOWN COMPONENT =========
+function CustomDropdown({
+  value,
+  onChange,
+  options,
+  placeholder,
+  showDot,
+  getDotColor,
+  fullWidth = false,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  showDot?: boolean;
+  getDotColor?: (val: string) => string;
+  fullWidth?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-interface AddDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreated: () => void;
-  editOrder?: ProductionOrder | null;
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedLabel = options.find(o => o.value === value)?.label || placeholder || 'Select...';
+
+  return (
+    <div ref={ref} className={`relative ${fullWidth ? 'w-full' : ''}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center justify-between gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-slate-300 transition-all ${fullWidth ? 'w-full' : ''} ${isOpen ? 'border-slate-400 ring-2 ring-slate-200' : ''}`}
+      >
+        <div className="flex items-center gap-2">
+          {showDot && getDotColor && value && (
+            <span className={`w-2 h-2 rounded-full ${getDotColor(value)}`} />
+          )}
+          <span className={value ? 'text-slate-900' : 'text-slate-400'}>{selectedLabel}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden max-h-60 overflow-y-auto"
+          >
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-3.5 py-2.5 text-left transition-all flex items-center justify-between text-sm ${
+                  value === option.value
+                    ? 'bg-slate-50 text-slate-900 font-semibold'
+                    : 'hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {showDot && getDotColor && (
+                    <span className={`w-2 h-2 rounded-full ${getDotColor(option.value)}`} />
+                  )}
+                  <span>{option.label}</span>
+                </div>
+                {value === option.value && (
+                  <Check className="w-4 h-4 text-slate-800" />
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
-function AddProductionOrderDrawer({ isOpen, onClose, onCreated, editOrder }: AddDrawerProps) {
-  const isEdit = !!editOrder;
+// ========= SEARCHABLE DROPDOWN =========
+function SearchableSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  loading,
+  icon,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string; subtitle?: string }[];
+  placeholder: string;
+  loading?: boolean;
+  icon?: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o =>
+    o.label.toLowerCase().includes(search.toLowerCase()) ||
+    (o.subtitle || '').toLowerCase().includes(search.toLowerCase()) ||
+    o.value.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const selectedLabel = options.find(o => o.value === value)?.label || '';
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+        className={`w-full flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-left transition-all ${
+          isOpen ? 'border-slate-400 ring-2 ring-slate-200' : 'hover:border-slate-300'
+        }`}
+      >
+        {icon && <span className="text-slate-400 shrink-0">{icon}</span>}
+        <span className={`flex-1 text-sm truncate ${value ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+          {selectedLabel || placeholder}
+        </span>
+        {loading ? (
+          <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0" />
+        ) : (
+          <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
+          >
+            <div className="p-2 border-b border-slate-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  autoFocus
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-slate-400"
+                />
+              </div>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="py-6 text-center text-sm text-slate-400">No results found</div>
+              ) : (
+                filtered.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onMouseDown={() => {
+                      onChange(option.value);
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                    className={`w-full px-3.5 py-2.5 text-left transition-all flex items-center justify-between ${
+                      value === option.value
+                        ? 'bg-slate-50 font-semibold text-slate-900'
+                        : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm">{option.label}</div>
+                      {option.subtitle && <div className="text-[11px] text-slate-400">{option.subtitle}</div>}
+                    </div>
+                    {value === option.value && <Check className="w-4 h-4 text-slate-800 shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ========= ADD / EDIT PRODUCTION ORDER DRAWER =========
+function AddProductionOrderDrawer({
+  isOpen,
+  onClose,
+  onSuccess,
+  editOrder,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  editOrder?: ProductionOrder | null;
+}) {
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     orderName: '',
     client: '',
     status: 'Pending',
     priority: 'Medium',
-    quantity: 100,
+    quantity: 0,
     completed: 0,
     startDate: new Date().toISOString().split('T')[0],
     dueDate: '',
-    assignedTo: 'Line A',
+    assignedTo: '',
     quality: 0,
   });
 
-  const [saving, setSaving] = useState(false);
+  // Existing orders for search
+  const [existingOrders, setExistingOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  // Customers for search
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+
+  // Fetch existing orders from Orders module
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      try {
+        const res = await fetch('/api/orders/list');
+        if (res.ok) {
+          const data = await res.json();
+          setExistingOrders(data.orders || []);
+        }
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [isOpen]);
+
+  // Fetch customers
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchCustomers = async () => {
+      setCustomersLoading(true);
+      try {
+        const res = await fetch('/api/customers/list');
+        if (res.ok) {
+          const data = await res.json();
+          setCustomers(data.customers || []);
+        }
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+      } finally {
+        setCustomersLoading(false);
+      }
+    };
+    fetchCustomers();
+  }, [isOpen]);
 
   useEffect(() => {
     if (editOrder) {
       setForm({
-        orderName: editOrder.orderName,
-        client: editOrder.client,
-        status: editOrder.status,
-        priority: editOrder.priority,
-        quantity: editOrder.quantity,
-        completed: editOrder.completed,
-        startDate: editOrder.startDate,
-        dueDate: editOrder.dueDate,
-        assignedTo: editOrder.assignedTo,
-        quality: editOrder.quality,
+        orderName: editOrder.orderName || '',
+        client: editOrder.client || '',
+        status: editOrder.status || 'Pending',
+        priority: editOrder.priority || 'Medium',
+        quantity: editOrder.quantity || 0,
+        completed: editOrder.completed || 0,
+        startDate: editOrder.startDate || '',
+        dueDate: editOrder.dueDate || '',
+        assignedTo: editOrder.assignedTo || '',
+        quality: editOrder.quality || 0,
       });
     } else {
       setForm({
@@ -117,272 +372,239 @@ function AddProductionOrderDrawer({ isOpen, onClose, onCreated, editOrder }: Add
         client: '',
         status: 'Pending',
         priority: 'Medium',
-        quantity: 100,
+        quantity: 0,
         completed: 0,
         startDate: new Date().toISOString().split('T')[0],
         dueDate: '',
-        assignedTo: 'Line A',
+        assignedTo: '',
         quality: 0,
       });
     }
   }, [editOrder, isOpen]);
 
-  const handleSubmit = async () => {
-    if (!form.orderName.trim() || !form.client.trim()) {
-      toast.error('Order name and client are required');
-      return;
-    }
-    if (!form.dueDate) {
-      toast.error('Due date is required');
-      return;
-    }
-    setSaving(true);
-    try {
-      if (isEdit && editOrder) {
-        const res = await fetch('/api/production/update', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editOrder.id, ...form }),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error('Update failed');
-        toast.success('Production order updated');
-      } else {
-        const res = await fetch('/api/production/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error('Create failed');
-        toast.success('Production order created');
-      }
-      onCreated();
-      onClose();
-    } catch (err) {
-      toast.error(isEdit ? 'Failed to update order' : 'Failed to create order');
-    } finally {
-      setSaving(false);
+  // When user selects an existing order, auto-populate client
+  const handleOrderSelect = (orderId: string) => {
+    const order = existingOrders.find(o => o.id === orderId);
+    if (order) {
+      setForm(p => ({
+        ...p,
+        orderName: order.orderName || order.name || orderId,
+        client: order.client || order.customerName || p.client,
+      }));
+    } else {
+      setForm(p => ({ ...p, orderName: orderId }));
     }
   };
 
-  const updateField = (field: string, value: unknown) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+  const handleSave = async () => {
+    if (!form.orderName.trim()) { toast.error('Order name is required'); return; }
+    if (!form.client.trim()) { toast.error('Client is required'); return; }
+
+    setIsSaving(true);
+    try {
+      const isEdit = !!editOrder;
+      const url = isEdit ? '/api/production/update' : '/api/production/create';
+      const body = isEdit ? { id: editOrder.id, ...form } : { ...form };
+      const response = await fetch(url, {
+        method: isEdit ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        toast.error(`Failed: ${data.error || 'unknown error'}`);
+        return;
+      }
+      toast.success(isEdit ? 'Production order updated' : 'Production order created');
+      onSuccess();
+      onClose();
+    } catch (error) {
+      console.error('Error saving production order:', error);
+      toast.error('Error saving production order');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const InputField = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+    <div>
+      <label className="block text-[11px] font-bold text-slate-600 mb-1 uppercase tracking-wider">
+        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+
+  const inputCls = "w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all";
+
+  // Build order options for searchable select
+  const orderOptions = existingOrders.map(o => ({
+    value: o.id,
+    label: o.orderName || o.name || o.id,
+    subtitle: `${o.id}${o.client || o.customerName ? ' · ' + (o.client || o.customerName) : ''}`,
+  }));
+  // Also allow typed value as fallback
+  const currentOrderOption = form.orderName && !orderOptions.find(o => o.label === form.orderName)
+    ? [{ value: form.orderName, label: form.orderName, subtitle: 'Custom entry' }, ...orderOptions]
+    : orderOptions;
+
+  // Build customer options
+  const customerOptions = customers.map(c => ({
+    value: c.company || c.name || c.id,
+    label: c.company || c.name || c.id,
+    subtitle: c.email || c.contactName || '',
+  }));
+  // Allow typed value as fallback
+  const currentCustomerOption = form.client && !customerOptions.find(o => o.value === form.client)
+    ? [{ value: form.client, label: form.client, subtitle: 'Custom entry' }, ...customerOptions]
+    : customerOptions;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black z-40"
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 z-40"
           />
-          {/* Drawer */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col"
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed top-0 right-0 bottom-0 w-full max-w-xl bg-white shadow-2xl z-50 flex flex-col"
           >
-            {/* Drawer Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-700">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <Factory className="w-5 h-5 text-orange-600" />
+                <div className="w-8 h-8 bg-white/15 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                  <Factory className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    {isEdit ? 'Edit Production Order' : 'New Production Order'}
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    {isEdit ? 'Update order details' : 'Fill in the order details below'}
-                  </p>
+                  <h2 className="text-lg font-bold text-white">{editOrder ? 'Edit Production Order' : 'New Production Order'}</h2>
+                  <p className="text-xs text-slate-300">{editOrder ? `Editing ${editOrder.id}` : 'Create a new production order'}</p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-500" />
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
-            {/* Drawer Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-              {/* Order Info Section */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3">
-                  Order Info
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Order Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {/* Order Info */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Order Information</h3>
+                <div className="space-y-3">
+                  <InputField label="Order Name" required>
+                    <SearchableSelect
                       value={form.orderName}
-                      onChange={(e) => updateField('orderName', e.target.value)}
-                      placeholder="e.g. Batch #1042"
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                      onChange={handleOrderSelect}
+                      options={currentOrderOption}
+                      placeholder="Search order name or number..."
+                      loading={ordersLoading}
+                      icon={<Search className="w-4 h-4" />}
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Client <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
+                    {/* Also allow free-text entry */}
+                    {!existingOrders.find(o => (o.orderName || o.name || o.id) === form.orderName) && form.orderName === '' && (
+                      <input
+                        type="text"
+                        value={form.orderName}
+                        onChange={e => setForm(p => ({ ...p, orderName: e.target.value }))}
+                        placeholder="Or type a new order name..."
+                        className={`${inputCls} mt-2`}
+                      />
+                    )}
+                  </InputField>
+                  <InputField label="Client" required>
+                    <SearchableSelect
                       value={form.client}
-                      onChange={(e) => updateField('client', e.target.value)}
-                      placeholder="Client name"
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                      onChange={(val) => setForm(p => ({ ...p, client: val }))}
+                      options={currentCustomerOption}
+                      placeholder="Search customers..."
+                      loading={customersLoading}
+                      icon={<Search className="w-4 h-4" />}
                     />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                      <select
+                  </InputField>
+                  <div className="grid grid-cols-2 gap-3">
+                    <InputField label="Status">
+                      <CustomDropdown
                         value={form.status}
-                        onChange={(e) => updateField('status', e.target.value)}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
-                      <select
+                        onChange={(val) => setForm(p => ({ ...p, status: val }))}
+                        options={STATUSES.map(s => ({ value: s, label: s }))}
+                        placeholder="Select status..."
+                        showDot
+                        getDotColor={getStatusDot}
+                        fullWidth
+                      />
+                    </InputField>
+                    <InputField label="Priority">
+                      <CustomDropdown
                         value={form.priority}
-                        onChange={(e) => updateField('priority', e.target.value)}
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                      >
-                        {PRIORITY_OPTIONS.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Assigned Line
-                    </label>
-                    <select
-                      value={form.assignedTo}
-                      onChange={(e) => updateField('assignedTo', e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                    >
-                      {LINE_OPTIONS.map((l) => (
-                        <option key={l} value={l}>{l}</option>
-                      ))}
-                    </select>
+                        onChange={(val) => setForm(p => ({ ...p, priority: val }))}
+                        options={PRIORITIES.map(p => ({ value: p, label: p }))}
+                        placeholder="Select priority..."
+                        showDot
+                        getDotColor={getPriorityDot}
+                        fullWidth
+                      />
+                    </InputField>
                   </div>
                 </div>
               </div>
 
-              {/* Quantity & Quality Section */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3">
-                  Quantity & Quality
-                </h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Target Quantity
-                      </label>
-                      <QuantityStepper
-                        value={form.quantity}
-                        onChange={(v) => updateField('quantity', v)}
-                        min={1}
-                        max={100000}
-                        step={10}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Completed
-                      </label>
-                      <QuantityStepper
-                        value={form.completed}
-                        onChange={(v) => updateField('completed', v)}
-                        min={0}
-                        max={form.quantity}
-                        step={10}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Quality Score (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={form.quality}
-                      onChange={(e) => updateField('quality', Math.min(100, Math.max(0, Number(e.target.value))))}
-                      min={0}
-                      max={100}
-                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                    />
-                  </div>
+              {/* Quantities */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Quantity & Quality</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <InputField label="Total Quantity">
+                    <QuantityStepper value={form.quantity || 0} onChange={(val) => setForm(p => ({ ...p, quantity: val }))} min={0} wide />
+                  </InputField>
+                  <InputField label="Completed">
+                    <QuantityStepper value={form.completed || 0} onChange={(val) => setForm(p => ({ ...p, completed: val }))} min={0} wide />
+                  </InputField>
+                  <InputField label="Quality %">
+                    <input type="number" min="0" max="100" value={form.quality || ''} onChange={e => setForm(p => ({ ...p, quality: e.target.value === '' ? 0 : parseInt(e.target.value) }))} className={inputCls} />
+                  </InputField>
                 </div>
               </div>
 
-              {/* Schedule Section */}
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3">
-                  Schedule
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
-                    <DatePicker
-                      value={form.startDate}
-                      onChange={(v) => updateField('startDate', v)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Due Date <span className="text-red-500">*</span>
-                    </label>
-                    <DatePicker
-                      value={form.dueDate}
-                      onChange={(v) => updateField('dueDate', v)}
-                    />
-                  </div>
+              {/* Schedule */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase tracking-wider">Schedule & Assignment</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <InputField label="Start Date">
+                    <DatePicker value={form.startDate} onChange={v => setForm(p => ({ ...p, startDate: v }))} />
+                  </InputField>
+                  <InputField label="Due Date">
+                    <DatePicker value={form.dueDate} onChange={v => setForm(p => ({ ...p, dueDate: v }))} />
+                  </InputField>
+                </div>
+                <div className="mt-3">
+                  <InputField label="Assigned To">
+                    <input type="text" value={form.assignedTo} onChange={e => setForm(p => ({ ...p, assignedTo: e.target.value }))} placeholder="e.g. Production Line A" className={inputCls} />
+                  </InputField>
                 </div>
               </div>
             </div>
 
-            {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3">
-              <button
-                onClick={onClose}
-                className="px-5 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
-              >
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
+              <button onClick={onClose} className="px-5 py-2.5 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all">
                 Cancel
               </button>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white font-semibold rounded-xl hover:from-slate-700 hover:to-slate-600 transition-all flex items-center gap-2 disabled:opacity-60"
               >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                {isEdit ? 'Update Order' : 'Create Order'}
+                {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isSaving ? 'Saving...' : (editOrder ? 'Update Order' : 'Create Order')}
               </motion.button>
             </div>
           </motion.div>
@@ -392,26 +614,95 @@ function AddProductionOrderDrawer({ isOpen, onClose, onCreated, editOrder }: Add
   );
 }
 
-// ── Column definitions ─────────────────────────────────────────────────
+// ========= FILTER DROPDOWN (for table filters) =========
+function TableFilterDropdown({
+  value,
+  onChange,
+  options,
+  label,
+  showDot,
+  getDotColor,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string }[];
+  label: string;
+  showDot?: boolean;
+  getDotColor?: (val: string) => string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-const COLUMNS: ColumnDef[] = [
-  { key: 'id', label: 'Order ID', defaultVisible: true },
-  { key: 'orderName', label: 'Order Name', defaultVisible: true },
-  { key: 'client', label: 'Client', defaultVisible: true },
-  { key: 'status', label: 'Status', defaultVisible: true },
-  { key: 'priority', label: 'Priority', defaultVisible: true },
-  { key: 'progress', label: 'Progress', defaultVisible: true },
-  { key: 'quality', label: 'Quality', defaultVisible: true },
-  { key: 'dueDate', label: 'Due Date', defaultVisible: true },
-  { key: 'assignedTo', label: 'Line', defaultVisible: true },
-  { key: 'actions', label: 'Actions', defaultVisible: true },
-];
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-// ── Main Component ─────────────────────────────────────────────────────
+  const selectedOption = options.find(o => o.value === value);
+  const displayText = selectedOption ? selectedOption.label : label;
 
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-slate-300 transition-all ${isOpen ? 'border-slate-400 ring-2 ring-slate-200' : ''}`}
+      >
+        {showDot && getDotColor && value !== 'all' && (
+          <span className={`w-2 h-2 rounded-full ${getDotColor(value)}`} />
+        )}
+        <span>{displayText}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-[100] top-full left-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden min-w-[160px]"
+          >
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-3.5 py-2.5 text-left transition-all flex items-center justify-between text-sm ${
+                  value === option.value
+                    ? 'bg-slate-50 text-slate-900 font-semibold'
+                    : 'hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {showDot && getDotColor && option.value !== 'all' && (
+                    <span className={`w-2 h-2 rounded-full ${getDotColor(option.value)}`} />
+                  )}
+                  <span>{option.label}</span>
+                </div>
+                {value === option.value && <Check className="w-4 h-4 text-slate-800" />}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ========= MAIN MODULE =========
 export function ProductionModule() {
-  const [productionOrders, setProductionOrders] = useState<ProductionOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<ProductionOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -421,39 +712,47 @@ export function ProductionModule() {
   const [orderToDelete, setOrderToDelete] = useState<ProductionOrder | undefined>();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editOrder, setEditOrder] = useState<ProductionOrder | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Filters
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterPriority, setFilterPriority] = useState('');
-  const [filterLine, setFilterLine] = useState('');
-
-  // Sort
-  const [sortField, setSortField] = useState<SortField | ''>('');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedPriority, setSelectedPriority] = useState('all');
+  const [selectedLine, setSelectedLine] = useState('all');
 
   // Column visibility
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+  const productionColumns: ColumnDef[] = [
+    { key: 'orderId', label: 'Order ID' },
+    { key: 'orderName', label: 'Order Name' },
+    { key: 'client', label: 'Client' },
+    { key: 'status', label: 'Status' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'progress', label: 'Progress' },
+    { key: 'quality', label: 'Quality' },
+    { key: 'dueDate', label: 'Due Date' },
+    { key: 'line', label: 'Line' },
+    { key: 'actions', label: 'Actions' },
+  ];
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    COLUMNS.forEach((c) => { init[c.key] = c.defaultVisible; });
+    productionColumns.forEach(c => { init[c.key] = true; });
     return init;
   });
+  const isColVisible = (key: string) => columnVisibility[key] !== false;
 
-  // ── Fetch orders ────────────────────────────────────────────────────
-
+  // Fetch from backend
   const fetchOrders = useCallback(async () => {
-    setLoading(true);
     try {
-      const res = await fetch('/api/production/list');
-      const data = await res.json();
-      if (data.success) {
-        setProductionOrders(data.orders ?? []);
-      } else {
-        toast.error('Failed to load production orders');
-      }
-    } catch {
-      toast.error('Network error loading production orders');
+      setIsLoading(true);
+      const response = await fetch('/api/production/list');
+      if (!response.ok) throw new Error('Failed');
+      const data = await response.json();
+      setOrders(data.orders || []);
+    } catch (error) {
+      console.error('Error fetching production orders:', error);
+      toast.error('Error loading production orders');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
@@ -461,58 +760,58 @@ export function ProductionModule() {
     fetchOrders();
   }, [fetchOrders]);
 
-  // ── Delete handler ──────────────────────────────────────────────────
-
-  const handleDelete = async () => {
+  // Delete
+  const handleDeleteOrder = async () => {
     if (!orderToDelete) return;
     try {
-      const res = await fetch('/api/production/delete', {
+      const response = await fetch('/api/production/delete', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: orderToDelete.id }),
       });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Order deleted');
-        fetchOrders();
-      } else {
-        toast.error('Failed to delete order');
-      }
-    } catch {
-      toast.error('Network error deleting order');
-    } finally {
-      setDeleteModalOpen(false);
+      if (!response.ok) throw new Error('Failed');
+      toast.success('Production order deleted');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting production order:', error);
+      toast.error('Error deleting order');
     }
   };
 
-  // ── Filtering ───────────────────────────────────────────────────────
+  // Filtering
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      (order.orderName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.client || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
+    const matchesPriority = selectedPriority === 'all' || order.priority === selectedPriority;
+    const matchesLine = selectedLine === 'all' || order.assignedTo === selectedLine;
+    return matchesSearch && matchesStatus && matchesPriority && matchesLine;
+  });
 
-  const filteredOrders = productionOrders
-    .filter((order) => {
-      const matchesSearch =
-        order.orderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = !filterStatus || order.status === filterStatus;
-      const matchesPriority = !filterPriority || order.priority === filterPriority;
-      const matchesLine = !filterLine || order.assignedTo === filterLine;
-      return matchesSearch && matchesStatus && matchesPriority && matchesLine;
-    })
-    .sort((a, b) => {
-      if (!sortField) return 0;
-      let aVal: string | number = a[sortField];
-      let bVal: string | number = b[sortField];
-      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
+  // Sorting
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    if (!sortColumn) return 0;
+    let aVal: any, bVal: any;
+    switch (sortColumn) {
+      case 'orderName': aVal = a.orderName; bVal = b.orderName; break;
+      case 'client': aVal = a.client; bVal = b.client; break;
+      case 'status': aVal = a.status; bVal = b.status; break;
+      case 'quality': aVal = a.quality; bVal = b.quality; break;
+      case 'dueDate': aVal = a.dueDate; bVal = b.dueDate; break;
+      default: return 0;
+    }
+    if (typeof aVal === 'string') {
+      return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+    return sortDirection === 'asc' ? (aVal || 0) - (bVal || 0) : (bVal || 0) - (aVal || 0);
+  });
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / rowsPerPage));
+  const totalPages = Math.ceil(sortedOrders.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+  const paginatedOrders = sortedOrders.slice(startIndex, endIndex);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -524,534 +823,502 @@ export function ProductionModule() {
     setCurrentPage(1);
   };
 
-  const toggleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortField(field);
-      setSortDir('asc');
+      setSortColumn(column);
+      setSortDirection('asc');
     }
   };
 
-  const hasActiveFilters = !!filterStatus || !!filterPriority || !!filterLine;
+  // KPIs
+  const totalOrders = orders.length;
+  const inProgressCount = orders.filter(o => o.status === 'In Progress').length;
+  const completedCount = orders.filter(o => o.status === 'Completed').length;
+  const qualityOrders = orders.filter(o => (o.quality || 0) > 0);
+  const avgQuality = qualityOrders.length > 0 ? qualityOrders.reduce((sum, o) => sum + o.quality, 0) / qualityOrders.length : 0;
 
-  const clearFilters = () => {
-    setFilterStatus('');
-    setFilterPriority('');
-    setFilterLine('');
-  };
+  const activeFilters = (selectedStatus !== 'all' ? 1 : 0) + (selectedPriority !== 'all' ? 1 : 0) + (selectedLine !== 'all' ? 1 : 0);
 
-  // ── KPI stats ───────────────────────────────────────────────────────
-
-  const inProgressCount = productionOrders.filter((o) => o.status === 'In Progress').length;
-  const completedCount = productionOrders.filter((o) => o.status === 'Completed').length;
-  const qualityOrders = productionOrders.filter((o) => o.quality > 0);
-  const avgQuality =
-    qualityOrders.length > 0
-      ? qualityOrders.reduce((sum, o) => sum + o.quality, 0) / qualityOrders.length
-      : 0;
-
-  const isColVisible = (key: string) => visibleColumns[key] !== false;
-
-  // ── Sortable header helper ──────────────────────────────────────────
-
-  const SortableHeader = ({ field, label }: { field: SortField; label: string }) => (
-    <th
-      onClick={() => toggleSort(field)}
-      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:bg-slate-100 transition-colors"
-    >
-      <span className="flex items-center gap-1">
-        {label}
-        <ArrowUpDown className={`w-3 h-3 ${sortField === field ? 'text-orange-500' : 'text-slate-400'}`} />
-      </span>
-    </th>
-  );
-
-  // ── Render ──────────────────────────────────────────────────────────
+  // Unique lines for filter
+  const uniqueLines = [...new Set(orders.map(o => o.assignedTo).filter(Boolean))];
 
   return (
-    <div className="flex-1 flex flex-col">
-      {!isDetailOpen ? (
-        <>
-          {/* Header Section — flat white style */}
-          <div className="bg-white border-b border-slate-200 px-4 md:px-8 py-6">
+    <>
+      {isDetailOpen && selectedOrder ? (
+        <EnhancedProductionGanttView
+          order={selectedOrder}
+          onClose={() => setIsDetailOpen(false)}
+        />
+      ) : (
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header Section */}
+          <div className="bg-white border-b border-slate-200 px-6 py-4">
             <div className="max-w-[1800px] mx-auto">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center"
-                  >
-                    <Factory className="w-7 h-7 text-orange-600" />
-                  </motion.div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                    <Factory className="w-5 h-5 text-white" />
+                  </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900 mb-0.5">Production Management</h1>
-                    <p className="text-sm text-slate-500">Monitor and manage production orders and quality control</p>
+                    <h1 className="text-xl font-bold text-slate-900 mb-0.5">Production Management</h1>
+                    <p className="text-xs text-slate-500">Monitor and manage production orders and quality control</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={fetchOrders}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setEditOrder(null);
-                      setDrawerOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-xl hover:bg-orange-600 shadow-sm transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Production Order
-                  </motion.button>
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { setEditOrder(null); setDrawerOpen(true); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
+                >
+                  <Plus className="w-5 h-5" />
+                  New Production Order
+                </motion.button>
               </div>
             </div>
           </div>
 
-          {/* Stats Cards — smaller with hover lift */}
-          <div className="px-4 md:px-8 mt-6 mb-6">
+          {/* KPI Cards */}
+          <div className="px-6 mt-4 mb-4 relative z-10">
             <div className="max-w-[1800px] mx-auto">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                  whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <Package className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">Total Orders</p>
-                      <h3 className="text-xl font-bold text-slate-900">{productionOrders.length}</h3>
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center mb-2">
+                    <Factory className="w-5 h-5 text-white" />
                   </div>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Total Orders</p>
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-xl font-bold text-slate-900">
+                    {totalOrders}
+                  </motion.h3>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                  whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
+                    <Play className="w-5 h-5 text-white" />
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">In Progress</p>
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="text-xl font-bold text-slate-900">
+                    {inProgressCount}
+                  </motion.h3>
                 </motion.div>
 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                  whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <Play className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">In Progress</p>
-                      <h3 className="text-xl font-bold text-slate-900">{inProgressCount}</h3>
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2">
+                    <CheckCircle className="w-5 h-5 text-white" />
                   </div>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Completed</p>
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-xl font-bold text-slate-900">
+                    {completedCount}
+                  </motion.h3>
                 </motion.div>
 
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
+                  transition={{ delay: 0.15 }}
+                  whileHover={{ y: -4, boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}
+                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">Completed</p>
-                      <h3 className="text-xl font-bold text-slate-900">{completedCount}</h3>
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2">
+                    <Gauge className="w-5 h-5 text-white" />
                   </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Gauge className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-slate-500">Avg Quality</p>
-                      <h3 className="text-xl font-bold text-slate-900">{avgQuality.toFixed(1)}%</h3>
-                    </div>
-                  </div>
+                  <p className="text-[11px] font-medium text-slate-500 mb-0.5 leading-tight">Avg Quality Score</p>
+                  <motion.h3 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="text-xl font-bold text-slate-900">
+                    {avgQuality > 0 ? `${avgQuality.toFixed(1)}%` : '—'}
+                  </motion.h3>
                 </motion.div>
               </div>
             </div>
           </div>
 
           {/* Filters and Search */}
-          <div className="px-4 md:px-8 mb-6">
+          <div className="px-6 pb-0 shrink-0 overflow-visible relative z-20">
             <div className="max-w-[1800px] mx-auto">
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Search */}
-                  <div className="flex-1 min-w-[200px] relative">
+              <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg overflow-visible">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
                       placeholder="Search orders, clients, or IDs..."
                       value={searchTerm}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all"
                     />
                   </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={fetchOrders}
+                    className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                    title="Refresh"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+                  </motion.button>
+                </div>
 
-                  {/* Status filter */}
-                  <div className="relative">
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                      className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                    >
-                      <option value="">All Status</option>
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                {/* Filters Row */}
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <Filter className="w-4 h-4" />
+                    Filters
+                    {activeFilters > 0 && (
+                      <span className="w-5 h-5 bg-slate-800 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilters}</span>
+                    )}
                   </div>
 
-                  {/* Priority filter */}
-                  <div className="relative">
-                    <select
-                      value={filterPriority}
-                      onChange={(e) => { setFilterPriority(e.target.value); setCurrentPage(1); }}
-                      className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                    >
-                      <option value="">All Priority</option>
-                      {PRIORITY_OPTIONS.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
+                  <TableFilterDropdown
+                    value={selectedStatus}
+                    onChange={(val) => { setSelectedStatus(val); setCurrentPage(1); }}
+                    options={[
+                      { value: 'all', label: 'Status: All' },
+                      ...STATUSES.map(s => ({ value: s, label: s })),
+                    ]}
+                    label="Status: All"
+                    showDot
+                    getDotColor={getStatusDot}
+                  />
 
-                  {/* Line filter */}
-                  <div className="relative">
-                    <select
-                      value={filterLine}
-                      onChange={(e) => { setFilterLine(e.target.value); setCurrentPage(1); }}
-                      className="appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                    >
-                      <option value="">All Lines</option>
-                      {LINE_OPTIONS.map((l) => (
-                        <option key={l} value={l}>{l}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
+                  <TableFilterDropdown
+                    value={selectedPriority}
+                    onChange={(val) => { setSelectedPriority(val); setCurrentPage(1); }}
+                    options={[
+                      { value: 'all', label: 'Priority: All' },
+                      ...PRIORITIES.map(p => ({ value: p, label: p })),
+                    ]}
+                    label="Priority: All"
+                    showDot
+                    getDotColor={getPriorityDot}
+                  />
 
-                  {hasActiveFilters && (
-                    <button
-                      onClick={clearFilters}
-                      className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                  <TableFilterDropdown
+                    value={selectedLine}
+                    onChange={(val) => { setSelectedLine(val); setCurrentPage(1); }}
+                    options={[
+                      { value: 'all', label: 'Line: All' },
+                      ...uniqueLines.map(l => ({ value: l, label: l })),
+                    ]}
+                    label="Line: All"
+                  />
+
+                  {activeFilters > 0 && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => { setSelectedStatus('all'); setSelectedPriority('all'); setSelectedLine('all'); setCurrentPage(1); }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                       Clear
-                    </button>
+                    </motion.button>
                   )}
 
-                  {/* Column visibility */}
-                  <ColumnVisibilityDropdown
-                    columns={COLUMNS}
-                    visibleColumns={visibleColumns}
-                    onChange={setVisibleColumns}
-                  />
-
-                  {/* Export */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-all"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export
-                  </motion.button>
+                  <div className="ml-auto">
+                    <ColumnVisibilityDropdown
+                      columns={productionColumns}
+                      visibleColumns={columnVisibility}
+                      onChange={setColumnVisibility}
+                      accentColor="slate"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Production Table */}
-          <div className="flex-1 px-4 md:px-8 pb-8 overflow-auto">
+          {/* Table Area */}
+          <div className="flex-1 overflow-y-auto px-6 pt-4 pb-6">
             <div className="max-w-[1800px] mx-auto">
-              {loading ? (
-                /* Loading state */
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-16 flex flex-col items-center justify-center">
-                  <Loader2 className="w-10 h-10 text-orange-500 animate-spin mb-4" />
-                  <p className="text-sm font-medium text-slate-500">Loading production orders...</p>
-                </div>
-              ) : productionOrders.length === 0 && !searchTerm && !hasActiveFilters ? (
-                /* Empty state */
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-16 flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-4">
-                    <Package className="w-8 h-8 text-orange-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-1">No Production Orders Yet</h3>
-                  <p className="text-sm text-slate-500 mb-6 text-center max-w-sm">
-                    Create your first production order to start tracking manufacturing progress and quality.
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setEditOrder(null);
-                      setDrawerOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-orange-500 rounded-xl hover:bg-orange-600 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Production Order
-                  </motion.button>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 shadow-lg">
+                  <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
                 </div>
               ) : (
-                /* Table */
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead>
+                      <thead className="sticky top-0 z-10">
                         <tr className="bg-slate-50 border-b border-slate-200">
-                          {isColVisible('id') && (
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
+                          {isColVisible('orderId') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                               Order ID
                             </th>
                           )}
-                          {isColVisible('orderName') && <SortableHeader field="orderName" label="Order Name" />}
-                          {isColVisible('client') && <SortableHeader field="client" label="Client" />}
-                          {isColVisible('status') && <SortableHeader field="status" label="Status" />}
+                          {isColVisible('orderName') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                              <button onClick={() => handleSort('orderName')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
+                                Order Name
+                                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                              </button>
+                            </th>
+                          )}
+                          {isColVisible('client') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                              <button onClick={() => handleSort('client')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
+                                Client
+                                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                              </button>
+                            </th>
+                          )}
+                          {isColVisible('status') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                              <button onClick={() => handleSort('status')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
+                                Status
+                                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                              </button>
+                            </th>
+                          )}
                           {isColVisible('priority') && (
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                              Priority
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                                Priority
                             </th>
                           )}
                           {isColVisible('progress') && (
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                              Progress
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                                Progress
                             </th>
                           )}
-                          {isColVisible('quality') && <SortableHeader field="quality" label="Quality" />}
-                          {isColVisible('dueDate') && <SortableHeader field="dueDate" label="Due Date" />}
-                          {isColVisible('assignedTo') && (
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                              Line
+                          {isColVisible('quality') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                              <button onClick={() => handleSort('quality')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
+                                Quality
+                                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                              </button>
+                            </th>
+                          )}
+                          {isColVisible('dueDate') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                              <button onClick={() => handleSort('dueDate')} className="flex items-center gap-2 whitespace-nowrap hover:text-slate-900 transition-colors">
+                                Due Date
+                                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
+                              </button>
+                            </th>
+                          )}
+                          {isColVisible('line') && (
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                                Line
                             </th>
                           )}
                           {isColVisible('actions') && (
-                            <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider whitespace-nowrap">
-                              Actions
+                            <th className="text-left px-3 py-3 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                                Actions
                             </th>
                           )}
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedOrders.length === 0 ? (
+                        {orders.length === 0 ? (
                           <tr>
-                            <td colSpan={10} className="px-6 py-16 text-center">
-                              <div className="flex flex-col items-center">
-                                <AlertTriangle className="w-8 h-8 text-slate-300 mb-2" />
-                                <p className="text-sm font-medium text-slate-500">No orders match your filters</p>
-                                <button
-                                  onClick={clearFilters}
-                                  className="mt-2 text-sm text-orange-500 hover:text-orange-600 font-medium"
+                            <td colSpan={productionColumns.length} className="px-8 py-20">
+                              <div className="flex flex-col items-center justify-center text-center">
+                                <div className="w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mb-4">
+                                  <Package className="w-10 h-10 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-1">No Production Orders Yet</h3>
+                                <p className="text-sm text-slate-500 max-w-md mb-4">Create your first production order to start tracking.</p>
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => { setEditOrder(null); setDrawerOpen(true); }}
+                                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white font-semibold rounded-xl"
                                 >
-                                  Clear all filters
-                                </button>
+                                  <Plus className="w-4 h-4" />
+                                  New Production Order
+                                </motion.button>
                               </div>
                             </td>
                           </tr>
                         ) : (
-                          paginatedOrders.map((order, index) => {
-                            const progress = order.quantity > 0 ? (order.completed / order.quantity) * 100 : 0;
-                            return (
-                              <motion.tr
-                                key={order.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.03 }}
-                                className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
-                              >
-                                {isColVisible('id') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="font-mono text-sm font-semibold text-slate-900">
-                                      {order.id.slice(-8).toUpperCase()}
+                        paginatedOrders.map((order, index) => {
+                          const progress = order.quantity > 0 ? (order.completed / order.quantity) * 100 : 0;
+                          return (
+                            <motion.tr
+                              key={order.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.03 }}
+                              className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors group"
+                            >
+                              {isColVisible('orderId') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <span className="font-mono text-sm font-semibold text-slate-900">{order.id}</span>
+                                </td>
+                              )}
+                              {isColVisible('orderName') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <span className="font-semibold text-slate-900">{order.orderName}</span>
+                                </td>
+                              )}
+                              {isColVisible('client') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <span className="text-sm text-slate-700">{order.client}</span>
+                                </td>
+                              )}
+                              {isColVisible('status') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
+                                    {order.status}
+                                  </span>
+                                </td>
+                              )}
+                              {isColVisible('priority') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getPriorityColor(order.priority)}`}>
+                                    {order.priority}
+                                  </span>
+                                </td>
+                              )}
+                              {isColVisible('progress') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden min-w-[100px]">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${progress}%` }}
+                                        transition={{ duration: 1, delay: index * 0.1 }}
+                                        className={`h-full rounded-full ${
+                                          progress === 100
+                                            ? 'bg-green-500'
+                                            : progress >= 50
+                                            ? 'bg-blue-500'
+                                            : progress > 0
+                                            ? 'bg-slate-500'
+                                            : 'bg-slate-300'
+                                        }`}
+                                      />
+                                    </div>
+                                    <span className="text-sm font-semibold text-slate-700 min-w-[70px]">
+                                      {order.completed || 0}/{order.quantity || 0}
                                     </span>
-                                  </td>
-                                )}
-                                {isColVisible('orderName') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <p className="font-semibold text-slate-900">{order.orderName}</p>
-                                  </td>
-                                )}
-                                {isColVisible('client') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="text-slate-700">{order.client}</span>
-                                  </td>
-                                )}
-                                {isColVisible('status') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                      className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusColor(order.status)}`}
+                                  </div>
+                                </td>
+                              )}
+                              {isColVisible('quality') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  {(order.quality || 0) > 0 ? (
+                                    <span className="font-semibold text-slate-900">{order.quality}%</span>
+                                  ) : (
+                                    <span className="text-slate-400">—</span>
+                                  )}
+                                </td>
+                              )}
+                              {isColVisible('dueDate') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-slate-400" />
+                                    <span className="text-sm text-slate-700">{order.dueDate || '—'}</span>
+                                  </div>
+                                </td>
+                              )}
+                              {isColVisible('line') && (
+                                <td className="px-3 py-3 whitespace-nowrap">
+                                  <span className="text-sm text-slate-700">{order.assignedTo || '—'}</span>
+                                </td>
+                              )}
+                              {isColVisible('actions') && (
+                                <td className="px-3 py-3">
+                                  <div className="flex items-center gap-1">
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setIsDetailOpen(true);
+                                      }}
+                                      title="View Details"
                                     >
-                                      {order.status}
-                                    </span>
-                                  </td>
-                                )}
-                                {isColVisible('priority') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span
-                                      className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold border ${getPriorityColor(order.priority)}`}
+                                      <Eye className="w-4 h-4" />
+                                    </motion.button>
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                      onClick={() => {
+                                        setEditOrder(order);
+                                        setDrawerOpen(true);
+                                      }}
+                                      title="Edit Order"
                                     >
-                                      {order.priority}
-                                    </span>
-                                  </td>
-                                )}
-                                {isColVisible('progress') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-3">
-                                      <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden min-w-[100px]">
-                                        <motion.div
-                                          initial={{ width: 0 }}
-                                          animate={{ width: `${progress}%` }}
-                                          transition={{ duration: 1, delay: index * 0.05 }}
-                                          className={`h-full ${
-                                            progress === 100
-                                              ? 'bg-green-500'
-                                              : progress >= 50
-                                              ? 'bg-blue-500'
-                                              : 'bg-orange-500'
-                                          }`}
-                                        />
-                                      </div>
-                                      <span className="text-sm font-semibold text-slate-700 min-w-[60px]">
-                                        {order.completed}/{order.quantity}
-                                      </span>
-                                    </div>
-                                  </td>
-                                )}
-                                {isColVisible('quality') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    {order.quality > 0 ? (
-                                      <span className="font-semibold text-slate-900">{order.quality}%</span>
-                                    ) : (
-                                      <span className="text-slate-400">-</span>
-                                    )}
-                                  </td>
-                                )}
-                                {isColVisible('dueDate') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="w-4 h-4 text-slate-400" />
-                                      <span className="text-slate-700">{order.dueDate}</span>
-                                    </div>
-                                  </td>
-                                )}
-                                {isColVisible('assignedTo') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="text-slate-700">{order.assignedTo}</span>
-                                  </td>
-                                )}
-                                {isColVisible('actions') && (
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex items-center gap-1.5">
-                                      <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setIsDetailOpen(true);
-                                        }}
-                                        className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100 transition-all"
-                                        title="View"
-                                      >
-                                        <Eye className="w-4 h-4" />
-                                      </motion.button>
-                                      <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => {
-                                          setEditOrder(order);
-                                          setDrawerOpen(true);
-                                        }}
-                                        className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100 transition-all"
-                                        title="Edit"
-                                      >
-                                        <Edit2 className="w-4 h-4" />
-                                      </motion.button>
-                                      <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => {
-                                          setOrderToDelete(order);
-                                          setDeleteModalOpen(true);
-                                        }}
-                                        className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition-all"
-                                        title="Delete"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </motion.button>
-                                    </div>
-                                  </td>
-                                )}
-                              </motion.tr>
-                            );
-                          })
+                                      <Edit2 className="w-4 h-4" />
+                                    </motion.button>
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                      onClick={() => {
+                                        setOrderToDelete(order);
+                                        setDeleteModalOpen(true);
+                                      }}
+                                      title="Delete Order"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </motion.button>
+                                  </div>
+                                </td>
+                              )}
+                            </motion.tr>
+                          );
+                        })
                         )}
                       </tbody>
                     </table>
                   </div>
 
                   {/* Pagination */}
-                  <div className="border-t border-slate-200 px-6 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <label className="text-sm font-medium text-slate-600">Rows:</label>
-                        <select
-                          value={rowsPerPage}
-                          onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-                          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                        >
-                          <option value={10}>10</option>
-                          <option value={20}>20</option>
-                          <option value={50}>50</option>
-                        </select>
-                        <span className="text-sm text-slate-500">
-                          {filteredOrders.length > 0
-                            ? `${startIndex + 1}-${Math.min(endIndex, filteredOrders.length)} of ${filteredOrders.length}`
-                            : '0 orders'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
+                  <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+                    <div className="text-sm text-slate-600">
+                      Page {currentPage} of {Math.max(1, totalPages)} · Showing {sortedOrders.length > 0 ? startIndex + 1 : 0} to {Math.min(endIndex, sortedOrders.length)} of {sortedOrders.length}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-600">Rows per page:</span>
+                      <select
+                        value={rowsPerPage}
+                        onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                      </select>
+                      <div className="flex gap-1 ml-4">
                         <button
+                          className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                          disabled={currentPage <= 1}
                           onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                          Previous
+                          <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
                         </button>
-                        <span className="text-sm font-medium text-slate-600">
-                          {currentPage} / {totalPages}
-                        </span>
                         <button
+                          className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                          disabled={currentPage >= Math.max(1, totalPages)}
                           onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
-                          Next
+                          <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -1060,35 +1327,24 @@ export function ProductionModule() {
               )}
             </div>
           </div>
-        </>
-      ) : (
-        /* Production Order Detail View */
-        selectedOrder && (
-          <EnhancedProductionGanttView
-            order={selectedOrder}
-            onClose={() => setIsDetailOpen(false)}
-          />
-        )
+        </div>
       )}
 
       {/* Add/Edit Drawer */}
       <AddProductionOrderDrawer
         isOpen={drawerOpen}
-        onClose={() => {
-          setDrawerOpen(false);
-          setEditOrder(null);
-        }}
-        onCreated={fetchOrders}
+        onClose={() => { setDrawerOpen(false); setEditOrder(null); }}
+        onSuccess={fetchOrders}
         editOrder={editOrder}
       />
 
-      {/* Delete Production Order Modal */}
+      {/* Delete Modal */}
       <DeleteProductionOrderModal
         isOpen={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
+        onClose={() => { setDeleteModalOpen(false); setOrderToDelete(undefined); }}
         orderName={orderToDelete?.orderName || ''}
-        onConfirm={handleDelete}
+        onConfirm={handleDeleteOrder}
       />
-    </div>
+    </>
   );
 }

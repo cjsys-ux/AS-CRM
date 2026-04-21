@@ -3,6 +3,7 @@ import { ArrowLeft, ZoomIn, ZoomOut, Calendar, Download, Filter, Settings, Maxim
 import { useState, useRef, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { QuantityStepper } from './QuantityStepper';
 
 interface ProductionGanttViewProps {
   order: {
@@ -1011,24 +1012,20 @@ function TaskEditorModal({ isOpen, onClose, task, onSave, existingTasks }: TaskE
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Start Day *</label>
-                <input
-                  type="number"
-                  min="0"
+                <QuantityStepper
                   value={formData.startDay}
-                  onChange={(e) => setFormData({ ...formData, startDay: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  required
+                  onChange={(val) => setFormData({ ...formData, startDay: val })}
+                  min={0}
+                  wide
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Duration (days) *</label>
-                <input
-                  type="number"
-                  min="1"
+                <QuantityStepper
                   value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  required
+                  onChange={(val) => setFormData({ ...formData, duration: val })}
+                  min={1}
+                  wide
                 />
               </div>
             </div>
@@ -1049,13 +1046,11 @@ function TaskEditorModal({ isOpen, onClose, task, onSave, existingTasks }: TaskE
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Resources (people) *</label>
-                <input
-                  type="number"
-                  min="1"
+                <QuantityStepper
                   value={formData.resources}
-                  onChange={(e) => setFormData({ ...formData, resources: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  required
+                  onChange={(val) => setFormData({ ...formData, resources: val })}
+                  min={1}
+                  wide
                 />
               </div>
             </div>
