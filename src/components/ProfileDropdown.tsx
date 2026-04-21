@@ -97,7 +97,7 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute right-0 top-full mt-2 w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden z-50"
+              className="absolute right-0 top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden z-50"
             >
               {/* Header with dark gradient */}
               <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 px-6 py-5">

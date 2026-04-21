@@ -69,7 +69,7 @@ export function NotificationsDropdown() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute right-0 top-full mt-2 w-[400px] bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden z-50"
+              className="absolute right-0 top-full mt-2 w-[400px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden z-50"
             >
               {/* Header with gradient */}
               <div className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 px-6 py-5">

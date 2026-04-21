@@ -30,8 +30,8 @@ export function TopBar({ onNavigate, userProfile, onOpenMobileMenu }: TopBarProp
         </motion.button>
       )}
 
-      {/* Search bar */}
-      <div className="flex-1 max-w-2xl">
+      {/* Search bar - hidden on mobile */}
+      <div className="hidden md:block flex-1 max-w-2xl">
         <div className="relative">
           <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
           <input
@@ -42,8 +42,11 @@ export function TopBar({ onNavigate, userProfile, onOpenMobileMenu }: TopBarProp
         </div>
       </div>
 
+      {/* Spacer for mobile when search is hidden */}
+      <div className="flex-1 md:hidden" />
+
       {/* Right side actions */}
-      <div className="flex items-center gap-2 md:gap-3 ml-3">
+      <div className="flex items-center gap-2 md:gap-3 ml-auto md:ml-3">
         <NotificationsDropdown />
         <div className="w-px h-6 md:h-8 bg-slate-200" />
         <ProfileDropdown onNavigate={onNavigate} userProfile={userProfile} />
