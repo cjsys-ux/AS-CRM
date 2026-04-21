@@ -25,6 +25,7 @@ import { AmazonDistributionModule } from './components/AmazonDistributionModule'
 import { WMSModule } from './components/WMSModule';
 import { SalesLeadModule } from './components/SalesLeadModule';
 import { BillingModule } from './components/BillingModule';
+import { CustomerServiceModule } from './components/CustomerServiceModule';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 
@@ -140,6 +141,8 @@ export default function App() {
         return <AmazonDistributionModule />;
       case 'billing':
         return <BillingModule />;
+      case 'customer-service':
+        return <CustomerServiceModule />;
       case 'wms':
       case 'wms-overview':
       case 'wms-warehouses':
