@@ -257,6 +257,8 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             firstName: savedProfile.firstName,
             lastName: savedProfile.lastName,
             phone: savedProfile.phone,
+            jobTitle: savedProfile.jobTitle,
+            department: savedProfile.department,
             timezone: savedProfile.timezone,
           }),
         });
@@ -744,7 +746,7 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* First Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   First Name
                 </label>
                 <input
@@ -752,13 +754,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Last Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Last Name
                 </label>
                 <input
@@ -766,13 +768,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   disabled={!isEditing}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Email - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   <Mail className="w-4 h-4 inline mr-2 text-slate-400" />
                   Email Address
                 </label>
@@ -780,13 +782,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   type="email"
                   value={formData.email}
                   disabled
-                  className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-400 cursor-not-allowed opacity-60"
+                  className="w-full px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-400 cursor-not-allowed opacity-60"
                 />
               </div>
 
               {/* Phone Number */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Phone Number
                 </label>
                 <input
@@ -795,13 +797,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   onChange={handlePhoneChange}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Job Title */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Job Title
                 </label>
                 <input
@@ -810,13 +812,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Department - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Department
                 </label>
                 <input
@@ -825,13 +827,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
               </div>
 
               {/* Timezone - Full Width */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Timezone
                 </label>
                 <TimezonePicker
