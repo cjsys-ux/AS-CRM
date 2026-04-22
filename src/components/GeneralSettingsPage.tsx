@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Settings as SettingsIcon, ChevronRight, ChevronDown, Package, ShoppingCart, Users, Database, Home, BarChart3, Boxes, Factory, TrendingUp, Palette, Plus, Edit, Trash2, X, GripVertical } from 'lucide-react';
+import { Search, Filter, Settings as SettingsIcon, ChevronRight, ChevronDown, Package, ShoppingCart, Users, Database, Home, BarChart3, Boxes, Factory, TrendingUp, Palette, Plus, Edit, Trash2, X, GripVertical, Truck, Contact2, Target, Receipt, Mail, Store, Warehouse, Layers, Shield } from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DraggableOption } from './DraggableOption';
 import { TaxRateItem } from './TaxRateItem';
+import { toast } from 'sonner';
 
 interface Module {
   id: string;
@@ -119,9 +120,9 @@ const modules: Module[] = [
   },
   {
     id: 'products',
-    name: 'Products',
+    name: 'Product Database',
     icon: Package,
-    settingsCount: 8,
+    settingsCount: 10,
     items: [
       { 
         id: 'statuses', 
@@ -171,43 +172,55 @@ const modules: Module[] = [
         itemCount: 20,
         options: ['Best Seller', 'New Arrival', 'Sale', 'Limited Edition', 'Eco-Friendly', 'Made in USA', 'Custom', 'Bulk Discount', 'Fast Ship', 'Premium', 'Clearance', 'Seasonal', 'Trending', 'Popular', 'Recommended', 'Featured', 'Exclusive', 'Back in Stock', 'Pre-Order', 'Discontinued']
       },
+      { 
+        id: 'decoration-methods', 
+        name: 'Decoration Methods', 
+        itemCount: 10,
+        options: ['Screen Print', 'Pad Print', 'Full Color', 'Laser Engrave', 'Embroidery', 'Heat Transfer', 'Sublimation', 'Deboss', 'UV Print', 'DTF']
+      },
+      { 
+        id: 'imprint-locations', 
+        name: 'Imprint Locations', 
+        itemCount: 13,
+        options: ['Front', 'Back', 'Bottom', 'Top', 'Screen', 'Back Panel', 'Side', 'Left Chest', 'Right Chest', 'Left Sleeve', 'Right Sleeve', 'Collar', 'Hem']
+      },
     ],
   },
   {
     id: 'pipeline',
-    name: 'Product Pipeline',
+    name: 'Pipeline',
     icon: TrendingUp,
     settingsCount: 5,
     items: [
-      {
-        id: 'vendors-checklist',
-        name: 'Vendors Checklist',
+      { 
+        id: 'vendors-checklist', 
+        name: 'Vendors Checklist', 
         itemCount: 4,
-        options: ['Primary Vendor Linked', 'Pricing Confirmed', 'Shipping Terms Agreed', 'Lead Time Confirmed'],
+        options: ['Primary Vendor Linked', 'Pricing Confirmed', 'Shipping Terms Agreed', 'Lead Time Confirmed']
       },
-      {
-        id: 'specifications-checklist',
-        name: 'Specifications Checklist',
+      { 
+        id: 'specifications-checklist', 
+        name: 'Specifications Checklist', 
         itemCount: 4,
-        options: ['Product Dimensions', 'Material Specifications', 'Weight & Shipping Info', 'Compliance Documents'],
+        options: ['Product Dimensions', 'Material Specifications', 'Weight & Shipping Info', 'Compliance Documents']
       },
-      {
-        id: 'packaging-checklist',
-        name: 'Packaging Checklist',
+      { 
+        id: 'packaging-checklist', 
+        name: 'Packaging Checklist', 
         itemCount: 4,
-        options: ['Packaging Mockup', 'Packaging Template', 'Dieline/CAD Files', 'Packaging Spec Sheet'],
+        options: ['Packaging Mockup', 'Packaging Template', 'Dieline/CAD Files', 'Packaging Spec Sheet']
       },
-      {
-        id: 'samples-checklist',
-        name: 'Samples Checklist',
+      { 
+        id: 'samples-checklist', 
+        name: 'Samples Checklist', 
         itemCount: 4,
-        options: ['Sample Request Submitted', 'Sample Received', 'Quality Review Completed', 'Sample Documentation'],
+        options: ['Sample Request Submitted', 'Sample Received', 'Quality Review Completed', 'Sample Documentation']
       },
-      {
-        id: 'files-checklist',
-        name: 'Files Checklist',
+      { 
+        id: 'files-checklist', 
+        name: 'Files Checklist', 
         itemCount: 4,
-        options: ['Product Images Uploaded', 'Spec Sheets Uploaded', 'Vendor Quotes Filed', 'Compliance Docs Filed'],
+        options: ['Product Images Uploaded', 'Spec Sheets Uploaded', 'Vendor Quotes Filed', 'Compliance Docs Filed']
       },
     ],
   },
@@ -306,16 +319,54 @@ const modules: Module[] = [
     ],
   },
   {
+    id: 'contacts',
+    name: 'Contacts',
+    icon: Contact2,
+    settingsCount: 4,
+    items: [
+      { 
+        id: 'contact-type-filter', 
+        name: 'Type Filter', 
+        itemCount: 4,
+        options: ['Customer', 'Vendor', 'Lead', 'Partner']
+      },
+      { 
+        id: 'contact-status-filter', 
+        name: 'Status Filter', 
+        itemCount: 4,
+        options: ['Active', 'Inactive', 'Prospect', 'Cold']
+      },
+      { 
+        id: 'contact-vendor-type', 
+        name: 'Vendor Type', 
+        itemCount: 5,
+        options: ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer']
+      },
+      { 
+        id: 'contact-country', 
+        name: 'Country', 
+        itemCount: 15,
+        options: ['United States', 'Canada', 'Mexico', 'United Kingdom', 'Germany', 'France', 'China', 'Japan', 'South Korea', 'India', 'Brazil', 'Australia', 'Italy', 'Spain', 'Vietnam']
+      },
+    ],
+  },
+  {
     id: 'vendors',
     name: 'Vendors',
     icon: Database,
-    settingsCount: 6,
+    settingsCount: 7,
     items: [
       { 
         id: 'vendor-types', 
         name: 'Vendor Types', 
         itemCount: 5,
-        options: ['Manufacturer', 'Wholesaler', 'Distributor', 'Importer', 'Dropshipper']
+        options: ['Product Distributor', 'Apparel Distributor', 'Decorator', 'Promo Supplier', 'Product Manufacturer']
+      },
+      { 
+        id: 'vendor-countries', 
+        name: 'Countries', 
+        itemCount: 4,
+        options: ['United States', 'China', 'Vietnam', 'India']
       },
       { 
         id: 'platforms', 
@@ -326,8 +377,8 @@ const modules: Module[] = [
       { 
         id: 'payment-terms', 
         name: 'Payment Terms', 
-        itemCount: 6,
-        options: ['Net 30', 'Net 60', 'Prepayment', '50% Deposit', 'Letter of Credit', 'Cash on Delivery']
+        itemCount: 8,
+        options: ['Prepaid', 'Net 15', 'Net 30', 'Net 45', 'Net 60', 'Net 90', '30/70', '50/50']
       },
       { 
         id: 'performance', 
@@ -470,11 +521,88 @@ const modules: Module[] = [
     ],
   },
   {
+    id: 'sales-leads',
+    name: 'Sales Leads',
+    icon: Target,
+    settingsCount: 4,
+    items: [
+      { id: 'lead-sources', name: 'Lead Sources', itemCount: 8, options: ['Website', 'Referral', 'Trade Show', 'Cold Call', 'Social Media', 'Email Campaign', 'Partner', 'Other'] },
+      { id: 'lead-statuses', name: 'Lead Statuses', itemCount: 5, options: ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Closed'] },
+      { id: 'lead-priorities', name: 'Lead Priorities', itemCount: 3, options: ['Hot', 'Warm', 'Cold'] },
+      { id: 'lead-industries', name: 'Industries', itemCount: 10, options: ['Technology', 'Healthcare', 'Finance', 'Education', 'Retail', 'Manufacturing', 'Real Estate', 'Hospitality', 'Non-Profit', 'Government'] },
+    ],
+  },
+  {
+    id: 'shipments',
+    name: 'Shipments',
+    icon: Truck,
+    settingsCount: 4,
+    items: [
+      { id: 'shipment-statuses', name: 'Shipment Statuses', itemCount: 6, options: ['Pending', 'In Transit', 'Out for Delivery', 'Delivered', 'Exception', 'Returned'] },
+      { id: 'carriers', name: 'Carriers', itemCount: 8, options: ['FedEx', 'UPS', 'USPS', 'DHL', 'Amazon Logistics', 'OnTrac', 'LaserShip', 'Freight LTL'] },
+      { id: 'packaging-types', name: 'Packaging Types', itemCount: 5, options: ['Box', 'Envelope', 'Pallet', 'Tube', 'Custom Crate'] },
+      { id: 'shipping-zones', name: 'Shipping Zones', itemCount: 4, options: ['Domestic', 'Canada', 'International', 'Remote/Rural'] },
+    ],
+  },
+  {
+    id: 'warehouse',
+    name: 'Warehouse / WMS',
+    icon: Warehouse,
+    settingsCount: 5,
+    items: [
+      { id: 'wms-zones', name: 'Warehouse Zones', itemCount: 6, options: ['Receiving', 'Bulk Storage', 'Pick & Pack', 'Staging', 'Shipping', 'Returns'] },
+      { id: 'wms-bin-types', name: 'Bin Types', itemCount: 4, options: ['Shelf', 'Floor', 'Pallet Rack', 'Cold Storage'] },
+      { id: 'wms-pick-methods', name: 'Pick Methods', itemCount: 3, options: ['Single Order', 'Batch Pick', 'Wave Pick'] },
+      { id: 'wms-equipment', name: 'Equipment', itemCount: 5, options: ['Forklift', 'Pallet Jack', 'Hand Cart', 'RF Scanner', 'Conveyor'] },
+      { id: 'wms-receiving-types', name: 'Receiving Types', itemCount: 3, options: ['Purchase Order', 'Customer Return', 'Transfer In'] },
+    ],
+  },
+  {
+    id: 'amazon-distribution',
+    name: 'Amazon Distribution',
+    icon: Store,
+    settingsCount: 3,
+    items: [
+      { id: 'amazon-channels', name: 'Sales Channels', itemCount: 4, options: ['Amazon FBA', 'Amazon FBM', 'Amazon Vendor Central', 'Amazon Handmade'] },
+      { id: 'amazon-categories', name: 'Product Categories', itemCount: 6, options: ['Office Products', 'Sports & Outdoors', 'Home & Kitchen', 'Electronics', 'Clothing', 'Health & Personal Care'] },
+      { id: 'amazon-fulfillment', name: 'Fulfillment Settings', itemCount: 3, options: ['FBA Standard', 'FBA Small & Light', 'Multi-Channel Fulfillment'] },
+    ],
+  },
+  {
+    id: 'billing',
+    name: 'Billing & Collections',
+    icon: Receipt,
+    settingsCount: 4,
+    items: [
+      { id: 'billing-statuses', name: 'Invoice Statuses', itemCount: 6, options: ['Draft', 'Sent', 'Viewed', 'Paid', 'Overdue', 'Void'] },
+      { id: 'payment-methods', name: 'Payment Methods', itemCount: 5, options: ['Credit Card', 'ACH/Bank Transfer', 'Check', 'Wire Transfer', 'PayPal'] },
+      { id: 'billing-terms', name: 'Billing Terms', itemCount: 5, options: ['Due on Receipt', 'Net 15', 'Net 30', 'Net 45', 'Net 60'] },
+      { id: 'collection-stages', name: 'Collection Stages', itemCount: 4, options: ['Reminder Sent', 'Follow-up Call', 'Final Notice', 'Sent to Collections'] },
+    ],
+  },
+  {
+    id: 'email-templates',
+    name: 'Email Templates',
+    icon: Mail,
+    settingsCount: 3,
+    items: [
+      { id: 'email-categories', name: 'Template Categories', itemCount: 5, options: ['Sales', 'Order Confirmation', 'Shipping Notification', 'Follow-up', 'Marketing'] },
+      { id: 'email-variables', name: 'Template Variables', itemCount: 8, options: ['{{customer_name}}', '{{order_number}}', '{{tracking_number}}', '{{company_name}}', '{{due_date}}', '{{total_amount}}', '{{product_name}}', '{{rep_name}}'] },
+      { id: 'email-signatures', name: 'Signatures', itemCount: 3, options: ['Default Signature', 'Sales Team', 'Support Team'] },
+    ],
+  },
+  {
     id: 'purchasing',
     name: 'Purchasing',
     icon: ShoppingCart,
-    settingsCount: 1,
+    settingsCount: 2,
     items: [
+      {
+        id: 'carrier-accounts',
+        name: 'Carrier Accounts',
+        itemCount: 0,
+        options: [],
+      },
       { 
         id: 'sales-tax-rates', 
         name: 'Sales Tax Rates', 
@@ -547,6 +675,20 @@ const modules: Module[] = [
       },
     ],
   },
+  {
+    id: 'settings',
+    name: 'Settings',
+    icon: SettingsIcon,
+    settingsCount: 1,
+    items: [
+      {
+        id: 'user-roles',
+        name: 'User Roles',
+        itemCount: 3,
+        options: ['Sales Rep', 'Sales Manager', 'Super Admin'],
+      },
+    ],
+  },
 ];
 
 export function GeneralSettingsPage() {
@@ -557,64 +699,248 @@ export function GeneralSettingsPage() {
   const [editValue, setEditValue] = useState('');
   const [newOption, setNewOption] = useState<{ settingId: string; value: string } | null>(null);
   const [localModules, setLocalModules] = useState(modules);
-  const [pipelineSettingsLoaded, setPipelineSettingsLoaded] = useState(false);
-  const prevPipelineRef = useRef<string>('');
 
-  // ── Load pipeline checklist settings from API on mount ──
+  // ─── Pipeline Checklist Settings Persistence ───
+  const [pipelineChecklistsLoaded, setPipelineChecklistsLoaded] = useState(false);
+
+  // Load pipeline checklist settings from KV on mount
   useEffect(() => {
-    const load = async () => {
+    const fetchPipelineChecklists = async () => {
       try {
         const res = await fetch('/api/pipeline/settings/get');
-        if (!res.ok) return;
         const data = await res.json();
-        if (data.checklists) {
+        if (data.success && data.checklists) {
+          // Merge saved settings into localModules
           setLocalModules(prev => prev.map(mod => {
             if (mod.id !== 'pipeline') return mod;
+            const saved = data.checklists as Record<string, string[]>;
             return {
               ...mod,
               items: mod.items.map(item => {
                 const tabKey = item.id.replace('-checklist', '');
-                if (data.checklists[tabKey]) {
-                  return { ...item, options: data.checklists[tabKey], itemCount: data.checklists[tabKey].length };
+                if (saved[tabKey]) {
+                  return { ...item, options: saved[tabKey], itemCount: saved[tabKey].length };
                 }
                 return item;
               }),
             };
           }));
         }
-      } catch {}
-      finally { setPipelineSettingsLoaded(true); }
+      } catch (err) {
+        console.error('Error loading pipeline checklist settings:', err);
+      } finally {
+        setPipelineChecklistsLoaded(true);
+      }
     };
-    load();
+    fetchPipelineChecklists();
   }, []);
 
-  // ── Auto-save pipeline checklist settings when they change ──
+  // Save pipeline checklist settings to KV whenever they change
+  const savePipelineChecklists = useCallback(async (updatedModules: Module[]) => {
+    if (!pipelineChecklistsLoaded) return;
+    const pipelineMod = updatedModules.find(m => m.id === 'pipeline');
+    if (!pipelineMod) return;
+    const settings: Record<string, string[]> = {};
+    pipelineMod.items.forEach(item => {
+      const tabKey = item.id.replace('-checklist', '');
+      settings[tabKey] = item.options.map(opt => typeof opt === 'string' ? opt : opt.value);
+    });
+    try {
+      await fetch('/api/pipeline/settings/save', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checklists: settings }),
+      });
+    } catch (err) {
+      console.error('Error saving pipeline checklist settings:', err);
+    }
+  }, [pipelineChecklistsLoaded]);
+
+  // Auto-save pipeline checklist settings when they change
+  const prevPipelineRef = useRef<string>('');
   useEffect(() => {
-    if (!pipelineSettingsLoaded) return;
+    if (!pipelineChecklistsLoaded) return;
     const pipelineMod = localModules.find(m => m.id === 'pipeline');
     if (!pipelineMod) return;
     const serialized = JSON.stringify(pipelineMod.items.map(i => ({ id: i.id, options: i.options })));
     if (prevPipelineRef.current && prevPipelineRef.current !== serialized) {
-      const checklists: Record<string, string[]> = {};
-      pipelineMod.items.forEach(item => {
-        const tabKey = item.id.replace('-checklist', '');
-        checklists[tabKey] = item.options.map(o => typeof o === 'string' ? o : (o as any).value);
-      });
-      fetch('/api/pipeline/settings/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checklists }),
-      }).catch(() => {});
+      savePipelineChecklists(localModules);
+      toast.success('Pipeline checklist settings saved');
     }
     prevPipelineRef.current = serialized;
-  }, [localModules, pipelineSettingsLoaded]);
+  }, [localModules, pipelineChecklistsLoaded, savePipelineChecklists]);
+
+  // ─── User Roles Persistence ───
+  const [rolesLoaded, setRolesLoaded] = useState(false);
+
+  // Load user roles from KV on mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const res = await fetch('/api/settings/user-roles/get');
+        const data = await res.json();
+        if (data.success && data.settings && Array.isArray(data.settings.roles)) {
+          setLocalModules(prev => prev.map(mod => {
+            if (mod.id !== 'settings') return mod;
+            return {
+              ...mod,
+              items: mod.items.map(item => {
+                if (item.id !== 'user-roles') return item;
+                return { ...item, options: data.settings.roles, itemCount: data.settings.roles.length };
+              }),
+            };
+          }));
+          // Sync to localStorage for UserDrawer consumption
+          localStorage.setItem('crm-user-roles', JSON.stringify(data.settings.roles));
+        }
+      } catch (err) {
+        console.error('Error loading user roles:', err);
+      } finally {
+        setRolesLoaded(true);
+      }
+    };
+    fetchRoles();
+  }, []);
+
+  // Save user roles to KV whenever they change
+  const saveUserRoles = useCallback(async (updatedModules: Module[]) => {
+    if (!rolesLoaded) return;
+    const settingsMod = updatedModules.find(m => m.id === 'settings');
+    if (!settingsMod) return;
+    const rolesItem = settingsMod.items.find(i => i.id === 'user-roles');
+    if (!rolesItem) return;
+    const roles = rolesItem.options.map(opt => typeof opt === 'string' ? opt : opt.value);
+    // Sync to localStorage
+    localStorage.setItem('crm-user-roles', JSON.stringify(roles));
+    try {
+      await fetch('/api/settings/user-roles/save', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roles }),
+      });
+    } catch (err) {
+      console.error('Error saving user roles:', err);
+    }
+  }, [rolesLoaded]);
+
+  // Auto-save user roles when they change
+  const prevRolesRef = useRef<string>('');
+  useEffect(() => {
+    if (!rolesLoaded) return;
+    const settingsMod = localModules.find(m => m.id === 'settings');
+    if (!settingsMod) return;
+    const rolesItem = settingsMod.items.find(i => i.id === 'user-roles');
+    if (!rolesItem) return;
+    const serialized = JSON.stringify(rolesItem.options);
+    if (prevRolesRef.current && prevRolesRef.current !== serialized) {
+      saveUserRoles(localModules);
+      toast.success('User roles saved');
+    }
+    prevRolesRef.current = serialized;
+  }, [localModules, rolesLoaded, saveUserRoles]);
+
+  // ─── Carrier Accounts State ───
+  const [carrierAccounts, setCarrierAccounts] = useState<Array<{ id: string; carrier: string; accountNumber: string; label: string }>>([]);
+  const [isLoadingCarrierAccounts, setIsLoadingCarrierAccounts] = useState(false);
+  const [newCarrierForm, setNewCarrierForm] = useState<{ carrier: string; accountNumber: string; label: string } | null>(null);
+  const [editingCarrierId, setEditingCarrierId] = useState<string | null>(null);
+  const [editCarrierForm, setEditCarrierForm] = useState<{ carrier: string; accountNumber: string; label: string }>({ carrier: '', accountNumber: '', label: '' });
+
+  const fetchCarrierAccounts = async () => {
+    setIsLoadingCarrierAccounts(true);
+    try {
+      const response = await fetch('/api/carrier-accounts/list');
+      const data = await response.json();
+      if (data.success && Array.isArray(data.accounts)) {
+        setCarrierAccounts(data.accounts.map((a: any) => ({
+          id: a.id,
+          carrier: a.carrier || '',
+          accountNumber: a.accountNumber || '',
+          label: a.label || '',
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching carrier accounts:', err);
+    } finally {
+      setIsLoadingCarrierAccounts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedModule === 'purchasing') {
+      fetchCarrierAccounts();
+    }
+  }, [selectedModule]);
+
+  const handleAddCarrierAccount = async () => {
+    if (!newCarrierForm || !newCarrierForm.carrier.trim() || !newCarrierForm.accountNumber.trim()) return;
+    try {
+      const response = await fetch('/api/carrier-accounts/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCarrierForm),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Carrier account added!');
+        setNewCarrierForm(null);
+        fetchCarrierAccounts();
+      }
+    } catch (err) {
+      console.error('Error adding carrier account:', err);
+      toast.error('Failed to add carrier account');
+    }
+  };
+
+  const handleUpdateCarrierAccount = async (id: string) => {
+    try {
+      const response = await fetch('/api/carrier-accounts/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...editCarrierForm }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Carrier account updated!');
+        setEditingCarrierId(null);
+        fetchCarrierAccounts();
+      }
+    } catch (err) {
+      console.error('Error updating carrier account:', err);
+      toast.error('Failed to update carrier account');
+    }
+  };
+
+  const handleDeleteCarrierAccount = async (id: string) => {
+    try {
+      const response = await fetch('/api/carrier-accounts/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        toast.success('Carrier account deleted');
+        fetchCarrierAccounts();
+      }
+    } catch (err) {
+      console.error('Error deleting carrier account:', err);
+      toast.error('Failed to delete carrier account');
+    }
+  };
 
   const selectedModuleData = localModules.find(m => m.id === selectedModule);
   const totalSettings = localModules.reduce((sum, m) => sum + m.settingsCount, 0);
 
-  const filteredModules = localModules.filter(module =>
-    module.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const MODULE_ORDER = ['dashboard', 'analytics', 'sales-leads', 'customers', 'vendors', 'contacts', 'orders', 'products', 'pipeline', 'design-lab', 'purchasing', 'production', 'shipments', 'warehouse', 'inventory', 'amazon-distribution', 'billing', 'email-templates'];
+
+  const filteredModules = localModules
+    .filter(module => module.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      const ai = MODULE_ORDER.indexOf(a.id);
+      const bi = MODULE_ORDER.indexOf(b.id);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
 
   const handleToggleSetting = (settingId: string) => {
     setExpandedSetting(expandedSetting === settingId ? null : settingId);
@@ -742,113 +1068,88 @@ export function GeneralSettingsPage() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-    <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
-      {/* Blue Header Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <SettingsIcon className="w-7 h-7 text-white" />
+    <div className="flex-1 flex flex-col bg-slate-50" style={{ height: '100%', maxHeight: '100vh', overflow: 'hidden' }}>
+      {/* Main Content Area */}
+      <div className="flex-1 flex min-h-0">
+        {/* Left Sidebar - Modules List */}
+        <div className="w-72 bg-white border-r border-slate-200 flex flex-col min-h-0 flex-shrink-0">
+          {/* Sidebar Header */}
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100 flex-shrink-0">
+            <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
             </div>
-            <div>
-              <h2 className="text-3xl font-bold text-white">General Settings</h2>
-              <p className="text-blue-100 mt-1">
-                Manage dropdown options and system-wide settings across all modules
-              </p>
+            <h3 className="font-semibold text-sm text-slate-900">Modules</h3>
+          </div>
+
+          {/* Search inside sidebar */}
+          <div className="px-3 py-3 border-b border-slate-100 flex-shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search modules..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-slate-400">
+              <Filter className="w-3 h-3" />
+              <span>{filteredModules.length} modules</span>
             </div>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-lg"
-          >
-            Save Changes
-          </motion.button>
-        </div>
-      </div>
 
-      {/* Search Bar */}
-      <div className="px-8 py-6 bg-white border-b border-slate-200">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search settings by module or name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-          />
-        </div>
-        <div className="flex items-center gap-2 mt-3 text-sm text-slate-600">
-          <Filter className="w-4 h-4" />
-          <span>{filteredModules.length} modules • {totalSettings} settings</span>
-        </div>
-      </div>
+          {/* Scrollable module list */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+            {filteredModules.map((module) => {
+              const Icon = module.icon;
+              const isSelected = selectedModule === module.id;
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Modules List */}
-        <div className="w-80 bg-white border-r border-slate-200 overflow-y-auto">
-          <div className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </div>
-              <h3 className="font-bold text-slate-900">Modules</h3>
-            </div>
-
-            <div className="space-y-2">
-              {filteredModules.map((module) => {
-                const Icon = module.icon;
-                const isSelected = selectedModule === module.id;
-
-                return (
-                  <motion.button
-                    key={module.id}
-                    onClick={() => {
-                      setSelectedModule(module.id);
-                      setExpandedSetting(null);
-                      setNewOption(null);
-                      setEditingOption(null);
-                    }}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
-                      isSelected
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isSelected ? 'bg-white/20' : 'bg-slate-100'
-                      }`}>
-                        <Icon className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-slate-600'}`} />
+              return (
+                <motion.button
+                  key={module.id}
+                  onClick={() => {
+                    setSelectedModule(module.id);
+                    setExpandedSetting(null);
+                    setNewOption(null);
+                    setEditingOption(null);
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all ${
+                    isSelected
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'hover:bg-slate-50 text-slate-700 border border-transparent hover:border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? 'bg-white/20' : 'bg-slate-100'
+                    }`}>
+                      <Icon className={`w-4.5 h-4.5 ${isSelected ? 'text-white' : 'text-slate-600'}`} />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <div className={`font-semibold text-sm truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                        {module.name}
                       </div>
-                      <div className="text-left">
-                        <div className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                          {module.name}
-                        </div>
-                        <div className={`text-xs ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                          {module.settingsCount} settings
-                        </div>
+                      <div className={`text-xs ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                        {module.settingsCount} settings
                       </div>
                     </div>
-                    <ChevronRight className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                  </motion.button>
-                );
-              })}
-            </div>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 
         {/* Right Panel - Settings with Inline Options */}
         <div className="flex-1 bg-slate-50 overflow-y-auto">
           {selectedModuleData ? (
-            <div className="p-8">
-              <div className="max-w-4xl space-y-4">
+            <div className="p-4">
+              <div className="max-w-4xl space-y-2">
                 {selectedModuleData.items.map((item, index) => {
                   const isExpanded = expandedSetting === item.id;
                   const isAddingNew = newOption?.settingId === item.id;
@@ -856,39 +1157,39 @@ export function GeneralSettingsPage() {
                   return (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"
+                      transition={{ delay: index * 0.03 }}
+                      className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm"
                     >
                       {/* Setting Header */}
                       <motion.button
                         onClick={() => handleToggleSetting(item.id)}
-                        className="w-full p-6 hover:bg-slate-50 transition-all cursor-pointer group"
+                        className="w-full px-5 py-4 hover:bg-slate-50 transition-all cursor-pointer group"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                              <svg className="w-4.5 h-4.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
                             </div>
                             <div className="text-left">
-                              <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                              <h4 className="font-semibold text-[14px] text-slate-900 group-hover:text-blue-600 transition-colors">
                                 {item.name}
                               </h4>
-                              <p className="text-sm text-slate-500">{item.itemCount} items</p>
+                              <p className="text-xs text-slate-500">{item.id === 'carrier-accounts' ? `${carrierAccounts.length} accounts` : `${item.itemCount} items`}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <div className="px-4 py-2 bg-blue-50 rounded-lg">
-                              <span className="text-blue-600 font-bold text-lg">{item.itemCount}</span>
+                            <div className="px-3 py-1.5 bg-blue-50 rounded-lg">
+                              <span className="text-blue-600 font-bold text-sm">{item.id === 'carrier-accounts' ? carrierAccounts.length : item.itemCount}</span>
                             </div>
                             <motion.div
                               animate={{ rotate: isExpanded ? 180 : 0 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <ChevronDown className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                              <ChevronDown className="w-4.5 h-4.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
                             </motion.div>
                           </div>
                         </div>
@@ -904,53 +1205,217 @@ export function GeneralSettingsPage() {
                             transition={{ duration: 0.2 }}
                             className="border-t border-slate-200 bg-slate-50"
                           >
-                            <div className="p-6 space-y-3">
-                              {/* Add New Button/Form */}
-                              {!isAddingNew ? (
-                                <motion.button
-                                  whileHover={{ scale: 1.01 }}
-                                  whileTap={{ scale: 0.99 }}
-                                  onClick={() => setNewOption({ settingId: item.id, value: '' })}
-                                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-                                >
-                                  <Plus className="w-5 h-5" />
-                                  Add New Option
-                                </motion.button>
-                              ) : (
-                                <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-lg">
-                                  <div className="flex items-center gap-3">
-                                    <input
-                                      type="text"
-                                      value={newOption.value}
-                                      onChange={(e) => setNewOption({ settingId: item.id, value: e.target.value })}
-                                      placeholder="Enter new option name..."
-                                      className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                                      autoFocus
-                                      onKeyPress={(e) => e.key === 'Enter' && handleAddOption(item.id)}
-                                    />
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => handleAddOption(item.id)}
-                                      disabled={!newOption.value.trim()}
-                                      className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      Add
-                                    </motion.button>
-                                    <motion.button
-                                      whileHover={{ scale: 1.05 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      onClick={() => setNewOption(null)}
-                                      className="px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition-colors"
-                                    >
-                                      Cancel
-                                    </motion.button>
+                            <div className="p-4 space-y-1.5">
+                              {/* Add New Button/Form (hidden for carrier-accounts which has its own) */}
+                              {item.id !== 'carrier-accounts' && (
+                                !isAddingNew ? (
+                                  <motion.button
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    onClick={() => setNewOption({ settingId: item.id, value: '' })}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Add New Option
+                                  </motion.button>
+                                ) : (
+                                  <div className="bg-white rounded-lg border-2 border-blue-200 p-3 shadow-md">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        value={newOption?.value || ''}
+                                        onChange={(e) => setNewOption({ settingId: item.id, value: e.target.value })}
+                                        placeholder="Enter new option name..."
+                                        className="flex-1 px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        autoFocus
+                                        onKeyPress={(e) => e.key === 'Enter' && handleAddOption(item.id)}
+                                      />
+                                      <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => handleAddOption(item.id)}
+                                        disabled={!newOption?.value?.trim()}
+                                        className="px-3 py-1.5 bg-blue-600 text-white font-semibold text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        Add
+                                      </motion.button>
+                                      <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setNewOption(null)}
+                                        className="px-3 py-1.5 bg-slate-200 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-300 transition-colors"
+                                      >
+                                        Cancel
+                                      </motion.button>
+                                    </div>
                                   </div>
-                                </div>
+                                )
                               )}
 
                               {/* Options List */}
-                              {item.id === 'sales-tax-rates' ? (
+                              {item.id === 'carrier-accounts' ? (
+                                // Special rendering for Carrier Accounts
+                                <div className="space-y-1.5">
+                                  {isLoadingCarrierAccounts ? (
+                                    <div className="text-center py-6 text-slate-500">Loading carrier accounts...</div>
+                                  ) : (
+                                    <>
+                                      {carrierAccounts.map((account, accIdx) => (
+                                        <motion.div
+                                          key={account.id}
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ delay: accIdx * 0.03 }}
+                                          className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 group hover:border-blue-300 hover:shadow-sm transition-all"
+                                        >
+                                          {editingCarrierId === account.id ? (
+                                            <div className="flex-1 flex items-center gap-3 flex-wrap">
+                                              <select
+                                                value={editCarrierForm.carrier}
+                                                onChange={(e) => setEditCarrierForm({ ...editCarrierForm, carrier: e.target.value })}
+                                                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              >
+                                                <option value="">Carrier</option>
+                                                <option value="UPS">UPS</option>
+                                                <option value="FedEx">FedEx</option>
+                                                <option value="USPS">USPS</option>
+                                                <option value="DHL">DHL</option>
+                                                <option value="Other">Other</option>
+                                              </select>
+                                              <input
+                                                type="text"
+                                                value={editCarrierForm.accountNumber}
+                                                onChange={(e) => setEditCarrierForm({ ...editCarrierForm, accountNumber: e.target.value })}
+                                                placeholder="Account Number"
+                                                className="flex-1 min-w-[140px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              />
+                                              <input
+                                                type="text"
+                                                value={editCarrierForm.label}
+                                                onChange={(e) => setEditCarrierForm({ ...editCarrierForm, label: e.target.value })}
+                                                placeholder="Label (optional)"
+                                                className="w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              />
+                                              <button
+                                                onClick={() => handleUpdateCarrierAccount(account.id)}
+                                                className="px-3 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700"
+                                              >
+                                                Save
+                                              </button>
+                                              <button
+                                                onClick={() => setEditingCarrierId(null)}
+                                                className="px-3 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-300"
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                                                <Truck className="w-5 h-5 text-blue-600" />
+                                              </div>
+                                              <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-bold text-slate-900">{account.carrier}</span>
+                                                  <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono">{account.accountNumber}</span>
+                                                </div>
+                                                {account.label && (
+                                                  <p className="text-xs text-slate-500 mt-0.5">{account.label}</p>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingCarrierId(account.id);
+                                                    setEditCarrierForm({ carrier: account.carrier, accountNumber: account.accountNumber, label: account.label || '' });
+                                                  }}
+                                                  className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                                >
+                                                  <Edit className="w-4 h-4 text-blue-600" />
+                                                </button>
+                                                <button
+                                                  onClick={() => handleDeleteCarrierAccount(account.id)}
+                                                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                                >
+                                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                                </button>
+                                              </div>
+                                            </>
+                                          )}
+                                        </motion.div>
+                                      ))}
+
+                                      {carrierAccounts.length === 0 && !newCarrierForm && (
+                                        <div className="text-center py-6">
+                                          <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <Truck className="w-7 h-7 text-slate-400" />
+                                          </div>
+                                          <p className="text-slate-600 font-medium">No carrier accounts configured</p>
+                                          <p className="text-slate-500 text-sm mt-1">Add carrier accounts to use in Purchase Orders</p>
+                                        </div>
+                                      )}
+
+                                      {newCarrierForm ? (
+                                        <div className="bg-white rounded-xl border-2 border-blue-200 p-4 shadow-lg">
+                                          <p className="text-sm font-bold text-slate-900 mb-3">Add Carrier Account</p>
+                                          <div className="flex items-center gap-3 flex-wrap">
+                                            <select
+                                              value={newCarrierForm.carrier}
+                                              onChange={(e) => setNewCarrierForm({ ...newCarrierForm, carrier: e.target.value })}
+                                              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                              <option value="">Select Carrier</option>
+                                              <option value="UPS">UPS</option>
+                                              <option value="FedEx">FedEx</option>
+                                              <option value="USPS">USPS</option>
+                                              <option value="DHL">DHL</option>
+                                              <option value="Other">Other</option>
+                                            </select>
+                                            <input
+                                              type="text"
+                                              value={newCarrierForm.accountNumber}
+                                              onChange={(e) => setNewCarrierForm({ ...newCarrierForm, accountNumber: e.target.value })}
+                                              placeholder="Account Number"
+                                              className="flex-1 min-w-[140px] px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                              autoFocus
+                                            />
+                                            <input
+                                              type="text"
+                                              value={newCarrierForm.label}
+                                              onChange={(e) => setNewCarrierForm({ ...newCarrierForm, label: e.target.value })}
+                                              placeholder="Label (optional)"
+                                              className="w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <button
+                                              onClick={handleAddCarrierAccount}
+                                              disabled={!newCarrierForm.carrier || !newCarrierForm.accountNumber.trim()}
+                                              className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                              Add
+                                            </button>
+                                            <button
+                                              onClick={() => setNewCarrierForm(null)}
+                                              className="px-4 py-2 bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-300"
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <motion.button
+                                          whileHover={{ scale: 1.01 }}
+                                          whileTap={{ scale: 0.99 }}
+                                          onClick={() => setNewCarrierForm({ carrier: '', accountNumber: '', label: '' })}
+                                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                                        >
+                                          <Plus className="w-5 h-5" />
+                                          Add Carrier Account
+                                        </motion.button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              ) : item.id === 'sales-tax-rates' ? (
                                 // Special rendering for Sales Tax Rates with hierarchical structure
                                 item.options.map((option, optIndex) => {
                                   if (typeof option !== 'string' && option.isState) {
@@ -1007,7 +1472,7 @@ export function GeneralSettingsPage() {
                                 })
                               )}
 
-                              {item.options.length === 0 && !isAddingNew && (
+                              {item.options.length === 0 && !isAddingNew && item.id !== 'carrier-accounts' && (
                                 <div className="text-center py-8">
                                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                     <Package className="w-8 h-8 text-slate-400" />

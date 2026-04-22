@@ -50,9 +50,8 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
       {/* Profile button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ backgroundColor: 'rgba(241, 245, 249, 1)' }}
         whileTap={{ scale: 0.98 }}
-        className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors"
+        className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-slate-100"
       >
         {userProfile.profileImage && !imageError ? (
           <img
@@ -97,7 +96,7 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute right-0 top-full mt-2 w-[320px] bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden z-50"
+              className="absolute right-0 top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden z-50"
             >
               {/* Header with dark gradient */}
               <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 px-6 py-5">
@@ -143,10 +142,7 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
                       className="w-full group"
                       onClick={() => handleMenuClick(item.action)}
                     >
-                      <motion.div
-                        whileHover={{ backgroundColor: 'rgba(241, 245, 249, 1)' }}
-                        className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors"
-                      >
+                      <div className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors hover:bg-slate-100">
                         <div className={`p-2.5 rounded-xl ${item.color}`}>
                           <Icon className="w-5 h-5" />
                         </div>
@@ -158,7 +154,7 @@ export function ProfileDropdown({ onNavigate, userProfile }: ProfileDropdownProp
                             {item.description}
                           </p>
                         </div>
-                      </motion.div>
+                      </div>
                     </motion.button>
                   );
                 })}

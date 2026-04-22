@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userId, firstName, lastName, email, phone, role, status, profileImage, oldProfileImage, timezone } = req.body ?? {};
+  const { userId, firstName, lastName, email, phone, role, status, profileImage, oldProfileImage, timezone, jobTitle, department } = req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required.' });
@@ -80,6 +80,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (phone !== undefined) metaPatch.phone = phone;
   if (role !== undefined) metaPatch.role = role;
   if (timezone !== undefined) metaPatch.timezone = timezone;
+  if (jobTitle !== undefined) metaPatch.jobTitle = jobTitle;
+  if (department !== undefined) metaPatch.department = department;
   if (profileImage !== undefined) {
     // Auth0 validates `picture` as a URI and rejects relative paths like
     // /api/files/image?key=…  Store the proxy URL in user_metadata instead.

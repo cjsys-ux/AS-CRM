@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Warehouse, Target, Receipt, ContactRound, Layers } from 'lucide-react';
+import { Home, Users, Package, Database, BarChart3, ShoppingCart, FileText, ChevronDown, Menu, X, Mail, Factory, Truck, Store, Warehouse, Target, Receipt, ContactRound, Layers, Shield, Headphones } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface SubItem {
@@ -16,7 +16,7 @@ interface MenuItem {
 
 const menuData: MenuItem[] = [
   { icon: Home, label: 'Dashboard', id: 'home' },
-  { icon: BarChart3, label: 'Analytics', id: 'analytics' },
+  { icon: BarChart3, label: 'Reports', id: 'analytics' },
   { icon: Target, label: 'Sales Leads', id: 'sales-leads' },
   {
     icon: Users,
@@ -75,6 +75,11 @@ const menuData: MenuItem[] = [
     icon: Receipt,
     label: 'Billing',
     id: 'billing',
+  },
+  {
+    icon: Headphones,
+    label: 'Customer Service',
+    id: 'customer-service',
   },
   {
     icon: Mail,
