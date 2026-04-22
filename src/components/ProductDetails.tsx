@@ -899,7 +899,12 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                   sizeVariants={productInfo.sizeVariants}
                 />
               )}
-              {activeTab === 'packaging' && <PackagingTab productId={productId} />}
+              {activeTab === 'packaging' && (
+                <PackagingTab
+                  productId={productId}
+                  sizeVariants={productInfo.sizeVariants}
+                />
+              )}
 
               {activeTab === 'samples' && (
                 <SamplesTab
