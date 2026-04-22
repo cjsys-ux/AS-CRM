@@ -109,9 +109,32 @@ const handleDownloadSavedFile = async (f: any) => {
 
 interface PackagingTabProps {
   productId?: string;
+  sizeVariants?: string[];
 }
 
-export function PackagingTab({ productId = '' }: PackagingTabProps) {
+type PackagingVariantSpec = {
+  length: string;
+  lengthUnit: string;
+  width: string;
+  widthUnit: string;
+  height: string;
+  heightUnit: string;
+  weight: string;
+  weightUnit: string;
+};
+
+const emptyPackagingVariantSpec = (): PackagingVariantSpec => ({
+  length: '',
+  lengthUnit: 'in',
+  width: '',
+  widthUnit: 'in',
+  height: '',
+  heightUnit: 'in',
+  weight: '',
+  weightUnit: 'lbs',
+});
+
+export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
@@ -131,6 +154,32 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
   const [height, setHeight] = useState('');
   const [heightUnit, setHeightUnit] = useState('in');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Per-size packaging specs (mirrors variant dimensions in SpecificationsTab)
+  const [packagingVariantSpecs, setPackagingVariantSpecs] = useState<Record<string, PackagingVariantSpec>>({});
+
+  const sizeVariantsKey = sizeVariants.join('|');
+  useEffect(() => {
+    setPackagingVariantSpecs(prev => {
+      const prevKeys = Object.keys(prev);
+      const sameKeys =
+        prevKeys.length === sizeVariants.length &&
+        sizeVariants.every(s => s in prev);
+      if (sameKeys) return prev;
+      const next: Record<string, PackagingVariantSpec> = {};
+      for (const size of sizeVariants) {
+        next[size] = prev[size] ?? emptyPackagingVariantSpec();
+      }
+      return next;
+    });
+  }, [sizeVariantsKey]);
+
+  const updatePackagingVariantField = (size: string, field: keyof PackagingVariantSpec, value: string) => {
+    setPackagingVariantSpecs(prev => ({
+      ...prev,
+      [size]: { ...(prev[size] ?? emptyPackagingVariantSpec()), [field]: value },
+    }));
+  };
 
   useEffect(() => {
     if (productId) {
@@ -164,6 +213,12 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
       setPackagingMaterial(packaging.packagingMaterial ?? '');
       setCustomPackagingMaterial(packaging.customPackagingMaterial ?? '');
       setSpecialRequirements(packaging.specialRequirements ?? '');
+      // Merge, don't replace: the reconcile effect may have seeded empty
+      // placeholders for the current size set, and saved packagingVariantSpecs
+      // can be `{}` for products saved before sizes were defined.
+      if (packaging.packagingVariantSpecs && typeof packaging.packagingVariantSpecs === 'object') {
+        setPackagingVariantSpecs(prev => ({ ...prev, ...packaging.packagingVariantSpecs }));
+      }
     } catch {
       // silent
     }
@@ -208,6 +263,7 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
           packagingMaterial,
           customPackagingMaterial,
           specialRequirements,
+          packagingVariantSpecs,
         }),
       });
       if (!res.ok) throw new Error('Failed to save');
@@ -357,6 +413,111 @@ export function PackagingTab({ productId = '' }: PackagingTabProps) {
               </div>
             </div>
           </div>
+
+          {sizeVariants.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <div className="mb-3">
+                <h4 className="text-sm font-bold text-slate-900">Per-size Packaging</h4>
+                <p className="text-xs text-slate-500 mt-0.5">Overrides the default above for each size.</p>
+              </div>
+              <div className="space-y-3">
+                {sizeVariants.map((size) => {
+                  const vs = packagingVariantSpecs[size] ?? emptyPackagingVariantSpec();
+                  const hasDims = !!(vs.length || vs.width || vs.height);
+                  const hasWeight = !!vs.weight;
+                  return (
+                    <div
+                      key={size}
+                      className="bg-slate-50 border border-slate-200 rounded-xl p-4"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_180px] gap-4 items-center">
+                        <div>
+                          <div className="text-[11px] font-medium text-slate-500 mb-1">Size</div>
+                          <div className="text-sm font-semibold text-blue-700">{size}</div>
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] font-medium text-slate-500 mb-1">Packaging (L × W × H)</div>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                placeholder="L"
+                                value={vs.length}
+                                onChange={(e) => updatePackagingVariantField(size, 'length', e.target.value)}
+                                className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              />
+                              <span className="text-slate-400 text-xs">×</span>
+                              <input
+                                type="number"
+                                placeholder="W"
+                                value={vs.width}
+                                onChange={(e) => updatePackagingVariantField(size, 'width', e.target.value)}
+                                className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              />
+                              <span className="text-slate-400 text-xs">×</span>
+                              <input
+                                type="number"
+                                placeholder="H"
+                                value={vs.height}
+                                onChange={(e) => updatePackagingVariantField(size, 'height', e.target.value)}
+                                className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              />
+                              <UnitDropdown
+                                options={['in', 'cm', 'mm']}
+                                defaultOption="in"
+                                value={vs.lengthUnit || 'in'}
+                                onChange={(u) => {
+                                  updatePackagingVariantField(size, 'lengthUnit', u);
+                                  updatePackagingVariantField(size, 'widthUnit', u);
+                                  updatePackagingVariantField(size, 'heightUnit', u);
+                                }}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                          ) : hasDims ? (
+                            <div className="text-sm font-semibold text-slate-900">
+                              {(vs.length || '–')} × {(vs.width || '–')} × {(vs.height || '–')} {vs.lengthUnit || 'in'}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-slate-400">Not set</div>
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] font-medium text-slate-500 mb-1">Weight</div>
+                          {isEditing ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                placeholder="0.0"
+                                value={vs.weight}
+                                onChange={(e) => updatePackagingVariantField(size, 'weight', e.target.value)}
+                                className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                              />
+                              <UnitDropdown
+                                options={['lbs', 'kg', 'oz', 'g']}
+                                defaultOption="lbs"
+                                value={vs.weightUnit || 'lbs'}
+                                onChange={(u) => updatePackagingVariantField(size, 'weightUnit', u)}
+                                disabled={!isEditing}
+                              />
+                            </div>
+                          ) : hasWeight ? (
+                            <div className="text-sm font-semibold text-slate-900">
+                              {vs.weight} {vs.weightUnit || 'lbs'}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-slate-400">Not set</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -17,6 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     packagingMaterial,
     customPackagingMaterial,
     specialRequirements,
+    packagingVariantSpecs,
   } = req.body ?? {};
 
   if (!productId) {
@@ -42,6 +43,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           packagingMaterial: packagingMaterial ?? '',
           customPackagingMaterial: customPackagingMaterial ?? '',
           specialRequirements: specialRequirements ?? '',
+          packagingVariantSpecs: packagingVariantSpecs && typeof packagingVariantSpecs === 'object'
+            ? packagingVariantSpecs
+            : {},
           updatedAt: new Date(),
         },
         $setOnInsert: { createdAt: new Date() },
