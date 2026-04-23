@@ -30,6 +30,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     contactDetails,
     artworkDetails,
     createdBy,
+    productId,
+    projectNumber,
+    vendorId,
+    sampleType,
+    variants,
+    destinations,
+    contacts,
+    shipToAddresses,
+    additionalNotes,
+    competitorLink,
+    splitFromGroup,
+    vendorDropShip,
+    contactId,
   } = req.body ?? {};
 
   if (!poNumber) {
@@ -45,11 +58,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(409).json({ error: `A purchase order with PO number "${poNumber}" already exists.` });
     }
 
+    const resolvedShipToAddresses = Array.isArray(shipToAddresses) ? shipToAddresses : [];
+    const resolvedShipToAddress = shipToAddress ?? resolvedShipToAddresses[0] ?? null;
+
     const doc = {
       poNumber: poNumber as string,
       poDate: poDate ?? new Date().toISOString().split('T')[0],
       project: project ?? null,
+      projectNumber: projectNumber ?? null,
+      productId: productId ?? null,
       vendor: vendor ?? null,
+      vendorId: vendorId ?? null,
       customer: customer ?? null,
       status: status ?? 'Created',
       shipDate: shipDate ?? null,
@@ -57,13 +76,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       total: typeof total === 'number' ? total : 0,
       priority: priority ?? '1st Choice',
       contact: contact ?? null,
+      contactId: contactId ?? null,
+      contacts: Array.isArray(contacts) ? contacts : [],
       isSample: isSample === true,
+      sampleType: sampleType ?? null,
       shippingMethod: shippingMethod ?? 'Ground',
       carrierAccount: carrierAccount ?? 'No carrier account',
       isBlindShip: isBlindShip === true,
-      shipToAddress: shipToAddress ?? null,
+      shipToAddress: resolvedShipToAddress,
+      shipToAddresses: resolvedShipToAddresses,
       lineItems: Array.isArray(lineItems) ? lineItems : [],
       customLineItems: Array.isArray(customLineItems) ? customLineItems : [],
+      variants: Array.isArray(variants) ? variants : [],
+      destinations: Array.isArray(destinations) ? destinations : [],
+      additionalNotes: additionalNotes ?? '',
+      competitorLink: competitorLink ?? null,
+      splitFromGroup: splitFromGroup ?? null,
+      vendorDropShip: typeof vendorDropShip === 'boolean' ? vendorDropShip : null,
       salesTaxRate: typeof salesTaxRate === 'number' ? salesTaxRate : 0.07,
       taxStatus: taxStatus ?? 'standard',
       contactDetails: contactDetails ?? {},
@@ -87,6 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const result = await db.collection('purchaseOrders').insertOne(doc);
 
     return res.status(201).json({
+      success: true,
       purchaseOrder: {
         id: result.insertedId.toString(),
         ...doc,

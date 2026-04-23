@@ -381,6 +381,15 @@ export function OrderSampleDrawer({
     return { name: dest.location, address: '', city: '', state: '', zip: '', country: 'United States', contact: '' };
   };
 
+  const fetchNextSamplePoNumber = async (): Promise<string> => {
+    const res = await fetch('/api/purchasing/next-sample-po');
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body?.poNumber) {
+      throw new Error(body?.error || 'Failed to generate sample PO number.');
+    }
+    return body.poNumber as string;
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -444,8 +453,17 @@ export function OrderSampleDrawer({
                 ? (getWarehouseById(dest.warehouseId)?.name || dest.name)
                 : dest.name;
 
+            let destPoNumber: string;
+            try {
+              destPoNumber = await fetchNextSamplePoNumber();
+            } catch (err) {
+              console.error(`Failed to obtain PO number for ${destLabel}:`, err);
+              results.push(false);
+              continue;
+            }
+
             const splitPO = {
-              poNumber: '',
+              poNumber: destPoNumber,
               poDate: new Date().toISOString().split('T')[0],
               productId: productId || null,
               projectNumber: projectNumber || null,
@@ -468,6 +486,7 @@ export function OrderSampleDrawer({
               destinations: [dest],
               additionalNotes: `${additionalNotes ? additionalNotes + '\n' : ''}[Split shipment → ${destLabel}]`,
               competitorLink: competitorLink,
+              vendorDropShip: vendorDropShip,
               isSample: true,
               splitFromGroup: splitGroup,
             };
@@ -477,10 +496,11 @@ export function OrderSampleDrawer({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(splitPO),
             });
-            const data = await response.json();
-            results.push(data.success);
-            if (!data.success) {
-              console.error(`Failed to create split PO for ${destLabel}:`, data.error);
+            const data = await response.json().catch(() => ({}));
+            const ok = response.ok && (data?.success || data?.purchaseOrder);
+            results.push(ok);
+            if (!ok) {
+              console.error(`Failed to create split PO for ${destLabel}:`, data?.error || response.statusText);
             }
           }
 
@@ -500,8 +520,18 @@ export function OrderSampleDrawer({
       // ─── DEFAULT: Single PO (vendor supports drop ship, or single destination) ───
       const primaryDest = destinations[0];
       const primaryContactId = (derivedContacts[0] as any)?.contactId || primaryDest?.contactId || null;
+
+      let singlePoNumber: string;
+      try {
+        singlePoNumber = await fetchNextSamplePoNumber();
+      } catch (err) {
+        console.error('Failed to obtain PO number:', err);
+        alert('Failed to generate a PO number. Please try again.');
+        return;
+      }
+
       const purchaseOrder = {
-        poNumber: '',
+        poNumber: singlePoNumber,
         poDate: new Date().toISOString().split('T')[0],
         productId: productId || null,
         projectNumber: projectNumber || null,
@@ -524,6 +554,7 @@ export function OrderSampleDrawer({
         destinations: destinations,
         additionalNotes: additionalNotes,
         competitorLink: competitorLink,
+        vendorDropShip: vendorDropShip,
         isSample: true,
       };
 
@@ -535,15 +566,15 @@ export function OrderSampleDrawer({
         body: JSON.stringify(purchaseOrder),
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log('Purchase order created successfully:', data.order);
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && (data?.success || data?.purchaseOrder)) {
+        console.log('Purchase order created successfully:', data.purchaseOrder);
         onSuccess?.();
         onClose();
       } else {
-        console.error('Failed to create purchase order:', data.error);
-        alert('Failed to create purchase order. Please try again.');
+        console.error('Failed to create purchase order:', data?.error || response.statusText);
+        alert(data?.error ? `Failed to create purchase order: ${data.error}` : 'Failed to create purchase order. Please try again.');
       }
     } catch (error) {
       console.error('Error submitting sample order:', error);
@@ -753,7 +784,11 @@ export function OrderSampleDrawer({
                     </p>
                   </div>
                   {competitorLink && (
-                    <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
+                    <button
+                      type="button"
+                      onClick={() => window.open(competitorLink, '_blank', 'noopener,noreferrer')}
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
+                    >
                       <LinkIcon className="w-4 h-4" />
                       View Competitor Product
                     </button>
