@@ -181,10 +181,13 @@ export function EditPurchaseOrderDrawer({
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option>Pending</option>
-                    <option>Approved</option>
+                    <option>Created</option>
+                    <option>Submitted</option>
+                    <option>Confirmed</option>
+                    <option>In Production</option>
+                    <option>Shipped</option>
                     <option>Delivered</option>
-                    <option>Cancelled</option>
+                    <option>Issue</option>
                   </select>
                 </div>
 
