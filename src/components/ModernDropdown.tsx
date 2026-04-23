@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Check, ChevronDown, Lock } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModernDropdownProps {
   value: string;
@@ -8,16 +9,33 @@ interface ModernDropdownProps {
   options: string[];
   label?: string;
   icon?: React.ReactNode;
+  disabled?: boolean;
   compact?: boolean;
 }
 
-export function ModernDropdown({ value, onChange, options, label, icon, compact }: ModernDropdownProps) {
+export function ModernDropdown({ value, onChange, options, label, icon, disabled, compact }: ModernDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  const updatePosition = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: Math.max(rect.width, 160),
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -26,82 +44,100 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
+
   const handleSelect = (option: string) => {
     onChange(option);
     setIsOpen(false);
   };
 
+  const buttonClass = compact
+    ? `px-3 py-1.5 border rounded-lg text-sm font-medium focus:outline-none transition-all flex items-center gap-1.5 whitespace-nowrap ${
+        disabled
+          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400'
+      }`
+    : `w-full px-3 py-2 border rounded-lg text-sm focus:outline-none transition-all flex items-center justify-between ${
+        disabled
+          ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+          : 'bg-slate-50 border-slate-200 text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+      }`;
+
   return (
-    <div ref={dropdownRef} className="relative">
+    <div className={compact ? 'relative inline-block' : 'relative'}>
       {label && (
-        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+        <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
           {icon}
           {label}
         </label>
       )}
-      
-      {/* Dropdown Button */}
-      <motion.button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        className={compact
-          ? "px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:outline-none transition-all flex items-center gap-1.5 whitespace-nowrap"
-          : "w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all flex items-center justify-between"
-        }
-      >
-        <span>{value}</span>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronDown className={compact ? "w-3.5 h-3.5 text-slate-400" : "w-5 h-5 text-slate-400"} />
-        </motion.div>
-      </motion.button>
 
-      {/* Dropdown Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className={compact
-              ? "absolute z-50 min-w-[140px] mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
-              : "absolute z-50 w-full mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
-            }
-          >
-            {options.map((option, index) => (
-              <motion.button
-                key={option}
-                type="button"
-                onClick={() => handleSelect(option)}
-                whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
-                className={`w-full text-left transition-colors flex items-center justify-between ${
-                  compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'
-                } ${
-                  index !== options.length - 1 ? 'border-b border-slate-100' : ''
-                } ${value === option ? 'bg-blue-50' : ''}`}
-              >
-                <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
-                  {option}
-                </span>
-                {value === option && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  >
-                    <Check className={compact ? "w-3.5 h-3.5 text-blue-600" : "w-5 h-5 text-blue-600"} />
-                  </motion.div>
-                )}
-              </motion.button>
-            ))}
-          </motion.div>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={buttonClass}
+      >
+        <span className={compact ? 'text-sm' : ''}>{value}</span>
+        {disabled ? (
+          <Lock className="w-3.5 h-3.5 text-slate-400" />
+        ) : (
+          <ChevronDown className={`${compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         )}
-      </AnimatePresence>
+      </button>
+
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && !disabled && (
+            <motion.div
+              ref={dropdownRef}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                position: 'fixed',
+                top: menuPosition.top,
+                left: menuPosition.left,
+                minWidth: menuPosition.width,
+                zIndex: 9999,
+              }}
+              className="bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden"
+            >
+              <div className="max-h-[300px] overflow-y-auto py-1">
+                {options.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleSelect(option)}
+                    className={`w-full px-3 py-1.5 text-left text-sm transition-colors flex items-center justify-between gap-3 hover:bg-slate-50 ${
+                      value === option ? 'bg-blue-50 text-blue-600' : 'text-slate-700'
+                    }`}
+                  >
+                    <span className={`font-medium whitespace-nowrap ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
+                      {option}
+                    </span>
+                    {value === option && (
+                      <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
