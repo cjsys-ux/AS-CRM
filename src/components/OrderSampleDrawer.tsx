@@ -753,7 +753,11 @@ export function OrderSampleDrawer({
                     </p>
                   </div>
                   {competitorLink && (
-                    <button className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2">
+                    <button
+                      type="button"
+                      onClick={() => window.open(competitorLink, '_blank', 'noopener,noreferrer')}
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium mt-2"
+                    >
                       <LinkIcon className="w-4 h-4" />
                       View Competitor Product
                     </button>
