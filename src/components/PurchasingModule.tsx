@@ -567,34 +567,35 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
   return (
     <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
       {/* Header Section */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
                 <ShoppingCart className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900 mb-0.5">Purchasing</h1>
-                <p className="text-xs text-slate-500">Manage purchase orders and vendor pricing</p>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 mb-0.5 truncate">Purchasing</h1>
+                <p className="text-xs text-slate-500 hidden sm:block">Manage purchase orders and vendor pricing</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm shrink-0"
             >
               <Plus className="w-5 h-5" />
-              New Purchase Order
+              <span className="hidden sm:inline">New Purchase Order</span>
+              <span className="sm:hidden">New PO</span>
             </motion.button>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="px-6 mt-4 mb-4">
+      <div className="px-4 sm:px-6 mt-3 sm:mt-4 mb-3 sm:mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 p-4 shadow-lg">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2">
                 <ShoppingCart className="w-5 h-5 text-white" />
@@ -639,11 +640,11 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
       </div>
 
       {/* Filters and Search */}
-      <div className="px-6 pb-0 shrink-0 mb-4">
+      <div className="px-4 sm:px-6 pb-0 shrink-0 mb-3 sm:mb-4">
         <div className="max-w-[1800px] mx-auto">
-          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 relative">
+          <div className="bg-white rounded-2xl p-3 sm:p-4 border border-slate-200 shadow-lg">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex-1 relative min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
@@ -657,7 +658,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchPurchaseOrders}
-                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shrink-0"
                 title="Refresh"
               >
                 <RefreshCw className={`w-4 h-4 text-slate-600 ${loading ? 'animate-spin' : ''}`} />
@@ -665,10 +666,10 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-2 mt-3">
+            <div className="flex flex-wrap items-center gap-2 mt-3">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                 <Filter className="w-4 h-4" />
-                Filters
+                <span className="hidden sm:inline">Filters</span>
                 {activeFilterCount > 0 && (
                   <span className="w-5 h-5 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-bold">{activeFilterCount}</span>
                 )}
@@ -706,7 +707,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
         <div className="max-w-[1800px] mx-auto">
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
             <div className="overflow-x-auto">
@@ -932,12 +933,12 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
             </div>
 
             {/* Pagination - inside table card */}
-            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-              <div className="text-sm text-slate-600">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="text-xs sm:text-sm text-slate-600">
                 Page {currentPage} of {Math.max(1, totalPages)} · Showing {Math.min(startIndex + 1, filteredOrders.length)} to {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">Rows per page:</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm text-slate-600">Rows per page:</span>
                 <select
                   value={rowsPerPage}
                   onChange={e => handleRowsPerPageChange(Number(e.target.value))}
@@ -947,7 +948,7 @@ export function PurchasingModule({ onNavigate }: { onNavigate?: (page: string) =
                   <option value={25}>25</option>
                   <option value={50}>50</option>
                 </select>
-                <div className="flex gap-1 ml-4">
+                <div className="flex gap-1 ml-2 sm:ml-4">
                   <button
                     className="p-2 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
                     disabled={currentPage <= 1}
