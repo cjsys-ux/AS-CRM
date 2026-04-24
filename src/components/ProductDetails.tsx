@@ -1,4 +1,4 @@
-import { ChecklistWidget } from './ChecklistWidget';
+import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
 import { motion } from 'motion/react';
 import { ArrowLeft, Plus, Edit, Trash2, GripVertical } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
@@ -104,24 +104,48 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
 
   // Checklist progress state
   const [checklistProgress, setChecklistProgress] = useState({ completed: 0, total: 0 });
-  const [tabProgress, setTabProgress] = useState<Record<string, { completed: number; total: number }>>({});
+  const [allChecklists, setAllChecklists] = useState<Record<string, ChecklistItem[]> | null>(null);
 
   // Fetch product vendors from backend
   const [productVendors, setProductVendors] = useState<Vendor[]>([]);
   const [vendorsLoading, setVendorsLoading] = useState(true);
   const [unlinkConfirm, setUnlinkConfirm] = useState<{ open: boolean; vendorId: string | null; vendorName: string }>({ open: false, vendorId: null, vendorName: '' });
 
-  const updateTabProgress = (tab: string, items: { completed: boolean }[]) => {
-    const completed = items.filter(i => i.completed).length;
-    const total = items.length;
-    setTabProgress(prev => {
-      const next = { ...prev, [tab]: { completed, total } };
-      const allCompleted = Object.values(next).reduce((s, v) => s + v.completed, 0);
-      const allTotal = Object.values(next).reduce((s, v) => s + v.total, 0);
-      setChecklistProgress({ completed: allCompleted, total: allTotal });
-      return next;
-    });
-  };
+  // Seed allChecklists + checklistProgress from localStorage on mount so tab
+  // badges show prior progress before any ChecklistWidget re-emits.
+  useEffect(() => {
+    if (!productId) return;
+    try {
+      const raw = localStorage.getItem(`product:${productId}:checklist`);
+      if (!raw) { setAllChecklists({}); return; }
+      const data = JSON.parse(raw) as Record<string, ChecklistItem[]>;
+      setAllChecklists(data);
+      let total = 0, completed = 0;
+      for (const tabId of Object.keys(data)) {
+        const items = data[tabId];
+        if (Array.isArray(items)) {
+          total += items.length;
+          completed += items.filter(i => i.completed).length;
+        }
+      }
+      setChecklistProgress({ completed, total });
+    } catch {
+      setAllChecklists({});
+    }
+  }, [productId]);
+
+  const handleChecklistChanged = useCallback((updated: Record<string, ChecklistItem[]>) => {
+    setAllChecklists(updated);
+    let total = 0, completed = 0;
+    for (const tabId of Object.keys(updated)) {
+      const items = updated[tabId];
+      if (Array.isArray(items)) {
+        total += items.length;
+        completed += items.filter(i => i.completed).length;
+      }
+    }
+    setChecklistProgress({ completed, total });
+  }, []);
 
   // Fetch project number from full product record
   useEffect(() => {
@@ -275,9 +299,11 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
   ];
 
   const getTabProgress = (tabId: string) => {
-    const tp = tabProgress[tabId];
-    if (!tp || tp.total === 0) return null;
-    return tp;
+    if (!allChecklists) return null;
+    const items = allChecklists[tabId];
+    if (!items || !Array.isArray(items) || items.length === 0) return null;
+    const completed = items.filter(i => i.completed).length;
+    return { completed, total: items.length };
   };
 
   const getStatusColor = (status: string) => {
@@ -888,7 +914,8 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                   <ChecklistWidget
                     productId={productId}
                     tabId="vendors"
-                    onUpdate={(items) => updateTabProgress('vendors', items)}
+                    onChecklistChanged={handleChecklistChanged}
+                    onActivityDetected={triggerAutoProgress}
                   />
                 </div>
               )}
@@ -897,12 +924,16 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 <SpecificationsTab
                   productId={productId}
                   sizeVariants={productInfo.sizeVariants}
+                  onChecklistChanged={handleChecklistChanged}
+                  onActivityDetected={triggerAutoProgress}
                 />
               )}
               {activeTab === 'packaging' && (
                 <PackagingTab
                   productId={productId}
                   sizeVariants={productInfo.sizeVariants}
+                  onChecklistChanged={handleChecklistChanged}
+                  onActivityDetected={triggerAutoProgress}
                 />
               )}
 
@@ -910,16 +941,19 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 <SamplesTab
                   productId={productId}
                   refreshKey={sampleRefreshKey}
+                  onChecklistChanged={handleChecklistChanged}
+                  onActivityDetected={triggerAutoProgress}
                 />
               )}
 
               {activeTab === 'files' && (
                 <div className="space-y-6">
-                  <FilesTab productId={productId} />
+                  <FilesTab productId={productId} onActivityDetected={triggerAutoProgress} />
                   <ChecklistWidget
                     productId={productId}
                     tabId="files"
-                    onUpdate={(items) => updateTabProgress('files', items)}
+                    onChecklistChanged={handleChecklistChanged}
+                    onActivityDetected={triggerAutoProgress}
                   />
                 </div>
               )}
