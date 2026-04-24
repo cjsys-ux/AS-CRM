@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ContractPricingTab } from './ContractPricingTab';
 import { VendorScorecardTab } from './VendorScorecardTab';
 import { PurchaseOrderDetailView } from './PurchaseOrderDetailView';
+import { ImagePopupModal } from './ImagePopupModal';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -430,6 +431,7 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
   const [uploadCustomType, setUploadCustomType] = useState('');
   const [uploadDocTitle, setUploadDocTitle] = useState('');
   const [deleteDoc, setDeleteDoc] = useState<VendorDoc | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -2392,9 +2394,16 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
                               <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-6 py-4">
                                   {doc.preview ? (
-                                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0">
+                                    <motion.button
+                                      type="button"
+                                      whileHover={{ scale: 1.08 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => setPreviewDoc(doc)}
+                                      title="Click to preview"
+                                      className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 cursor-pointer hover:ring-2 hover:ring-blue-400 hover:border-blue-400 transition-all"
+                                    >
                                       <img src={doc.preview} alt={doc.name} className="w-full h-full object-cover" />
-                                    </div>
+                                    </motion.button>
                                   ) : (
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isPdf ? 'bg-red-50 text-red-500' : getDocTypeColor(doc.type)}`}>
                                       {isPdf ? <FileText className="w-5 h-5" /> : <File className="w-5 h-5" />}
@@ -2644,6 +2653,14 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
           </>
         )}
       </AnimatePresence>
+
+      {/* ─── Image Preview Modal ─── */}
+      <ImagePopupModal
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
+        imageUrl={previewDoc?.preview || (previewDoc?.fileKey ? `/api/files/image?key=${encodeURIComponent(previewDoc.fileKey)}` : '')}
+        productName={previewDoc?.name || 'Document'}
+      />
 
       {/* ─── Delete Document Confirmation ─── */}
       <AnimatePresence>

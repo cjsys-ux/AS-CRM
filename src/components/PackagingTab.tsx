@@ -3,6 +3,7 @@ import { Package, Upload, FileText, Download, Box, Trash2, Save, Edit, ChevronDo
 import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
 import { UnitDropdown } from './UnitDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { ImagePopupModal } from './ImagePopupModal';
 import { CategoryTagDropdown, categoryColor } from './CategoryTagDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
@@ -141,6 +142,7 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
   const [isEditing, setIsEditing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
+  const [previewImage, setPreviewImage] = useState<any>(null);
   const [primaryPackaging, setPrimaryPackaging] = useState('');
   const [customPrimaryPackaging, setCustomPrimaryPackaging] = useState('');
   const [packagingMaterial, setPackagingMaterial] = useState('');
@@ -676,9 +678,16 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {isImageFile(f.fileName) && f.key ? (
-                        <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200">
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.08 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setPreviewImage(f)}
+                          title="Click to preview"
+                          className="w-8 h-8 rounded overflow-hidden flex-shrink-0 border border-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-400 hover:border-blue-400 transition-all"
+                        >
                           <img src={getProxyUrl(f)} alt={f.fileName} className="w-full h-full object-cover" />
-                        </div>
+                        </motion.button>
                       ) : (
                         <FileText className="w-5 h-5 text-purple-600 shrink-0" />
                       )}
@@ -765,6 +774,14 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDeleteFile}
         fileName={fileToDelete?.file.name || ''}
+      />
+
+      {/* Image Preview Modal */}
+      <ImagePopupModal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        imageUrl={previewImage ? getProxyUrl(previewImage) : ''}
+        productName={previewImage?.fileName || 'Image'}
       />
     </div>
   );
