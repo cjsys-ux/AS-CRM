@@ -3,6 +3,7 @@ import { FileText, Download, Trash2, Upload, File, Image as ImageIcon, FileSprea
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { ImagePopupModal } from './ImagePopupModal';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 import { CategoryTagDropdown, categoryColor } from './CategoryTagDropdown';
 
@@ -127,6 +128,7 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
   const [isUploading, setIsUploading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
+  const [previewImage, setPreviewImage] = useState<FileItem | null>(null);
 
   useEffect(() => {
     fetchFiles();
@@ -397,9 +399,16 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     {(isImageType(file.type) || isImageType(file.mime)) && file.key ? (
-                      <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setPreviewImage(file)}
+                        title="Click to preview"
+                        className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-400 hover:border-blue-400 transition-all"
+                      >
                         <img src={`/api/files/image?key=${encodeURIComponent(file.key)}`} alt={file.name} className="w-full h-full object-cover" />
-                      </div>
+                      </motion.button>
                     ) : (
                       <div className="w-9 h-9 bg-white border border-slate-200 rounded-lg flex items-center justify-center shrink-0">
                         {getFileIcon(file.type)}
@@ -462,6 +471,14 @@ export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTab
         }}
         onConfirm={handleDeleteConfirm}
         fileName={fileToDelete?.name || ''}
+      />
+
+      {/* Image Preview Modal */}
+      <ImagePopupModal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        imageUrl={previewImage?.key ? `/api/files/image?key=${encodeURIComponent(previewImage.key)}` : ''}
+        productName={previewImage?.name || 'Image'}
       />
     </div>
   );
