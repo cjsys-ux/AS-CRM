@@ -671,7 +671,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
               Back to All POs
             </motion.button>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">Purchase Order #{order.id}</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Purchase Order #{order.poNumber}</h1>
               {order.isSample && (
                 <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
                   order.sampleType === 'competitor'
