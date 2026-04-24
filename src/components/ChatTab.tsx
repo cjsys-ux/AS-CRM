@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Send, Trash2, User, Paperclip, X, Download, FileText, Image as ImageIcon } from 'lucide-react';
+import { MessageSquare, Send, Trash2, Paperclip, X, Download, FileText, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -155,29 +155,21 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
     return <FileText className="w-4 h-4" />;
   };
 
-  // Calculate dynamic height based on message count
-  const calculateHeight = () => {
-    if (messages.length === 0) return 'h-[200px]';
-    if (messages.length <= 3) return 'h-[300px]';
-    if (messages.length <= 6) return 'h-[400px]';
-    return 'h-[500px]'; // Max height, then scroll
-  };
-
   return (
     <div className="space-y-6">
       {/* Chat Container */}
-      <div className={`bg-white rounded-xl border-2 border-slate-200 overflow-hidden flex flex-col ${calculateHeight()} transition-all duration-300`}>
+      <div className="bg-white rounded-xl border-2 border-slate-200 overflow-hidden flex flex-col min-h-[320px] sm:min-h-[420px] max-h-[600px]">
         {/* Chat Header */}
-        <div className="px-6 py-3 border-b border-slate-200 flex items-center gap-3 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
-          <MessageSquare className="w-5 h-5 text-purple-600" />
-          <div>
+        <div className="px-6 py-3 border-b border-slate-200 flex items-center gap-3 flex-shrink-0">
+          <MessageSquare className="w-5 h-5 text-blue-600" />
+          <div className="flex-1">
             <h3 className="font-bold text-slate-900">Team Chat</h3>
-            <p className="text-xs text-slate-600">Discuss product details with your team</p>
+            <p className="text-xs text-slate-500">Discuss product details with your team</p>
           </div>
         </div>
 
         {/* Messages - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 bg-slate-50">
           <AnimatePresence>
             {messages.map((msg, index) => (
               <motion.div
@@ -189,11 +181,11 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                 className={`flex ${msg.isCurrentUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`max-w-[70%] ${msg.isCurrentUser ? 'order-2' : 'order-1'}`}>
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className={`flex items-center gap-2 mb-1.5 ${msg.isCurrentUser ? 'justify-end' : ''}`}>
                     {!msg.isCurrentUser && (
                       <>
-                        <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-blue-600" />
+                        <div className="w-6 h-6 bg-orange-100 rounded-lg flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-orange-600">{msg.user?.[0] || 'U'}</span>
                         </div>
                         <span className="text-xs font-medium text-slate-700">{msg.user}</span>
                       </>
@@ -201,8 +193,8 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                     {msg.isCurrentUser && (
                       <>
                         <span className="text-xs font-medium text-slate-700">{msg.user}</span>
-                        <div className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-purple-600" />
+                        <div className="w-6 h-6 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-blue-600">{msg.user?.[0] || 'U'}</span>
                         </div>
                       </>
                     )}
@@ -211,7 +203,7 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                     whileHover={{ scale: 1.01 }}
                     className={`relative group rounded-xl p-3 shadow-sm ${
                       msg.isCurrentUser
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                        ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white'
                         : 'bg-white border-2 border-slate-200 text-slate-900'
                     }`}
                   >
@@ -239,7 +231,7 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                             {msg.attachment.name}
                           </p>
                           <p className={`text-xs ${
-                            msg.isCurrentUser ? 'text-purple-100' : 'text-slate-500'
+                            msg.isCurrentUser ? 'text-slate-300' : 'text-slate-500'
                           }`}>
                             {msg.attachment.size}
                           </p>
@@ -261,8 +253,10 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                       </motion.div>
                     )}
                     
-                    <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/10">
-                      <span className={`text-xs ${msg.isCurrentUser ? 'text-purple-100' : 'text-slate-500'}`}>
+                    <div className={`flex items-center justify-between mt-1.5 pt-1.5 border-t ${
+                      msg.isCurrentUser ? 'border-white/10' : 'border-slate-100'
+                    }`}>
+                      <span className={`text-xs ${msg.isCurrentUser ? 'text-slate-400' : 'text-slate-500'}`}>
                         {msg.timestamp}
                       </span>
                       {msg.isCurrentUser && (
@@ -270,9 +264,9 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleDeleteClick(msg)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/20 rounded-lg"
+                          className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                         >
-                          <Trash2 className="w-3 h-3 text-white" />
+                          <Trash2 className="w-3 h-3 text-white/60 hover:text-white" />
                         </motion.button>
                       )}
                     </div>
@@ -284,12 +278,12 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
           <div ref={messagesEndRef} />
 
           {messages.length === 0 && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
-                <MessageSquare className="w-8 h-8 text-slate-400" />
+            <div className="text-center py-12">
+              <div className="w-14 h-14 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+                <MessageSquare className="w-7 h-7 text-slate-400" />
               </div>
-              <h4 className="font-bold text-slate-900 mb-2">No messages yet</h4>
-              <p className="text-sm text-slate-600">
+              <h4 className="font-bold text-slate-900 mb-1">No messages yet</h4>
+              <p className="text-sm text-slate-500">
                 Start the conversation with your team
               </p>
             </div>
