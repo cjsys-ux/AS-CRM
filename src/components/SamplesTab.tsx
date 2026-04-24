@@ -729,7 +729,7 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
         isOpen={isAddSampleDrawerOpen}
         onClose={() => setIsAddSampleDrawerOpen(false)}
         productId={productId}
-        onSuccess={() => { fetchFeedbackSamples(); onActivityDetected?.(); }}
+        onSuccess={() => { fetchFeedbackSamples(); fetchOrders(); onActivityDetected?.(); }}
       />
 
       {/* Order Sample Drawer */}

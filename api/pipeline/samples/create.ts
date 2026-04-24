@@ -50,6 +50,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const result = await db.collection('pipeline_samples').insertOne(doc);
 
+    // Mirror the sample into Sample Tracking so it shows in both sections.
+    const normalizedType = /competitor/i.test(String(sampleType ?? ''))
+      ? 'competitor'
+      : 'pre-production';
+    const trackingStatus = receivedDate ? 'Delivered' : 'Submitted';
+    const versionSuffix = version ? ` (${version})` : '';
+    const trackingDoc = {
+      productId,
+      productName: `${sampleName}${versionSuffix}`,
+      clientName: '',
+      sampleType: normalizedType,
+      variants: [],
+      vendor: vendorName ?? '',
+      destinations: [],
+      additionalNotes: notes ?? '',
+      inHandsDate: receivedDate ?? requestDate ?? null,
+      competitorLink: '',
+      totalCost: 0,
+      status: trackingStatus,
+      linkedSampleId: result.insertedId.toString(),
+      createdAt: new Date(),
+    };
+    const trackingResult = await db
+      .collection('pipeline_sample_orders')
+      .insertOne(trackingDoc);
+
     // Log timeline event
     await db.collection('pipeline_timeline').insertOne({
       productId,
@@ -65,6 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(201).json({
       sample: { id: result.insertedId.toString(), ...doc },
+      trackingOrder: { id: trackingResult.insertedId.toString(), ...trackingDoc },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create sample.';
