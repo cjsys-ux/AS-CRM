@@ -38,6 +38,7 @@ interface ProductDetailsProps {
     competitorPrice?: string;
   };
   onProductUpdate?: (updatedProduct: any) => void;
+  onNavigate?: (page: string) => void;
 }
 
 interface Vendor {
@@ -67,7 +68,7 @@ interface PricingTier {
   leadTime: number;
 }
 
-export function ProductDetails({ productId, onBack, productData, onProductUpdate }: ProductDetailsProps) {
+export function ProductDetails({ productId, onBack, productData, onProductUpdate, onNavigate }: ProductDetailsProps) {
   const [activeTab, setActiveTab] = useState('vendors');
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null);
   const [isAddVendorDrawerOpen, setIsAddVendorDrawerOpen] = useState(false);
@@ -947,6 +948,7 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                   competitorLink={productInfo.competitorLink || ''}
                   onChecklistChanged={handleChecklistChanged}
                   onActivityDetected={triggerAutoProgress}
+                  onNavigate={onNavigate}
                 />
               )}
 

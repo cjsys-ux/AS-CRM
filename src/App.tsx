@@ -107,7 +107,7 @@ export default function App() {
       case 'settings':
         return <SettingsPage />;
       case 'pipeline':
-        return <ProductPipeline />;
+        return <ProductPipeline onNavigate={handleNavigate} />;
       case 'customers':
         return <Customers />;
       case 'vendors':

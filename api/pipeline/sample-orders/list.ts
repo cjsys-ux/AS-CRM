@@ -47,6 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sampleType: po.sampleType ?? null,
       variants: Array.isArray(po.variants) ? po.variants : [],
       destinations: Array.isArray(po.destinations) ? po.destinations : [],
+      shipToAddresses: Array.isArray(po.shipToAddresses) ? po.shipToAddresses : [],
+      contacts: Array.isArray(po.contacts) ? po.contacts : [],
       additionalNotes: po.additionalNotes ?? '',
       total: typeof po.total === 'number' ? po.total : 0,
       totalCost: typeof po.total === 'number' ? po.total : 0,
