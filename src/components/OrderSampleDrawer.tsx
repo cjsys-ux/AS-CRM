@@ -591,16 +591,19 @@ export function OrderSampleDrawer({
       if (productId) {
         const response = await fetch(`/api/pipeline/vendors/list?productId=${productId}`);
         const data = await response.json();
-        if (data.success && data.vendors && data.vendors.length > 0) {
-          setAvailableVendors(
-            (data.vendors || []).map((v: any) => ({
-              id: v.id || v.vendorId || '',
-              name: v.name || '',
-              type: v.type || '',
-              logo: v.logo || v.image || '',
-              priority: v.priority || '',
-            }))
-          );
+        if (Array.isArray(data?.vendors) && data.vendors.length > 0) {
+          const mapped = data.vendors.map((v: any) => ({
+            id: v.id ?? v._id ?? v.vendorId ?? '',
+            name: v.vendorName ?? v.name ?? '',
+            type: v.vendorType ?? v.type ?? '',
+            logo: v.logo ?? v.image ?? '',
+            priority: v.priority != null ? String(v.priority) : '',
+            sortOrder: typeof v.sortOrder === 'number'
+              ? v.sortOrder
+              : (typeof v.priority === 'number' ? v.priority : 9999),
+          }));
+          mapped.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+          setAvailableVendors(mapped.map(({ sortOrder: _s, ...rest }: any) => rest));
           setLoadingVendors(false);
           return;
         }
@@ -611,18 +614,18 @@ export function OrderSampleDrawer({
         // No productId — fetch all vendors as fallback
         const response = await fetch(`/api/vendors/list`);
         const data = await response.json();
-        if (data.success) {
+        if (Array.isArray(data?.vendors)) {
           setAvailableVendors(
-            (data.vendors || []).map((v: any) => ({
-              id: v.vendorId || v.id || '',
-              name: v.name || '',
-              type: v.type || '',
-              logo: v.logo || v.image || '',
+            data.vendors.map((v: any) => ({
+              id: v.id ?? v._id ?? v.vendorId ?? '',
+              name: v.vendorName ?? v.name ?? '',
+              type: v.vendorType ?? v.type ?? '',
+              logo: v.logo ?? v.image ?? '',
               priority: '',
             }))
           );
         } else {
-          console.error('Failed to fetch vendors for sample drawer:', data.error);
+          console.error('Failed to fetch vendors for sample drawer:', data?.error);
         }
       }
     } catch (error) {
