@@ -6,9 +6,15 @@ import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
 import { AddSampleDrawer } from './AddSampleDrawer';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { ImagePopupModal } from './ImagePopupModal';
 import { CategoryTagDropdown, categoryColor } from './CategoryTagDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
+
+const isImageFile = (fileName: string) => {
+  const ext = fileName?.split('.').pop()?.toLowerCase() ?? '';
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+};
 
 interface SampleOrder {
   id: string;
@@ -100,6 +106,7 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
   const [isUploading, setIsUploading] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<UploadedFile | null>(null);
+  const [previewImage, setPreviewImage] = useState<UploadedFile | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!productId) {
@@ -642,7 +649,20 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
                     className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <FileText className="w-5 h-5 text-purple-600 shrink-0" />
+                      {isImageFile(f.fileName) && f.key ? (
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.08 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setPreviewImage(f)}
+                          title="Click to preview"
+                          className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-400 hover:border-blue-400 transition-all"
+                        >
+                          <img src={`/api/files/image?key=${encodeURIComponent(f.key)}`} alt={f.fileName} className="w-full h-full object-cover" />
+                        </motion.button>
+                      ) : (
+                        <FileText className="w-5 h-5 text-purple-600 shrink-0" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-900 truncate">{f.fileName}</p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -732,6 +752,14 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
           setFileToDelete(null);
         }}
         fileName={fileToDelete?.fileName || ''}
+      />
+
+      {/* Image Preview Modal */}
+      <ImagePopupModal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        imageUrl={previewImage?.key ? `/api/files/image?key=${encodeURIComponent(previewImage.key)}` : ''}
+        productName={previewImage?.fileName || 'Image'}
       />
     </div>
   );
