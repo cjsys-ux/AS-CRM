@@ -1,0 +1,722 @@
+import { motion, AnimatePresence } from 'motion/react';
+import { Plus, Trash2, Save, DollarSign, Clock, Ship, Package, Truck, Pencil, X, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { toast } from 'sonner@2.0.3';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
+const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-c0840c88`;
+
+interface PricingTier {
+  quantity: number | string;
+  exwPrice: number | string;
+  fobPrice: number | string;
+  ddpPrice: number | string;
+  ddpMethod: string;
+  leadTime: number | string;
+}
+
+interface Vendor {
+  id: string;
+  name: string;
+  country: string;
+  contact?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  type: string;
+  platform: string;
+  priority: string;
+  moq: number;
+  pricingTiers?: PricingTier[];
+  supportsDropShipping?: boolean;
+}
+
+interface VendorPricingPanelProps {
+  vendor: Vendor;
+  productId: string;
+  onVendorUpdated: (vendor: Vendor) => void;
+}
+
+const DDP_METHODS = ['Air Cargo', 'Express Air', 'Fast Boat', 'Slow Boat', 'Rail', 'FTL'];
+
+const formatCurrency = (val: number | string): string => {
+  const num = Number(val);
+  if (isNaN(num)) return '$0.00';
+  return '$' + num.toFixed(2);
+};
+
+const formatQty = (val: number | string): string => {
+  const num = Number(val);
+  if (isNaN(num) || num === 0) return '0';
+  return num.toLocaleString('en-US');
+};
+
+const parseCurrency = (val: string): string => {
+  return val.replace(/[^0-9.]/g, '');
+};
+
+const parseQty = (val: string): string => {
+  return val.replace(/[^0-9]/g, '');
+};
+
+const TIER_DND_TYPE = 'PRICING_TIER';
+
+interface DraggableTierRowProps {
+  tier: PricingTier;
+  index: number;
+  isEditing: boolean;
+  hasChanges: boolean;
+  isDropship: boolean;
+  updateTier: (index: number, field: keyof PricingTier, value: string | number) => void;
+  removeTier: (index: number) => void;
+  moveTier: (dragIndex: number, hoverIndex: number) => void;
+}
+
+function DraggableTierRow({ tier, index, isEditing, hasChanges, isDropship, updateTier, removeTier, moveTier }: DraggableTierRowProps) {
+  const ref = useRef<HTMLTableRowElement>(null);
+  const canDrag = isEditing || hasChanges;
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: TIER_DND_TYPE,
+    item: { index },
+    canDrag: () => canDrag,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [{ isOver }, drop] = useDrop({
+    accept: TIER_DND_TYPE,
+    hover: (item: { index: number }, monitor) => {
+      if (!ref.current) return;
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) return;
+
+      const hoverBoundingRect = ref.current.getBoundingClientRect();
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+
+      moveTier(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  preview(drop(ref));
+
+  return (
+    <tr
+      ref={ref}
+      className={`border-b border-slate-100 last:border-0 group transition-colors ${
+        isDragging ? 'opacity-40 bg-blue-50' : isOver ? 'bg-blue-50/30' : 'hover:bg-slate-50/50'
+      }`}
+    >
+      {/* Drag handle */}
+      <td className="px-1 py-1.5 w-[28px]">
+        {canDrag ? (
+          <div
+            ref={(node) => { drag(node); }}
+            className="flex items-center justify-center cursor-grab active:cursor-grabbing p-0.5 text-slate-300 hover:text-slate-500 transition-colors"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center p-0.5 text-slate-200">
+            <GripVertical className="w-3.5 h-3.5" />
+          </div>
+        )}
+      </td>
+      <td className="px-3 py-1.5">
+        {isEditing || hasChanges ? (
+          <input
+            type="text"
+            value={focusedField === 'quantity' ? String(tier.quantity) : (String(tier.quantity) ? formatQty(tier.quantity) : '')}
+            onChange={(e) => {
+              const raw = parseQty(e.target.value);
+              updateTier(index, 'quantity', raw);
+            }}
+            onFocus={() => setFocusedField('quantity')}
+            onBlur={() => setFocusedField(null)}
+            className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-semibold text-slate-900 focus:outline-none transition-all"
+          />
+        ) : (
+          <span className="px-2 py-1.5 text-sm font-semibold text-slate-900">{formatQty(tier.quantity)}</span>
+        )}
+      </td>
+      {!isDropship && (
+        <td className="px-3 py-1.5">
+          {isEditing || hasChanges ? (
+            <input
+              type="text"
+              value={focusedField === 'exwPrice' ? String(tier.exwPrice) : (String(tier.exwPrice) ? formatCurrency(tier.exwPrice) : '')}
+              onChange={(e) => {
+                const raw = parseCurrency(e.target.value);
+                updateTier(index, 'exwPrice', raw);
+              }}
+              onFocus={() => setFocusedField('exwPrice')}
+              onBlur={() => {
+                setFocusedField(null);
+                const num = Number(tier.exwPrice);
+                if (!isNaN(num)) updateTier(index, 'exwPrice', num.toFixed(2));
+              }}
+              className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
+            />
+          ) : (
+            <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.exwPrice)}</span>
+          )}
+        </td>
+      )}
+      <td className="px-3 py-1.5">
+        {isEditing || hasChanges ? (
+          <input
+            type="text"
+            value={focusedField === 'fobPrice' ? String(tier.fobPrice) : (String(tier.fobPrice) ? formatCurrency(tier.fobPrice) : '')}
+            onChange={(e) => {
+              const raw = parseCurrency(e.target.value);
+              updateTier(index, 'fobPrice', raw);
+            }}
+            onFocus={() => setFocusedField('fobPrice')}
+            onBlur={() => {
+              setFocusedField(null);
+              const num = Number(tier.fobPrice);
+              if (!isNaN(num)) updateTier(index, 'fobPrice', num.toFixed(2));
+            }}
+            className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
+          />
+        ) : (
+          <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.fobPrice)}</span>
+        )}
+      </td>
+      {!isDropship && (
+        <>
+          <td className="px-3 py-1.5">
+            {isEditing || hasChanges ? (
+              <input
+                type="text"
+                value={focusedField === 'ddpPrice' ? String(tier.ddpPrice) : (String(tier.ddpPrice) ? formatCurrency(tier.ddpPrice) : '')}
+                onChange={(e) => {
+                  const raw = parseCurrency(e.target.value);
+                  updateTier(index, 'ddpPrice', raw);
+                }}
+                onFocus={() => setFocusedField('ddpPrice')}
+                onBlur={() => {
+                  setFocusedField(null);
+                  const num = Number(tier.ddpPrice);
+                  if (!isNaN(num)) updateTier(index, 'ddpPrice', num.toFixed(2));
+                }}
+                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-900 font-medium focus:outline-none transition-all"
+              />
+            ) : (
+              <span className="px-2 py-1.5 text-sm text-slate-900 font-medium">{formatCurrency(tier.ddpPrice)}</span>
+            )}
+          </td>
+          <td className="px-3 py-1.5">
+            {isEditing || hasChanges ? (
+              <select
+                value={tier.ddpMethod}
+                onChange={(e) => updateTier(index, 'ddpMethod', e.target.value)}
+                className="w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm text-slate-600 font-medium focus:outline-none transition-all cursor-pointer"
+              >
+                <option value="" disabled>Select</option>
+                {DDP_METHODS.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="px-2 py-1.5 text-sm text-slate-600 font-medium block text-center whitespace-nowrap">{tier.ddpMethod}</span>
+            )}
+          </td>
+        </>
+      )}
+      <td className="px-3 py-1.5">
+        {isEditing || hasChanges ? (
+          <input
+            type="text"
+            value={tier.leadTime}
+            onChange={(e) => {
+              const raw = parseQty(e.target.value);
+              updateTier(index, 'leadTime', raw);
+            }}
+            className={`w-full px-2 py-1.5 bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-md text-sm font-medium focus:outline-none transition-all ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}
+            placeholder={isDropship ? 'e.g. 2' : ''}
+          />
+        ) : (
+          <span className={`px-2 py-1.5 text-sm font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-600'}`}>{tier.leadTime}</span>
+        )}
+      </td>
+      <td className="px-2 py-1.5 w-[36px] text-center">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => removeTier(index)}
+          className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors inline-flex items-center justify-center"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </motion.button>
+      </td>
+    </tr>
+  );
+}
+
+export function VendorPricingPanel({ vendor, productId, onVendorUpdated }: VendorPricingPanelProps) {
+  const [isDropship, setIsDropship] = useState(vendor.supportsDropShipping === true);
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>(
+    vendor.pricingTiers || []
+  );
+  const [moq, setMoq] = useState<string>(String(vendor.moq || ''));
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isPricingCollapsed, setIsPricingCollapsed] = useState(false);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [showAllTiers, setShowAllTiers] = useState(false);
+  const MAX_VISIBLE_TIERS = 5;
+
+  // Sync when vendor changes
+  useEffect(() => {
+    setPricingTiers(vendor.pricingTiers || []);
+    setMoq(String(vendor.moq || ''));
+    setIsDropship(vendor.supportsDropShipping === true);
+    setHasChanges(false);
+  }, [vendor.id]);
+
+  const addTier = () => {
+    const newTier: PricingTier = {
+      quantity: '',
+      exwPrice: '',
+      fobPrice: '',
+      ddpPrice: '',
+      ddpMethod: '',
+      leadTime: '',
+    };
+    setPricingTiers([...pricingTiers, newTier]);
+    setHasChanges(true);
+  };
+
+  const removeTier = (index: number) => {
+    setPricingTiers(pricingTiers.filter((_, i) => i !== index));
+    setHasChanges(true);
+  };
+
+  const updateTier = (index: number, field: keyof PricingTier, value: string | number) => {
+    const updated = pricingTiers.map((tier, i) => {
+      if (i !== index) return tier;
+      return { ...tier, [field]: value };
+    });
+    setPricingTiers(updated);
+    setHasChanges(true);
+  };
+
+  const savePricing = async () => {
+    setIsSaving(true);
+    try {
+      // Convert string values to numbers for saving
+      const tiersToSave = pricingTiers.map(tier => ({
+        quantity: Number(tier.quantity) || 0,
+        exwPrice: Number(tier.exwPrice) || 0,
+        fobPrice: Number(tier.fobPrice) || 0,
+        ddpPrice: Number(tier.ddpPrice) || 0,
+        ddpMethod: tier.ddpMethod,
+        leadTime: Number(tier.leadTime) || 0,
+      }));
+
+      const moqValue = parseInt(moq) || 0;
+
+      const res = await fetch(`${API_URL}/products/${productId}/vendors/${vendor.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${publicAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pricingTiers: tiersToSave, moq: moqValue, supportsDropShipping: isDropship }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Pricing saved successfully');
+        onVendorUpdated({ ...vendor, pricingTiers: tiersToSave, moq: moqValue, supportsDropShipping: isDropship });
+        setHasChanges(false);
+        setIsEditing(false);
+      } else {
+        toast.error('Failed to save pricing: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error saving pricing:', err);
+      toast.error('Error saving pricing');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const bestFob = pricingTiers.length > 0
+    ? Math.min(...pricingTiers.map(t => Number(t.fobPrice) || 0))
+    : null;
+  const bestLeadTime = pricingTiers.length > 0
+    ? Math.min(...pricingTiers.map(t => Number(t.leadTime) || 0))
+    : null;
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden flex flex-col"
+    >
+      {/* Header */}
+      <div className="px-6 py-4 flex-shrink-0 bg-gradient-to-r from-slate-800 to-slate-700 cursor-pointer" onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-white">{vendor.name}</h3>
+              {isDropship && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/30">
+                  <Truck className="w-3 h-3" />
+                  Dropship
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-slate-300">{vendor.country} &middot; {vendor.type}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasChanges && (
+              <motion.button
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => { e.stopPropagation(); savePricing(); }}
+                disabled={isSaving}
+                className={`flex items-center gap-2 px-4 py-2 bg-white font-semibold rounded-xl text-sm shadow-lg transition-all disabled:opacity-50 text-slate-700 hover:bg-slate-50`}
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </motion.button>
+            )}
+            {!isEditing && !hasChanges && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl text-sm transition-all"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit
+              </motion.button>
+            )}
+            {isEditing && !hasChanges && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(false);
+                  // Reset to original values
+                  setPricingTiers(vendor.pricingTiers || []);
+                  setMoq(String(vendor.moq || ''));
+                  setIsDropship(vendor.supportsDropShipping === true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl text-sm transition-all"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </motion.button>
+            )}
+            {isEditing && hasChanges && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditing(false);
+                  setHasChanges(false);
+                  setPricingTiers(vendor.pricingTiers || []);
+                  setMoq(String(vendor.moq || ''));
+                  setIsDropship(vendor.supportsDropShipping === true);
+                }}
+                className="flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-xl text-sm transition-all"
+              >
+                <X className="w-4 h-4" />
+              </motion.button>
+            )}
+            <div className="text-white/60 ml-1">
+              {isPanelCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {!isPanelCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="overflow-hidden"
+          >
+      <div className="p-6 space-y-5 flex-1">
+        {/* Dropship Info Banner */}
+        {isDropship && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-start gap-3">
+            <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Truck className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-emerald-800">Dropship Vendor</p>
+              <p className="text-[11px] text-emerald-600 mt-0.5">Ships directly from US warehouse. No duties/DDP required. Pricing reflects direct-ship cost.</p>
+            </div>
+          </div>
+        )}
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            <Package className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+            <div className="text-xs text-slate-500 mb-1">MOQ</div>
+            {isEditing || hasChanges ? (
+              <input
+                type="text"
+                value={moq}
+                onChange={(e) => {
+                  const raw = parseQty(e.target.value);
+                  setMoq(raw);
+                  setHasChanges(true);
+                }}
+                className="w-full text-center text-sm font-bold text-slate-900 bg-white border border-slate-200 hover:border-blue-300 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg px-2 py-1.5 cursor-text"
+                placeholder="Set MOQ"
+              />
+            ) : (
+              <div className="text-sm font-bold text-slate-900">
+                {moq ? formatQty(moq) : '\u2014'}
+              </div>
+            )}
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
+            <div className="text-xs text-slate-500 mb-1">{isDropship ? 'Best Price' : 'Best FOB'}</div>
+            <div className="text-sm font-bold text-slate-900">
+              {bestFob !== null ? formatCurrency(bestFob) : '\u2014'}
+            </div>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3 text-center">
+            {isDropship ? (
+              <Truck className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+            ) : (
+              <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+            )}
+            <div className="text-xs text-slate-500 mb-1">{isDropship ? 'Dropship Days' : 'Lead Time'}</div>
+            <div className="text-sm font-bold text-slate-900">
+              {bestLeadTime !== null ? `${bestLeadTime} days` : '\u2014'}
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        {vendor.contact && (vendor.contact.name || vendor.contact.email || vendor.contact.phone) && (
+          <div className="bg-slate-50 rounded-xl p-4">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Contact</h4>
+            <div className="space-y-1.5">
+              {vendor.contact.name && (
+                <div className="flex items-center gap-2 text-sm text-slate-700">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="font-medium">{vendor.contact.name}</span>
+                </div>
+              )}
+              {vendor.contact.email && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {vendor.contact.email}
+                </div>
+              )}
+              {vendor.contact.phone && (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {vendor.contact.phone}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Pricing Table (editable, scrollable) */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => setIsPricingCollapsed(!isPricingCollapsed)}
+              className="flex items-center gap-1.5 text-sm font-bold text-slate-900 hover:text-slate-700 transition-colors"
+            >
+              {isPricingCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+              Pricing Tiers
+            </button>
+            <div className="flex items-center gap-3">
+              {/* Dropship Toggle */}
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${isDropship ? 'text-emerald-600' : 'text-slate-400'}`}>Dropship</span>
+                <button
+                  onClick={() => {
+                    if (!isEditing && !hasChanges) return;
+                    setIsDropship(!isDropship);
+                    setHasChanges(true);
+                  }}
+                  disabled={!isEditing && !hasChanges}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                    !isEditing && !hasChanges ? 'opacity-60 cursor-not-allowed' : ''
+                  } ${
+                    isDropship
+                      ? 'bg-emerald-500 focus:ring-emerald-300'
+                      : 'bg-slate-300 focus:ring-slate-300'
+                  }`}
+                >
+                  <motion.span
+                    layout
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm ${
+                      isDropship ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="w-px h-5 bg-slate-200" />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={addTier}
+                disabled={!isEditing && !hasChanges}
+                className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold rounded-lg text-xs transition-colors ${
+                  !isEditing && !hasChanges ? 'opacity-50 cursor-not-allowed' : ''
+                } bg-slate-100 hover:bg-slate-200 text-slate-700`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Tier
+              </motion.button>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {!isPricingCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="overflow-hidden"
+              >
+          {isDropship && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg mb-3">
+              <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-xs text-emerald-700">
+                <span className="font-semibold">Dropship vendor</span> — DDP and Ship Method columns are hidden since items ship directly from the vendor. Lead times shown as Dropship Days.
+              </p>
+            </div>
+          )}
+
+          {pricingTiers.length === 0 ? (
+            <div className="bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 p-8 text-center">
+              <DollarSign className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-medium text-slate-500 mb-1">No Pricing Tiers</p>
+              <p className="text-xs text-slate-400 mb-3">Add quantity-based pricing tiers for this vendor</p>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={addTier}
+                className={`inline-flex items-center gap-1.5 px-4 py-2 text-white font-medium rounded-lg text-sm transition-colors bg-slate-800 hover:bg-slate-700`}
+              >
+                <Plus className="w-4 h-4" />
+                Add First Tier
+              </motion.button>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto max-h-[340px]">
+                <table className="w-full text-sm" style={{ minWidth: isDropship ? undefined : '680px' }}>
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-1 py-2.5 w-[28px]"></th>
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[20%]' : ''}`} style={!isDropship ? { minWidth: '90px' } : undefined}>Qty</th>
+                      {!isDropship && (
+                        <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '85px' }}>EXW ($)</th>
+                      )}
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase ${isDropship ? 'w-[30%]' : ''}`} style={!isDropship ? { minWidth: '85px' } : undefined}>
+                        {isDropship ? 'Price ($)' : 'FOB ($)'}
+                      </th>
+                      {!isDropship && (
+                        <>
+                          <th className="text-left px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '85px' }}>DDP ($)</th>
+                          <th className="text-center px-3 py-2.5 text-[11px] font-bold text-slate-500 uppercase" style={{ minWidth: '120px' }}>Ship</th>
+                        </>
+                      )}
+                      <th className={`text-left px-3 py-2.5 text-[11px] font-bold uppercase ${isDropship ? 'w-[30%] text-slate-500' : 'text-slate-500'}`} style={!isDropship ? { minWidth: '60px' } : undefined}>
+                        {isDropship ? 'Dropship Days' : 'Days'}
+                      </th>
+                      <th className="px-2 py-2.5 w-[36px] text-center text-[11px] font-bold text-slate-500 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <AnimatePresence>
+                      {(showAllTiers ? pricingTiers : pricingTiers.slice(0, MAX_VISIBLE_TIERS)).map((tier, index) => (
+                        <DraggableTierRow
+                          key={index}
+                          tier={tier}
+                          index={index}
+                          isEditing={isEditing}
+                          hasChanges={hasChanges}
+                          isDropship={isDropship}
+                          updateTier={updateTier}
+                          removeTier={removeTier}
+                          moveTier={(dragIndex, hoverIndex) => {
+                            const newTiers = [...pricingTiers];
+                            const [draggedTier] = newTiers.splice(dragIndex, 1);
+                            newTiers.splice(hoverIndex, 0, draggedTier);
+                            setPricingTiers(newTiers);
+                            setHasChanges(true);
+                          }}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
+              </div>
+              {pricingTiers.length > MAX_VISIBLE_TIERS && (
+                <button
+                  onClick={() => setShowAllTiers(!showAllTiers)}
+                  className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-50 border-t border-slate-200 transition-colors flex items-center justify-center gap-1"
+                >
+                  {showAllTiers ? (
+                    <>Show Less <ChevronUp className="w-3 h-3" /></>
+                  ) : (
+                    <>Show {pricingTiers.length - MAX_VISIBLE_TIERS} More <ChevronDown className="w-3 h-3" /></>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+    </DndProvider>
+  );
+}
