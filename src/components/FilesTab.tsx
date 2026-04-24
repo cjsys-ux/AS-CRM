@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
+import { CategoryTagDropdown, categoryColor } from './CategoryTagDropdown';
 
 
 interface FileItem {
@@ -15,12 +16,14 @@ interface FileItem {
   uploadedBy: string;
   uploadedDate: string;
   section: string;
+  category?: string;
   fileUrl?: string;
   key?: string;
 }
 
 interface FilesTabProps {
   productId?: string;
+  onActivityDetected?: () => void;
 }
 
 // Every entityType persisted via /api/files/complete from any tab on a product
@@ -118,7 +121,7 @@ const getSectionColor = (section: string) => {
   }
 };
 
-export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
+export function FilesTab({ productId = 'PRD-001', onActivityDetected }: FilesTabProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedSection, setSelectedSection] = useState('all');
   const [isUploading, setIsUploading] = useState(false);
@@ -151,6 +154,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
           uploadedBy: u.uploadedBy ?? 'User',
           uploadedDate: u.createdAt ?? '',
           section: ENTITY_TYPE_SECTION_LABELS[u.entityType] ?? 'Other',
+          category: typeof u.category === 'string' ? u.category : '',
           fileUrl: u.fileUrl ?? '',
           key: u.key ?? '',
         };
@@ -185,11 +189,34 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
       }
       toast.success(`${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} uploaded`);
       await fetchFiles();
+      onActivityDetected?.();
     } catch (err) {
       console.error('File upload error:', err);
       toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const updateCategory = async (file: FileItem, category: string) => {
+    const previousFiles = files;
+    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, category } : f));
+    try {
+      const res = await fetch('/api/files/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: file.id, category }),
+      });
+      if (!res.ok) {
+        setFiles(previousFiles);
+        toast.error('Failed to update category');
+        return;
+      }
+      toast.success(category ? `Category set to "${category}"` : 'Category removed', { duration: 2000 });
+      onActivityDetected?.();
+    } catch {
+      setFiles(previousFiles);
+      toast.error('Failed to update category');
     }
   };
 
@@ -209,6 +236,7 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
       if (!res.ok) throw new Error('Failed to delete file');
       toast.success('File deleted');
       await fetchFiles();
+      onActivityDetected?.();
     } catch {
       toast.error('Failed to delete file');
     } finally {
@@ -381,6 +409,11 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                       <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <p className="text-xs text-slate-500">{file.size}</p>
+                        {file.category && (
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${categoryColor(file.category)}`}>
+                            {file.category}
+                          </span>
+                        )}
                         {file.section && (
                           <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getSectionColor(file.section)}`}>
                             {file.section}
@@ -394,6 +427,10 @@ export function FilesTab({ productId = 'PRD-001' }: FilesTabProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <CategoryTagDropdown
+                      value={file.category ?? ''}
+                      onChange={(cat) => updateCategory(file, cat)}
+                    />
                     <button
                       onClick={() => handleDownload(file)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

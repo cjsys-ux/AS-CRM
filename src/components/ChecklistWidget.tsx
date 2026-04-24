@@ -13,6 +13,8 @@ interface ChecklistWidgetProps {
   productId?: string;
   tabId?: string;
   onUpdate?: (items: ChecklistItem[]) => void;
+  onChecklistChanged?: (all: Record<string, ChecklistItem[]>) => void;
+  onActivityDetected?: () => void;
   items?: ChecklistItem[];
 }
 
@@ -24,13 +26,33 @@ const DEFAULT_ITEMS: Record<string, string[]> = {
   files:          ['Product Images Uploaded', 'Spec Sheets Uploaded', 'Vendor Quotes Filed', 'Compliance Docs Filed'],
 };
 
-export function ChecklistWidget({ productId, tabId, onUpdate, items: externalItems }: ChecklistWidgetProps) {
+export function ChecklistWidget({ productId, tabId, onUpdate, onChecklistChanged, onActivityDetected, items: externalItems }: ChecklistWidgetProps) {
   const [items, setItems] = useState<ChecklistItem[]>(externalItems || []);
   const [newItemText, setNewItemText] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isPipelineMode = Boolean(productId && tabId);
+
+  // Read the merged cross-tab checklist out of localStorage so every widget
+  // knows what every other tab currently has — this is what lets tab badges
+  // in ProductDetails reflect progress on tabs the user hasn't opened.
+  const readAllChecklists = useCallback((): Record<string, ChecklistItem[]> => {
+    if (!productId) return {};
+    try {
+      const raw = localStorage.getItem(`product:${productId}:checklist`);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }, [productId]);
+
+  const emitChecklistChanged = useCallback((updatedItems: ChecklistItem[]) => {
+    if (!tabId || !onChecklistChanged) return;
+    const all = readAllChecklists();
+    all[tabId] = updatedItems;
+    onChecklistChanged(all);
+  }, [tabId, onChecklistChanged, readAllChecklists]);
 
   const loadChecklist = useCallback(async () => {
     if (!isPipelineMode) return;
@@ -69,6 +91,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
       ];
       setItems(merged);
       onUpdate?.(merged);
+      emitChecklistChanged(merged);
     } catch {
       const defaults = (DEFAULT_ITEMS[tabId!] ?? []).map((label, i) => ({
         id: `default-${i}`,
@@ -78,10 +101,11 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
       }));
       setItems(defaults);
       onUpdate?.(defaults);
+      emitChecklistChanged(defaults);
     } finally {
       setLoading(false);
     }
-  }, [productId, tabId]);
+  }, [productId, tabId, emitChecklistChanged]);
 
   useEffect(() => {
     if (isPipelineMode) {
@@ -113,6 +137,8 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
     setItems(updated);
     onUpdate?.(updated);
     saveState(updated);
+    emitChecklistChanged(updated);
+    onActivityDetected?.();
   };
 
   const addCustomItem = () => {
@@ -127,6 +153,8 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
     setItems(updated);
     onUpdate?.(updated);
     saveState(updated);
+    emitChecklistChanged(updated);
+    onActivityDetected?.();
     setNewItemText('');
     setIsAddingItem(false);
   };
@@ -136,6 +164,7 @@ export function ChecklistWidget({ productId, tabId, onUpdate, items: externalIte
     setItems(updated);
     onUpdate?.(updated);
     saveState(updated);
+    emitChecklistChanged(updated);
   };
 
   const completedCount = items.filter(i => i.completed).length;

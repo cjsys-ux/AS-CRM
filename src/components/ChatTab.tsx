@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageSquare, Send, Trash2, Paperclip, X, Download, FileText, Image as ImageIcon } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { uploadFileViaApi } from '../utils/uploadViaApi';
+import { useAuth } from '../context/AuthContext';
 
 
 interface ChatMessage {
@@ -19,11 +20,33 @@ interface ChatMessage {
   };
 }
 
+interface TeamMember {
+  name: string;
+  color: string;
+}
+
 interface ChatTabProps {
   productId?: string;
 }
 
+const MENTION_COLORS = [
+  'bg-blue-100 text-blue-600',
+  'bg-orange-100 text-orange-600',
+  'bg-purple-100 text-purple-600',
+  'bg-green-100 text-green-600',
+  'bg-pink-100 text-pink-600',
+  'bg-cyan-100 text-cyan-600',
+];
+
+function colorForName(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return MENTION_COLORS[h % MENTION_COLORS.length];
+}
+
 export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
+  const { user } = useAuth();
+  const currentUserName = user?.name ?? 'You';
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -31,12 +54,36 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<ChatMessage | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetchMessages();
   }, [productId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/users/list');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const members: TeamMember[] = (data.users ?? [])
+          .map((u: any) => ({ name: u.name ?? '', color: colorForName(u.name ?? '') }))
+          .filter((m: TeamMember) => m.name.length > 0);
+        setTeamMembers(members);
+      } catch {
+        // silent — mentions just stay empty
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -51,11 +98,22 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
       const res = await fetch(`/api/pipeline/chat/list?productId=${encodeURIComponent(productId)}`);
       if (!res.ok) throw new Error('Failed to fetch messages');
       const data = await res.json();
-      setMessages(data.messages ?? []);
+      const msgs: ChatMessage[] = (data.messages ?? []).map((m: ChatMessage) => ({
+        ...m,
+        isCurrentUser: m.user === currentUserName,
+      }));
+      setMessages(msgs);
     } catch {
       setMessages([]);
     }
   };
+
+  const filteredMembers = useMemo(
+    () => teamMembers.filter(m =>
+      m.name.toLowerCase().includes(mentionFilter) && m.name !== currentUserName
+    ),
+    [teamMembers, mentionFilter, currentUserName]
+  );
 
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && !attachedFile) || isSending) return;
@@ -87,7 +145,7 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
         body: JSON.stringify({
           productId,
           message: newMessage.trim() || '',
-          user: 'You',
+          user: currentUserName,
           attachmentKey,
           attachmentName,
           attachmentType,
@@ -97,7 +155,8 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
 
       if (!res.ok) throw new Error('Failed to send message');
       const data = await res.json();
-      setMessages((prev) => [...prev, data.message]);
+      const sent: ChatMessage = { ...data.message, isCurrentUser: data.message?.user === currentUserName };
+      setMessages((prev) => [...prev, sent]);
       setNewMessage('');
       setAttachedFile(null);
     } catch {
@@ -141,11 +200,83 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setNewMessage(val);
+    const cursorPos = e.target.selectionStart ?? val.length;
+    const textBeforeCursor = val.substring(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionFilter(atMatch[1].toLowerCase());
+      setShowMentionDropdown(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const insertMention = (name: string) => {
+    const cursorPos = textareaRef.current?.selectionStart ?? newMessage.length;
+    const textBeforeCursor = newMessage.substring(0, cursorPos);
+    const textAfterCursor = newMessage.substring(cursorPos);
+    const atIndex = textBeforeCursor.lastIndexOf('@');
+    const head = atIndex >= 0 ? textBeforeCursor.substring(0, atIndex) : textBeforeCursor;
+    const newText = `${head}@${name} ${textAfterCursor}`;
+    setNewMessage(newText);
+    setShowMentionDropdown(false);
+    textareaRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showMentionDropdown && filteredMembers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(prev => (prev + 1) % filteredMembers.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(prev => (prev - 1 + filteredMembers.length) % filteredMembers.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertMention(filteredMembers[mentionIndex].name);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowMentionDropdown(false);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const renderMentions = (text: string, dark: boolean) => {
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        const name = part.substring(1);
+        const member = teamMembers.find(m => m.name.toLowerCase() === name.toLowerCase());
+        if (member) {
+          return (
+            <span
+              key={i}
+              className={`rounded px-1 font-semibold ${
+                dark ? 'bg-blue-500/20 text-blue-200' : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              {part}
+            </span>
+          );
+        }
+      }
+      return <span key={i}>{part}</span>;
+    });
   };
 
   const getFileIcon = (type: string) => {
@@ -207,7 +338,7 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
                         : 'bg-white border-2 border-slate-200 text-slate-900'
                     }`}
                   >
-                    <p className="text-sm leading-relaxed">{msg.message}</p>
+                    <p className="text-sm leading-relaxed">{renderMentions(msg.message, msg.isCurrentUser)}</p>
                     
                     {/* Attachment Display */}
                     {msg.attachment && (
@@ -322,7 +453,7 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
             </motion.div>
           )}
 
-          <div className="flex items-end gap-2">
+          <div className="relative flex items-end gap-2">
             <input
               type="file"
               ref={fileInputRef}
@@ -339,14 +470,44 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
             >
               <Paperclip className="w-4 h-4 text-slate-600" />
             </motion.button>
-            <div className="flex-1">
+            <div className="flex-1 relative">
+              <AnimatePresence>
+                {showMentionDropdown && filteredMembers.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full mb-1 left-0 w-48 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden z-50"
+                  >
+                    <div className="px-3 py-1.5 text-xs font-medium text-slate-400 border-b border-slate-100">
+                      Mention a team member
+                    </div>
+                    {filteredMembers.map((member, i) => (
+                      <button
+                        key={member.name}
+                        type="button"
+                        onClick={() => insertMention(member.name)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-slate-50 transition-colors ${
+                          i === mentionIndex ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${member.color}`}>
+                          {member.name[0]}
+                        </div>
+                        <span className="font-medium text-slate-900">{member.name}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <textarea
+                ref={textareaRef}
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message... (use @ to mention)"
                 rows={1}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
                 disabled={isSending}
               />
             </div>
@@ -355,7 +516,7 @@ export function ChatTab({ productId = 'PRD-001' }: ChatTabProps) {
               whileTap={{ scale: 0.95 }}
               onClick={handleSendMessage}
               disabled={(!newMessage.trim() && !attachedFile) || isSending}
-              className="px-3 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Send className="w-4 h-4" />
             </motion.button>

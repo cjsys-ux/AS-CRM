@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, Upload, FileText, Download, Box, Trash2, Save, Edit, ChevronDown, Check } from 'lucide-react';
-import { ChecklistWidget } from './ChecklistWidget';
+import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
 import { UnitDropdown } from './UnitDropdown';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { CategoryTagDropdown, categoryColor } from './CategoryTagDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 import { toast } from 'sonner';
@@ -110,6 +111,8 @@ const handleDownloadSavedFile = async (f: any) => {
 interface PackagingTabProps {
   productId?: string;
   sizeVariants?: string[];
+  onChecklistChanged?: (all: Record<string, ChecklistItem[]>) => void;
+  onActivityDetected?: () => void;
 }
 
 type PackagingVariantSpec = {
@@ -134,7 +137,7 @@ const emptyPackagingVariantSpec = (): PackagingVariantSpec => ({
   weightUnit: 'lbs',
 });
 
-export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTabProps) {
+export function PackagingTab({ productId = '', sizeVariants = [], onChecklistChanged, onActivityDetected }: PackagingTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
@@ -269,6 +272,7 @@ export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTab
       if (!res.ok) throw new Error('Failed to save');
       toast.success('Packaging saved successfully');
       setIsEditing(false);
+      onActivityDetected?.();
     } catch {
       toast.error('Failed to save packaging');
     } finally {
@@ -304,8 +308,31 @@ export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTab
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('File deleted');
       await fetchSavedFiles();
+      onActivityDetected?.();
     } catch {
       toast.error('Failed to delete file');
+    }
+  };
+
+  const updateSavedFileCategory = async (file: any, category: string) => {
+    const previous = savedFiles;
+    setSavedFiles(prev => prev.map(f => f.id === file.id ? { ...f, category } : f));
+    try {
+      const res = await fetch('/api/files/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: file.id, category }),
+      });
+      if (!res.ok) {
+        setSavedFiles(previous);
+        toast.error('Failed to update category');
+        return;
+      }
+      toast.success(category ? `Category set to "${category}"` : 'Category removed', { duration: 2000 });
+      onActivityDetected?.();
+    } catch {
+      setSavedFiles(previous);
+      toast.error('Failed to update category');
     }
   };
 
@@ -316,6 +343,7 @@ export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTab
     if (productId) {
       for (const f of fileArray) { try { await uploadFileToS3(f); } catch {} }
       await fetchSavedFiles();
+      onActivityDetected?.();
     } else {
       setFiles([...files, ...fileArray]);
     }
@@ -656,10 +684,21 @@ export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTab
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-900 truncate">{f.fileName}</p>
-                        <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <p className="text-xs text-slate-500">{f.size ? `${(f.size / 1024).toFixed(2)} KB` : ''}</p>
+                          {f.category && (
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${categoryColor(f.category)}`}>
+                              {f.category}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <CategoryTagDropdown
+                        value={f.category ?? ''}
+                        onChange={(cat) => updateSavedFileCategory(f, cat)}
+                      />
                       {(f.key || f.fileUrl) && (
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDownloadSavedFile(f)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Download">
                           <Download className="w-4 h-4" />
@@ -716,6 +755,8 @@ export function PackagingTab({ productId = '', sizeVariants = [] }: PackagingTab
       <ChecklistWidget
         productId={productId}
         tabId="packaging"
+        onChecklistChanged={onChecklistChanged}
+        onActivityDetected={onActivityDetected}
       />
 
       {/* Delete Document Modal */}

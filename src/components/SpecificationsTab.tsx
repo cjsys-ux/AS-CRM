@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Ruler, Weight, Package, Layers, FileText, Upload, Download, Trash2, Plus, X, ChevronDown, Save, Edit, Check } from 'lucide-react';
-import { ChecklistWidget } from './ChecklistWidget';
+import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { UnitDropdown } from './UnitDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
@@ -45,6 +45,8 @@ const emptyVariantSpec = (): VariantSpec => ({
 interface SpecsTabProps {
   productId?: string;
   sizeVariants?: string[];
+  onChecklistChanged?: (all: Record<string, ChecklistItem[]>) => void;
+  onActivityDetected?: () => void;
 }
 
 const MATERIAL_OPTIONS = [
@@ -145,7 +147,7 @@ function MaterialDropdown({ value, onChange, disabled }: { value: string; onChan
   );
 }
 
-export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTabProps) {
+export function SpecificationsTab({ productId = '', sizeVariants = [], onChecklistChanged, onActivityDetected }: SpecsTabProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [savedFiles, setSavedFiles] = useState<any[]>([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -288,6 +290,7 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
       if (!res.ok) throw new Error('Failed to save');
       toast.success('Specifications saved successfully');
       setIsEditing(false);
+      onActivityDetected?.();
     } catch {
       toast.error('Failed to save specifications');
     } finally {
@@ -887,6 +890,8 @@ export function SpecificationsTab({ productId = '', sizeVariants = [] }: SpecsTa
       <ChecklistWidget
         productId={productId}
         tabId="specifications"
+        onChecklistChanged={onChecklistChanged}
+        onActivityDetected={onActivityDetected}
       />
 
       {/* Delete Document Modal */}

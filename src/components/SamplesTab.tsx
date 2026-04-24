@@ -2,10 +2,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Upload, Package, FileText, MessageSquare, Truck, ChevronRight, RefreshCw, Trash2, Download } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { ChecklistWidget } from './ChecklistWidget';
+import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
 import { AddSampleDrawer } from './AddSampleDrawer';
 import { OrderSampleDrawer } from './OrderSampleDrawer';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { CategoryTagDropdown, categoryColor } from './CategoryTagDropdown';
 import { downloadSavedFile } from '../lib/downloadFile';
 import { uploadFileViaApi, recordUpload } from '../utils/uploadViaApi';
 
@@ -57,11 +58,14 @@ interface UploadedFile {
   key?: string;
   fileUrl?: string;
   createdAt?: string;
+  category?: string;
 }
 
 interface SamplesTabProps {
   productId?: string;
   refreshKey?: number;
+  onChecklistChanged?: (all: Record<string, ChecklistItem[]>) => void;
+  onActivityDetected?: () => void;
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; dot: string }> = {
@@ -85,7 +89,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
+export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onActivityDetected }: SamplesTabProps) {
   const [orders, setOrders] = useState<SampleOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [feedbackSamples, setFeedbackSamples] = useState<FeedbackSample[]>([]);
@@ -213,6 +217,7 @@ export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
       }
       toast.success(`${uploaded.length} file${uploaded.length > 1 ? 's' : ''} uploaded`, { duration: 3000 });
       await fetchFiles();
+      onActivityDetected?.();
     } catch (err) {
       console.error('Sample file upload error:', err);
       toast.error('Upload failed');
@@ -232,8 +237,31 @@ export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('File deleted');
       await fetchFiles();
+      onActivityDetected?.();
     } catch {
       toast.error('Failed to delete file');
+    }
+  };
+
+  const updateFileCategory = async (file: UploadedFile, category: string) => {
+    const previous = files;
+    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, category } : f));
+    try {
+      const res = await fetch('/api/files/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: file.id, category }),
+      });
+      if (!res.ok) {
+        setFiles(previous);
+        toast.error('Failed to update category');
+        return;
+      }
+      toast.success(category ? `Category set to "${category}"` : 'Category removed', { duration: 2000 });
+      onActivityDetected?.();
+    } catch {
+      setFiles(previous);
+      toast.error('Failed to update category');
     }
   };
 
@@ -617,13 +645,24 @@ export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
                       <FileText className="w-5 h-5 text-purple-600 shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-900 truncate">{f.fileName}</p>
-                        <p className="text-xs text-slate-500">
-                          {typeof f.size === 'number' ? formatSize(f.size) : ''}
-                          {f.createdAt ? ` · ${new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <p className="text-xs text-slate-500">
+                            {typeof f.size === 'number' ? formatSize(f.size) : ''}
+                            {f.createdAt ? ` · ${new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                          </p>
+                          {f.category && (
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${categoryColor(f.category)}`}>
+                              {f.category}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      <CategoryTagDropdown
+                        value={f.category ?? ''}
+                        onChange={(cat) => updateFileCategory(f, cat)}
+                      />
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -661,6 +700,8 @@ export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
       <ChecklistWidget
         productId={productId}
         tabId="samples"
+        onChecklistChanged={onChecklistChanged}
+        onActivityDetected={onActivityDetected}
       />
 
       {/* Add Sample Drawer */}
@@ -668,7 +709,7 @@ export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
         isOpen={isAddSampleDrawerOpen}
         onClose={() => setIsAddSampleDrawerOpen(false)}
         productId={productId}
-        onSuccess={fetchFeedbackSamples}
+        onSuccess={() => { fetchFeedbackSamples(); onActivityDetected?.(); }}
       />
 
       {/* Order Sample Drawer */}
@@ -676,7 +717,7 @@ export function SamplesTab({ productId = '', refreshKey }: SamplesTabProps) {
         isOpen={isOrderSampleDrawerOpen}
         onClose={() => setIsOrderSampleDrawerOpen(false)}
         productId={productId}
-        onSuccess={fetchOrders}
+        onSuccess={() => { fetchOrders(); onActivityDetected?.(); }}
       />
 
       {/* Delete Document Modal */}
