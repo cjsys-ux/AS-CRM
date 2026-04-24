@@ -27,6 +27,7 @@ interface OrderLineItem {
 
 interface Order {
   id: string;
+  orderNumber?: string;
   customer: string;
   customerId?: string;
   email: string;
@@ -359,7 +360,7 @@ export function OrderDetailView({ order: initialOrder, onBack, onEdit, onRefresh
       id: 'act-1',
       type: 'created',
       title: 'Order Created',
-      description: `Order ${order.id} was created for ${order.customer}`,
+      description: `Order ${order.orderNumber || order.id} was created for ${order.customer}`,
       timestamp: order.createdAt ? new Date(order.createdAt).toLocaleString() : order.date,
       user: 'System',
       icon: Plus,
@@ -567,7 +568,7 @@ export function OrderDetailView({ order: initialOrder, onBack, onEdit, onRefresh
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-2xl font-black text-white">{order.id}</h1>
+                  <h1 className="text-2xl font-black text-white">{order.orderNumber || order.id}</h1>
                   {order.isSampleOrder && (
                     <span className="px-2 py-0.5 bg-cyan-400/20 text-cyan-100 rounded-lg text-[10px] font-bold border border-cyan-400/30">
                       SAMPLE
@@ -852,7 +853,7 @@ export function OrderDetailView({ order: initialOrder, onBack, onEdit, onRefresh
                       </div>
                       <div className="p-6">
                         <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-                          <DetailField label="Order ID" value={order.id} mono />
+                          <DetailField label="Order ID" value={order.orderNumber || order.id} mono />
                           <DetailField label="Customer" value={order.customer} />
                           <DetailField label="Project Name" value={order.project || order.projectName || '—'} />
                           <DetailField label="Vendor" value={order.vendor || '—'} />
@@ -1807,7 +1808,7 @@ export function OrderDetailView({ order: initialOrder, onBack, onEdit, onRefresh
               : `Order marked as Shipped — ${shipments.length} shipments created`
           );
         }}
-        poNumber={order.id}
+        poNumber={order.orderNumber || order.id}
         shipToAddresses={order.shipToAddresses || []}
         vendor={order.vendor || ''}
         customer={order.customer || ''}

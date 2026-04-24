@@ -1280,7 +1280,7 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
                 <div className="px-6 py-5">
                   <p className="text-slate-700">
                     Are you sure you want to delete order{' '}
-                    <span className="font-bold text-slate-900">{deleteOrder.id}</span>
+                    <span className="font-bold text-slate-900">{deleteOrder.orderNumber || deleteOrder.id}</span>
                     {deleteOrder.projectName && (
                       <> for project <span className="font-bold text-slate-900">"{deleteOrder.projectName}"</span></>
                     )}

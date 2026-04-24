@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   try {
     const db = await getDb();
-    const locations = await db.collection('warehouse_locations').find(filter).sort({ label: 1 }).toArray();
+    const locations = await db.collection('warehouse_locations').find(filter).sort({ name: 1, label: 1 }).toArray();
     return res.status(200).json({
       success: true,
       locations: locations.map((l) => ({ ...l, id: l._id.toString() })),
