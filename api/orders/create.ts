@@ -25,8 +25,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const orderNumber = generateOrderNumber();
 
+    // Auto-generate incremental PP-XXXXX project number for the Orders module
+    // (mirrors api/projects/create.ts's ADP-XXXXX scheme for Pipeline products).
+    // Respect an explicit projectNumber on the request body if the caller
+    // already supplied one.
+    let projectNumber: string | null = typeof body.projectNumber === 'string' && body.projectNumber.trim()
+      ? body.projectNumber.trim()
+      : null;
+    if (!projectNumber) {
+      const lastOrder = await db
+        .collection('orders')
+        .find({ projectNumber: { $regex: /^PP-/ } })
+        .sort({ projectNumber: -1 })
+        .limit(1)
+        .toArray();
+      let nextNumber = 1;
+      if (lastOrder.length > 0 && lastOrder[0].projectNumber) {
+        const match = String(lastOrder[0].projectNumber).match(/PP-(\d+)/);
+        if (match) nextNumber = parseInt(match[1], 10) + 1;
+      }
+      projectNumber = `PP-${String(nextNumber).padStart(5, '0')}`;
+    }
+
     const doc: Record<string, unknown> = {
       orderNumber,
+      projectNumber,
       customer: customer as string,
       customerId: body.customerId ?? null,
       email: email as string,

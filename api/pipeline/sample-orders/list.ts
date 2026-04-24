@@ -37,6 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       poNumber: po.poNumber,
       poDate: po.poDate,
       productId: po.productId,
+      projectNumber: po.projectNumber ?? null,
       productName: po.project ?? null,
       project: po.project ?? null,
       clientName: po.customer ?? null,

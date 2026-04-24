@@ -941,6 +941,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                 <SamplesTab
                   productId={productId}
                   refreshKey={sampleRefreshKey}
+                  productName={productInfo.name}
+                  projectNumber={productProjectNumber}
+                  clientName={productInfo.client}
+                  competitorLink={productInfo.competitorLink || ''}
                   onChecklistChanged={handleChecklistChanged}
                   onActivityDetected={triggerAutoProgress}
                 />

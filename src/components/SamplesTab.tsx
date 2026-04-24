@@ -70,6 +70,10 @@ interface UploadedFile {
 interface SamplesTabProps {
   productId?: string;
   refreshKey?: number;
+  productName?: string;
+  projectNumber?: string;
+  clientName?: string;
+  competitorLink?: string;
   onChecklistChanged?: (all: Record<string, ChecklistItem[]>) => void;
   onActivityDetected?: () => void;
 }
@@ -95,7 +99,16 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onActivityDetected }: SamplesTabProps) {
+export function SamplesTab({
+  productId = '',
+  refreshKey,
+  productName,
+  projectNumber,
+  clientName,
+  competitorLink,
+  onChecklistChanged,
+  onActivityDetected,
+}: SamplesTabProps) {
   const [orders, setOrders] = useState<SampleOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [feedbackSamples, setFeedbackSamples] = useState<FeedbackSample[]>([]);
@@ -737,6 +750,10 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
         isOpen={isOrderSampleDrawerOpen}
         onClose={() => setIsOrderSampleDrawerOpen(false)}
         productId={productId}
+        productName={productName}
+        projectNumber={projectNumber}
+        clientName={clientName}
+        competitorLink={competitorLink}
         onSuccess={() => { fetchOrders(); onActivityDetected?.(); }}
       />
 
