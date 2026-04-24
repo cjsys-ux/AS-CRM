@@ -671,7 +671,7 @@ export function OrderSampleDrawer({
   // Fetch warehouses from DB
   const fetchWarehouses = async () => {
     try {
-      const response = await fetch(`/api/wms/list`);
+      const response = await fetch(`/api/warehouses/list`);
       const data = await response.json();
       if (data.success && data.warehouses) {
         setWarehouseOptions(
