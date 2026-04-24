@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DatePicker } from './DatePicker';
 import { ModernDropdown } from './ModernDropdown';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 type OrderSampleDrawerProps = {
   isOpen: boolean;
@@ -1643,23 +1644,32 @@ export function OrderSampleDrawer({
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium text-slate-700 mb-2">Street Address</label>
-                              <input
-                                type="text"
-                                placeholder="e.g., 123 Main Street"
+                              <AddressAutocomplete
+                                label="Street Address"
+                                placeholder="Start typing an address..."
                                 value={dest.customAddress?.street || ''}
-                                onChange={(e) => {
-                                  setDestinations(destinations.map(d => 
+                                onChange={(street) => {
+                                  setDestinations(destinations.map(d =>
+                                    d.id === dest.id ? {
+                                      ...d,
+                                      customAddress: { ...d.customAddress!, street }
+                                    } : d
+                                  ));
+                                }}
+                                onSelect={(addr) => {
+                                  setDestinations(destinations.map(d =>
                                     d.id === dest.id ? {
                                       ...d,
                                       customAddress: {
                                         ...d.customAddress!,
-                                        street: e.target.value
+                                        street: addr.street,
+                                        city: addr.city,
+                                        state: addr.state,
+                                        zip: addr.zip,
                                       }
                                     } : d
                                   ));
                                 }}
-                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                               />
                             </div>
 
