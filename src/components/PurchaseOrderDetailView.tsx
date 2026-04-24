@@ -19,6 +19,7 @@ import { SubmitPOModal } from './SubmitPOModal';
 import { VendorSelector } from './VendorSelector';
 import { ShipToEditor } from './ShipToEditor';
 import { MissedInHandsDialog } from './MissedInHandsDialog';
+import { getProjectBadgeStaticClasses } from './projectNumberUtils';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
 
@@ -27,6 +28,7 @@ interface PurchaseOrder {
   poNumber: string;
   poDate: string;
   project: string;
+  projectNumber?: string;
   vendor: string;
   customer: string;
   status: string;
@@ -779,6 +781,13 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-right shadow-xl">
                   <p className="text-xs font-semibold text-blue-600 mb-1">PURCHASE ORDER</p>
                   <p className="text-2xl font-bold text-slate-900">#{order.poNumber}</p>
+                  {order.projectNumber && (
+                    <div className="mt-1 flex justify-end">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${getProjectBadgeStaticClasses(order.projectNumber)}`}>
+                        {order.projectNumber}
+                      </span>
+                    </div>
+                  )}
                   <div className="mt-2 pt-2 border-t border-slate-200">
                     <p className="text-xs text-slate-600 mb-2">Date: <span className="font-semibold text-slate-900">{formatDateDisplay(order.poDate)}</span></p>
                     {/* Status Dropdown */}
