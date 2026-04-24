@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 interface ModernDropdownProps {
   value: string;
@@ -11,12 +11,49 @@ interface ModernDropdownProps {
   compact?: boolean;
 }
 
+function stylesEqual(a: React.CSSProperties, b: React.CSSProperties): boolean {
+  return a.position === b.position
+    && a.left === b.left
+    && a.top === b.top
+    && a.bottom === b.bottom
+    && a.width === b.width
+    && a.zIndex === b.zIndex;
+}
+
 export function ModernDropdown({ value, onChange, options, label, icon, compact }: ModernDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+
+  const computeMenuStyle = useCallback((): React.CSSProperties | null => {
+    if (!triggerRef.current) return null;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const rowHeight = compact ? 32 : 44;
+    const estimatedHeight = Math.min(options.length * rowHeight + 16, 320);
+    const opensUp = spaceBelow < estimatedHeight && rect.top > estimatedHeight;
+    const width = compact ? Math.max(rect.width, 140) : rect.width;
+    return {
+      position: 'fixed',
+      left: rect.left,
+      width,
+      top: opensUp ? undefined : rect.bottom + 8,
+      bottom: opensUp ? window.innerHeight - rect.top + 8 : undefined,
+      zIndex: 9999,
+    };
+  }, [options.length, compact]);
+
+  const handleToggle = () => {
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+    const style = computeMenuStyle();
+    if (style) setMenuStyle(style);
+    setIsOpen(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,34 +73,27 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
   useEffect(() => {
     if (!isOpen) return;
     const reposition = () => {
-      if (!triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const estimatedHeight = Math.min(options.length * 44 + 16, 320);
-      const opensUp = spaceBelow < estimatedHeight && rect.top > estimatedHeight;
-      const width = compact ? Math.max(rect.width, 140) : rect.width;
-      setMenuStyle({
-        position: 'fixed',
-        left: rect.left,
-        width,
-        top: opensUp ? undefined : rect.bottom + 8,
-        bottom: opensUp ? window.innerHeight - rect.top + 8 : undefined,
-        zIndex: 9999,
-      });
+      const next = computeMenuStyle();
+      if (!next) return;
+      // Bail out on identical recomputes so scroll events don't
+      // re-render the menu tree (and its per-option spring animations)
+      // hundreds of times per second.
+      setMenuStyle(prev => stylesEqual(prev, next) ? prev : next);
     };
-    reposition();
     window.addEventListener('resize', reposition);
     window.addEventListener('scroll', reposition, true);
     return () => {
       window.removeEventListener('resize', reposition);
       window.removeEventListener('scroll', reposition, true);
     };
-  }, [isOpen, options.length, compact]);
+  }, [isOpen, computeMenuStyle]);
 
   const handleSelect = (option: string) => {
     onChange(option);
     setIsOpen(false);
   };
+
+  const iconSize = compact ? 'w-3.5 h-3.5' : 'w-5 h-5';
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -74,11 +104,10 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
         </label>
       )}
 
-      {/* Dropdown Button */}
       <motion.button
         ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         className={compact
@@ -91,7 +120,7 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className={compact ? "w-3.5 h-3.5 text-slate-400" : "w-5 h-5 text-slate-400"} />
+          <ChevronDown className={`${iconSize} text-slate-400`} />
         </motion.div>
       </motion.button>
 
@@ -131,7 +160,7 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   >
-                    <Check className={compact ? "w-3.5 h-3.5 text-blue-600" : "w-5 h-5 text-blue-600"} />
+                    <Check className={`${iconSize} text-blue-600`} />
                   </motion.div>
                 )}
               </motion.button>
