@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModernDropdownProps {
   value: string;
@@ -124,50 +125,56 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
         </motion.div>
       </motion.button>
 
-      {/* Dropdown Menu - rendered via fixed positioning so it escapes ancestor overflow:hidden */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            ref={menuRef}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            style={menuStyle}
-            className={compact
-              ? "bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
-              : "bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
-            }
-          >
-            {options.map((option, index) => (
-              <motion.button
-                key={option}
-                type="button"
-                onClick={() => handleSelect(option)}
-                whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
-                className={`w-full text-left transition-colors flex items-center justify-between ${
-                  compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'
-                } ${
-                  index !== options.length - 1 ? 'border-b border-slate-100' : ''
-                } ${value === option ? 'bg-blue-50' : ''}`}
-              >
-                <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
-                  {option}
-                </span>
-                {value === option && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  >
-                    <Check className={`${iconSize} text-blue-600`} />
-                  </motion.div>
-                )}
-              </motion.button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Menu is portaled into document.body so ancestor transforms
+          (framer-motion drawer/card animations) don't become the
+          containing block for our position:fixed, and ancestor
+          overflow:hidden doesn't clip us. */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={menuRef}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              style={menuStyle}
+              className={compact
+                ? "bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
+                : "bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
+              }
+            >
+              {options.map((option, index) => (
+                <motion.button
+                  key={option}
+                  type="button"
+                  onClick={() => handleSelect(option)}
+                  whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
+                  className={`w-full text-left transition-colors flex items-center justify-between ${
+                    compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'
+                  } ${
+                    index !== options.length - 1 ? 'border-b border-slate-100' : ''
+                  } ${value === option ? 'bg-blue-50' : ''}`}
+                >
+                  <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
+                    {option}
+                  </span>
+                  {value === option && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    >
+                      <Check className={`${iconSize} text-blue-600`} />
+                    </motion.div>
+                  )}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
