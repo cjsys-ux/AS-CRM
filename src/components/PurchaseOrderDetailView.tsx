@@ -213,19 +213,18 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
   });
   const [isEditingFooterContact, setIsEditingFooterContact] = useState(false);
 
-  // Confirmed PO edit protection
+  // Confirmed PO edit protection — once a PO is Confirmed (or further
+  // along the pipeline), fields are locked. Reverting status to
+  // Created/Submitted from the header dropdown unlocks them.
   const isConfirmedOrBeyond = ['Confirmed', 'In Production', 'Shipped', 'Delivered'].includes(status);
   const [showConfirmedEditWarning, setShowConfirmedEditWarning] = useState(false);
-  const [confirmedEditCallback, setConfirmedEditCallback] = useState<(() => void) | null>(null);
-  const [editWarningDismissedForSession, setEditWarningDismissedForSession] = useState(false);
 
   const guardConfirmedEdit = (callback: () => void) => {
-    if (isConfirmedOrBeyond && !editWarningDismissedForSession) {
-      setConfirmedEditCallback(() => callback);
+    if (isConfirmedOrBeyond) {
       setShowConfirmedEditWarning(true);
-    } else {
-      callback();
+      return;
     }
+    callback();
   };
 
   // Initialize ship-to from order's shipToAddresses or default
@@ -2441,17 +2440,14 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
         poNumber={order.poNumber}
       />
 
-      {/* Confirmed PO Edit Warning */}
+      {/* Confirmed PO Lock Notice */}
       <AnimatePresence>
         {showConfirmedEditWarning && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
-              setShowConfirmedEditWarning(false);
-              setConfirmedEditCallback(null);
-            }}
+            onClick={() => setShowConfirmedEditWarning(false)}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
           >
             <motion.div
@@ -2464,42 +2460,27 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
             >
               <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-white" />
+                  <Lock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">PO Has Been Confirmed</h3>
+                  <h3 className="text-lg font-bold text-white">PO Is Locked</h3>
                   <p className="text-amber-100 text-sm">PO #{order.poNumber} -- Status: {status}</p>
                 </div>
               </div>
               <div className="p-6">
                 <p className="text-slate-700 text-sm mb-4">
-                  This purchase order has already been confirmed with the vendor. Editing confirmed PO details may cause discrepancies with the vendor's records and the linked order.
+                  This purchase order has been confirmed with the vendor. Line items, vendor, ship-to, and contact details cannot be edited while the status is <span className="font-semibold">{status}</span>.
                 </p>
-                <p className="text-slate-600 text-sm font-medium">Are you sure you want to make changes?</p>
+                <p className="text-slate-600 text-sm">
+                  To make changes, use the status selector at the top of the PO to revert to <span className="font-semibold">Created</span> or <span className="font-semibold">Submitted</span> first.
+                </p>
               </div>
-              <div className="bg-slate-50 px-6 py-4 flex items-center gap-3 border-t border-slate-200">
+              <div className="bg-slate-50 px-6 py-4 flex items-center justify-end border-t border-slate-200">
                 <button
-                  onClick={() => {
-                    setShowConfirmedEditWarning(false);
-                    setConfirmedEditCallback(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  onClick={() => setShowConfirmedEditWarning(false)}
+                  className="px-5 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setShowConfirmedEditWarning(false);
-                    setEditWarningDismissedForSession(true);
-                    if (confirmedEditCallback) {
-                      confirmedEditCallback();
-                    }
-                    setConfirmedEditCallback(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Edit className="w-4 h-4" />
-                  Yes, Edit Anyway
+                  Got it
                 </button>
               </div>
             </motion.div>
