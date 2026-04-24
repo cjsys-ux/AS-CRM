@@ -534,6 +534,9 @@ export function CreateOrderDrawer({ isOpen, onClose, onCreated }: CreateOrderDra
         alert(`Failed to create order: ${data.error || 'unknown error'}`);
         return;
       }
+      const data = await res.json().catch(() => ({}));
+      const createdNumber = data?.order?.orderNumber;
+      toast.success(createdNumber ? `Order ${createdNumber} created` : 'Order created');
       resetForm();
       onCreated();
       onClose();

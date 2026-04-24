@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 import type { Db } from 'mongodb';
 import { getDb } from '../_mongodb';
+import { nextReceiptNumber } from '../receiving/create';
 
 const ALLOWED_FIELDS = [
   'customer', 'customerId', 'email', 'status', 'paymentStatus',
@@ -37,11 +38,13 @@ async function ensureReceivingForShippedOrder(db: Db, order: Record<string, any>
     expectedQty: typeof li.quantity === 'number' ? li.quantity : (typeof li.qty === 'number' ? li.qty : 1),
     receivedQty: 0,
     location: '',
-    imageUrl: li.imageUrl || '',
+    imageUrl: li.imageUrl || (li.imageKey ? `/api/files/image?key=${encodeURIComponent(li.imageKey)}` : ''),
   }));
 
   const now = new Date();
+  const receiptNumber = await nextReceiptNumber(db);
   await db.collection('receiving').insertOne({
+    receiptNumber,
     orderId: sourceOrderId,
     poId: order.sourcePOId ?? null,
     poNumber: order.sourcePONumber ?? order.orderNumber ?? null,

@@ -17,6 +17,7 @@ const CARRIER_TYPES: Record<string, string[]> = {
 
 interface ReceivingItem {
   id: string;
+  receiptNumber?: string;
   poNumber?: string;
   vendor: string;
   expectedDate: string;
@@ -568,7 +569,11 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
   };
 
   const filtered = receipts.filter(r => {
-    const matchSearch = r.id.toLowerCase().includes(search.toLowerCase()) || r.vendor.toLowerCase().includes(search.toLowerCase()) || (r.poNumber || '').toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      r.id.toLowerCase().includes(search.toLowerCase()) ||
+      (r.receiptNumber || '').toLowerCase().includes(search.toLowerCase()) ||
+      r.vendor.toLowerCase().includes(search.toLowerCase()) ||
+      (r.poNumber || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'All Status' || r.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -781,7 +786,7 @@ export function WMSReceivingTab({ onNavigate }: { onNavigate?: (page: string) =>
                           )}
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          <span className="text-sm font-semibold text-slate-900">{r.id}</span>
+                          <span className="text-sm font-semibold text-slate-900">{r.receiptNumber || r.id}</span>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           {r.poNumber ? (
