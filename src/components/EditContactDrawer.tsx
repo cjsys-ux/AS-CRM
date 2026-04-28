@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Phone, Building2, MapPin, Globe, User, Briefcase } from 'lucide-react';
 import { useState } from 'react';
+import { PhoneInput } from './PhoneInput';
 
 interface Contact {
   id: string;
@@ -119,12 +120,12 @@ export function EditContactDrawer({ isOpen, onClose, contact, onSave }: EditCont
                   <Phone className="w-4 h-4 text-indigo-600" />
                   Phone Number
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  placeholder="+1 (555) 000-0000"
+                  onChange={(v) => setFormData({ ...formData, phone: v })}
+                  placeholder="(555) 000-0000"
+                  className="flex items-stretch w-full bg-slate-50 border-2 border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all"
+                  inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-3 text-slate-900 placeholder:text-slate-400"
                 />
               </div>
 

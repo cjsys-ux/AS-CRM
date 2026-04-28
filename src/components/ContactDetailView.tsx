@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Mail, Phone, Building2, Globe, MapPin, FileText, DollarSign, ShoppingCart, Package, Calendar, Trash2, MessageSquare, Video, Send, Upload, File, X, Download, AlertTriangle, Plus, Loader2, Check, Save, User, Pencil, Hash, Briefcase, Ticket, ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { PhoneInput } from './PhoneInput';
 
 const US_STATES = [
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
@@ -663,7 +664,12 @@ export function ContactDetailView({ contact, onBack, onDelete, onContactUpdated 
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone</label>
-                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all" />
+                              <PhoneInput
+                                value={editForm.phone || ''}
+                                onChange={(v) => setEditForm({ ...editForm, phone: v })}
+                                className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-lg overflow-visible focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:border-indigo-500 transition-all"
+                                inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400"
+                              />
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-3">

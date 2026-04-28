@@ -3,6 +3,7 @@ import { ArrowLeft, Building2, Mail, Phone, MapPin, Globe, DollarSign, FileText,
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { ContractPricingTab } from './ContractPricingTab';
+import { PhoneInput } from './PhoneInput';
 import { VendorScorecardTab } from './VendorScorecardTab';
 import { PurchaseOrderDetailView } from './PurchaseOrderDetailView';
 import { ImagePopupModal } from './ImagePopupModal';
@@ -1155,16 +1156,6 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
     }
   };
 
-  // ─── Contact handlers ───
-  // Phone formatting helper: (xxx) xxx - xxxx
-  const formatPhoneNumber = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 10);
-    if (digits.length === 0) return '';
-    if (digits.length <= 3) return `(${digits}`;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} - ${digits.slice(6)}`;
-  };
-
   const openContactModal = (contact?: VendorContact) => {
     if (contact) {
       setEditingContact(contact);
@@ -1484,7 +1475,12 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
                             </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Phone</label>
-                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500 transition-all" />
+                              <PhoneInput
+                                value={editForm.phone || ''}
+                                onChange={(v) => setEditForm({ ...editForm, phone: v })}
+                                className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-lg overflow-visible focus-within:ring-2 focus-within:ring-purple-500/30 focus-within:border-purple-500 transition-all"
+                                inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-400"
+                              />
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
@@ -2726,7 +2722,13 @@ export function VendorDetailView({ vendor, onBack, onDelete, onVendorUpdated }: 
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Phone</label>
-                    <input type="tel" value={contactForm.phone} onChange={e => setContactForm({ ...contactForm, phone: formatPhoneNumber(e.target.value) })} placeholder="(555) 123 - 4567" className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-all" />
+                    <PhoneInput
+                      value={contactForm.phone}
+                      onChange={(v) => setContactForm({ ...contactForm, phone: v })}
+                      placeholder="(555) 123 - 4567"
+                      className="flex items-stretch w-full bg-slate-50 border-2 border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-violet-500/30 focus-within:border-violet-500 transition-all"
+                      inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400"
+                    />
                   </div>
                 </div>
                 <div>

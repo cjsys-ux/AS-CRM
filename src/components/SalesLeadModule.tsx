@@ -9,6 +9,7 @@ import {
 import { useState, useEffect, useCallback, useRef, DragEvent } from 'react';
 import { toast } from 'sonner';
 import { SalesLeadDetailView } from './SalesLeadDetailView';
+import { PhoneInput } from './PhoneInput';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -118,15 +119,6 @@ function CustomDropdown({ label, value, options, onChange, icon: Icon }: {
       </div>
     </div>
   );
-}
-
-// ────── Phone Formatter ──────
-function formatPhoneNumber(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length === 0) return '';
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} - ${digits.slice(6)}`;
 }
 
 // ────── Currency Formatter ──────
@@ -492,7 +484,14 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                     </div>
                     <div>
                       <label className={labelCls}>Phone</label>
-                      <input value={form.contactPhone} onChange={e => setForm({ ...form, contactPhone: formatPhoneNumber(e.target.value) })} placeholder="(xxx) xxx - xxxx" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
+                      <PhoneInput
+                        value={form.contactPhone}
+                        onChange={(v) => setForm({ ...form, contactPhone: v })}
+                        placeholder="(xxx) xxx - xxxx"
+                        disabled={isExistingCompany && !!form.companyId}
+                        className={`flex items-stretch w-full bg-slate-50/80 border-2 border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all${isExistingCompany && form.companyId ? ' opacity-60' : ''}`}
+                        inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed"
+                      />
                     </div>
                   </div>
                 </div>

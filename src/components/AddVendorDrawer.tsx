@@ -3,6 +3,7 @@ import { X, Building2, Upload, Mail, Phone, Globe, DollarSign, MapPin, Package, 
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { CHINA_CITY_LIST } from './chinaCityData';
+import { PhoneInput } from './PhoneInput';
 
 interface AddVendorDrawerProps {
   isOpen: boolean;
@@ -67,15 +68,6 @@ function getLocationConfig(country: string): LocationConfig {
     default:
       return { regionLabel: 'State', regionPlaceholder: 'CA', cityLabel: 'City', cityPlaceholder: 'Los Angeles' };
   }
-}
-
-// ─── Phone formatting ───
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length === 0) return '';
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} - ${digits.slice(6)}`;
 }
 
 // ─── Searchable City Dropdown (for China) ───
@@ -450,11 +442,6 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
     }));
   };
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setFormData(prev => ({ ...prev, phone: formatted }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -777,12 +764,12 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
-                            <input
-                              type="tel"
-                              placeholder="(555) 123 - 4567"
+                            <PhoneInput
                               value={formData.phone}
-                              onChange={handlePhoneChange}
-                              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
+                              onChange={(v) => setFormData((prev) => ({ ...prev, phone: v }))}
+                              placeholder="(555) 123 - 4567"
+                              className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-green-500/30 focus-within:border-green-500 transition-all"
+                              inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400"
                             />
                           </div>
                         </div>
