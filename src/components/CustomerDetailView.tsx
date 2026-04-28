@@ -3,6 +3,7 @@ import { ArrowLeft, Edit, Phone, Globe, FileText, DollarSign, ShoppingCart, File
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AddContactDrawer } from './AddContactDrawer';
+import { PhoneInput } from './PhoneInput';
 import { AddAddressDrawer } from './AddAddressDrawer';
 import { AddFileDrawer } from './AddFileDrawer';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
@@ -628,7 +629,12 @@ export function CustomerDetailView({ customerId, onBack, onCustomerUpdated }: Cu
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Phone</label>
-                              <input type="text" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all" />
+                              <PhoneInput
+                                value={editForm.phone || ''}
+                                onChange={(v) => setEditForm({ ...editForm, phone: v })}
+                                className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-lg overflow-visible focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500 transition-all"
+                                inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-1.5 text-sm font-medium text-slate-900 placeholder:text-slate-400"
+                              />
                             </div>
                             <div>
                               <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Website</label>

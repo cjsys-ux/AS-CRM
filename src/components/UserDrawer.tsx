@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, User, Mail, Phone, Shield, Calendar, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ModernDropdown } from './ModernDropdown';
+import { PhoneInput } from './PhoneInput';
 
 interface UserDrawerProps {
   isOpen: boolean;
@@ -55,22 +56,6 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
       });
     }
   }, [user, isOpen]);
-
-  const formatPhoneNumber = (value: string) => {
-    const phoneNumber = value.replace(/[^\d]/g, '');
-    const phoneNumberLength = phoneNumber.length;
-
-    if (phoneNumberLength < 4) return phoneNumber;
-    if (phoneNumberLength < 7) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    }
-    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)} - ${phoneNumber.slice(6, 10)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setFormData({ ...formData, phone: formatted });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,12 +177,12 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
                     <Phone className="w-4 h-4" />
                     Phone Number
                   </label>
-                  <input
-                    type="text"
+                  <PhoneInput
                     value={formData.phone}
-                    onChange={handlePhoneChange}
+                    onChange={(v) => setFormData({ ...formData, phone: v })}
                     placeholder="(123) 456 - 7890"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
+                    inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-3 text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
 

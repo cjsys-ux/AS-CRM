@@ -125,6 +125,7 @@ type PackagingVariantSpec = {
   heightUnit: string;
   weight: string;
   weightUnit: string;
+  unitsPerCase: string;
 };
 
 const emptyPackagingVariantSpec = (): PackagingVariantSpec => ({
@@ -136,6 +137,7 @@ const emptyPackagingVariantSpec = (): PackagingVariantSpec => ({
   heightUnit: 'in',
   weight: '',
   weightUnit: 'lbs',
+  unitsPerCase: '',
 });
 
 export function PackagingTab({ productId = '', sizeVariants = [], onChecklistChanged, onActivityDetected }: PackagingTabProps) {
@@ -407,178 +409,204 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
           <h3 className="font-bold text-slate-900">Packaging Dimensions</h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                  disabled={!isEditing}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={lengthUnit} onChange={setLengthUnit} disabled={!isEditing} />
+          {sizeVariants.length === 0 ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Length</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={length}
+                      onChange={(e) => setLength(e.target.value)}
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={lengthUnit} onChange={setLengthUnit} disabled={!isEditing} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Width</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={widthUnit} onChange={setWidthUnit} disabled={!isEditing} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Height</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={height}
+                      onChange={(e) => setHeight(e.target.value)}
+                      disabled={!isEditing}
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    />
+                    <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} disabled={!isEditing} />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Width</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                  disabled={!isEditing}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={widthUnit} onChange={setWidthUnit} disabled={!isEditing} />
+
+              <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Number of Units per Case</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    value={unitsPerCase}
+                    onKeyDown={(e) => {
+                      if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+                      setUnitsPerCase(digitsOnly);
+                    }}
+                    disabled={!isEditing}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Height</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  disabled={!isEditing}
-                  className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                />
-                <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} disabled={!isEditing} />
-              </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500">Packaging dimensions per size.</p>
+              {sizeVariants.map((size) => {
+                const vs = packagingVariantSpecs[size] ?? emptyPackagingVariantSpec();
+                const hasDims = !!(vs.length || vs.width || vs.height);
+                const hasWeight = !!vs.weight;
+                const hasUnitsPerCase = !!vs.unitsPerCase;
+                return (
+                  <div
+                    key={size}
+                    className="bg-slate-50 border border-slate-200 rounded-xl p-4"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-[100px_minmax(0,1fr)_160px_140px] gap-4 items-center">
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Size</div>
+                        <div className="text-sm font-semibold text-blue-700">{size}</div>
+                      </div>
 
-          <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Number of Units per Case</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={1}
-                placeholder="0"
-                value={unitsPerCase}
-                onKeyDown={(e) => {
-                  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
-                    e.preventDefault();
-                  }
-                }}
-                onChange={(e) => {
-                  const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
-                  setUnitsPerCase(digitsOnly);
-                }}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-              />
-            </div>
-          </div>
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Packaging (L × W × H)</div>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              placeholder="L"
+                              value={vs.length}
+                              onChange={(e) => updatePackagingVariantField(size, 'length', e.target.value)}
+                              className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                            <span className="text-slate-400 text-xs">×</span>
+                            <input
+                              type="number"
+                              placeholder="W"
+                              value={vs.width}
+                              onChange={(e) => updatePackagingVariantField(size, 'width', e.target.value)}
+                              className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                            <span className="text-slate-400 text-xs">×</span>
+                            <input
+                              type="number"
+                              placeholder="H"
+                              value={vs.height}
+                              onChange={(e) => updatePackagingVariantField(size, 'height', e.target.value)}
+                              className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                            <UnitDropdown
+                              options={['in', 'cm', 'mm']}
+                              defaultOption="in"
+                              value={vs.lengthUnit || 'in'}
+                              onChange={(u) => {
+                                updatePackagingVariantField(size, 'lengthUnit', u);
+                                updatePackagingVariantField(size, 'widthUnit', u);
+                                updatePackagingVariantField(size, 'heightUnit', u);
+                              }}
+                              disabled={!isEditing}
+                            />
+                          </div>
+                        ) : hasDims ? (
+                          <div className="text-sm font-semibold text-slate-900">
+                            {(vs.length || '–')} × {(vs.width || '–')} × {(vs.height || '–')} {vs.lengthUnit || 'in'}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-400">Not set</div>
+                        )}
+                      </div>
 
-          {sizeVariants.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <div className="mb-3">
-                <h4 className="text-sm font-bold text-slate-900">Per-size Packaging</h4>
-                <p className="text-xs text-slate-500 mt-0.5">Overrides the default above for each size.</p>
-              </div>
-              <div className="space-y-3">
-                {sizeVariants.map((size) => {
-                  const vs = packagingVariantSpecs[size] ?? emptyPackagingVariantSpec();
-                  const hasDims = !!(vs.length || vs.width || vs.height);
-                  const hasWeight = !!vs.weight;
-                  return (
-                    <div
-                      key={size}
-                      className="bg-slate-50 border border-slate-200 rounded-xl p-4"
-                    >
-                      <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr_180px] gap-4 items-center">
-                        <div>
-                          <div className="text-[11px] font-medium text-slate-500 mb-1">Size</div>
-                          <div className="text-sm font-semibold text-blue-700">{size}</div>
-                        </div>
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Weight</div>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              placeholder="0.0"
+                              value={vs.weight}
+                              onChange={(e) => updatePackagingVariantField(size, 'weight', e.target.value)}
+                              className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            />
+                            <UnitDropdown
+                              options={['lbs', 'kg', 'oz', 'g']}
+                              defaultOption="lbs"
+                              value={vs.weightUnit || 'lbs'}
+                              onChange={(u) => updatePackagingVariantField(size, 'weightUnit', u)}
+                              disabled={!isEditing}
+                            />
+                          </div>
+                        ) : hasWeight ? (
+                          <div className="text-sm font-semibold text-slate-900">
+                            {vs.weight} {vs.weightUnit || 'lbs'}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-400">Not set</div>
+                        )}
+                      </div>
 
-                        <div>
-                          <div className="text-[11px] font-medium text-slate-500 mb-1">Packaging (L × W × H)</div>
-                          {isEditing ? (
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                placeholder="L"
-                                value={vs.length}
-                                onChange={(e) => updatePackagingVariantField(size, 'length', e.target.value)}
-                                className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                              />
-                              <span className="text-slate-400 text-xs">×</span>
-                              <input
-                                type="number"
-                                placeholder="W"
-                                value={vs.width}
-                                onChange={(e) => updatePackagingVariantField(size, 'width', e.target.value)}
-                                className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                              />
-                              <span className="text-slate-400 text-xs">×</span>
-                              <input
-                                type="number"
-                                placeholder="H"
-                                value={vs.height}
-                                onChange={(e) => updatePackagingVariantField(size, 'height', e.target.value)}
-                                className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                              />
-                              <UnitDropdown
-                                options={['in', 'cm', 'mm']}
-                                defaultOption="in"
-                                value={vs.lengthUnit || 'in'}
-                                onChange={(u) => {
-                                  updatePackagingVariantField(size, 'lengthUnit', u);
-                                  updatePackagingVariantField(size, 'widthUnit', u);
-                                  updatePackagingVariantField(size, 'heightUnit', u);
-                                }}
-                                disabled={!isEditing}
-                              />
-                            </div>
-                          ) : hasDims ? (
-                            <div className="text-sm font-semibold text-slate-900">
-                              {(vs.length || '–')} × {(vs.width || '–')} × {(vs.height || '–')} {vs.lengthUnit || 'in'}
-                            </div>
-                          ) : (
-                            <div className="text-sm text-slate-400">Not set</div>
-                          )}
-                        </div>
-
-                        <div>
-                          <div className="text-[11px] font-medium text-slate-500 mb-1">Weight</div>
-                          {isEditing ? (
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                placeholder="0.0"
-                                value={vs.weight}
-                                onChange={(e) => updatePackagingVariantField(size, 'weight', e.target.value)}
-                                className="w-20 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                              />
-                              <UnitDropdown
-                                options={['lbs', 'kg', 'oz', 'g']}
-                                defaultOption="lbs"
-                                value={vs.weightUnit || 'lbs'}
-                                onChange={(u) => updatePackagingVariantField(size, 'weightUnit', u)}
-                                disabled={!isEditing}
-                              />
-                            </div>
-                          ) : hasWeight ? (
-                            <div className="text-sm font-semibold text-slate-900">
-                              {vs.weight} {vs.weightUnit || 'lbs'}
-                            </div>
-                          ) : (
-                            <div className="text-sm text-slate-400">Not set</div>
-                          )}
-                        </div>
+                      <div>
+                        <div className="text-[11px] font-medium text-slate-500 mb-1">Units / Case</div>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            step={1}
+                            placeholder="0"
+                            value={vs.unitsPerCase}
+                            onKeyDown={(e) => {
+                              if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            onChange={(e) => {
+                              const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+                              updatePackagingVariantField(size, 'unitsPerCase', digitsOnly);
+                            }}
+                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                        ) : hasUnitsPerCase ? (
+                          <div className="text-sm font-semibold text-slate-900">{vs.unitsPerCase}</div>
+                        ) : (
+                          <div className="text-sm text-slate-400">Not set</div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

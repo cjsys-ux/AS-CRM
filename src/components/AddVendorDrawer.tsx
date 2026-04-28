@@ -1,8 +1,10 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Building2, Upload, Mail, Phone, Globe, DollarSign, MapPin, Package, FileText, Image as ImageIcon, ChevronDown, Check, Loader2, Pencil, Search, Truck } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { CHINA_CITY_LIST } from './chinaCityData';
+import { PhoneInput } from './PhoneInput';
+import { getCountries } from 'libphonenumber-js';
 
 interface AddVendorDrawerProps {
   isOpen: boolean;
@@ -37,7 +39,20 @@ const VENDOR_STATUSES = ['Active', 'Inactive', 'Pending'];
 const VENDOR_TYPES = ['Product Distributor', 'Apparel Distributor', 'Promo Supplier', 'Product Manufacturer'];
 const ACCOUNT_TYPES = ['Standalone', 'Parent Company', 'Subsidiary'];
 const PAYMENT_TERMS = ['Prepaid', 'Net 15', 'Net 30', 'Net 45', 'Net 60', 'Net 90', '30/70', '50/50'];
-const COUNTRIES = ['United States', 'China', 'Vietnam', 'India'];
+const COUNTRIES = (() => {
+  const pinned = ['United States', 'China', 'Vietnam', 'India'];
+  const regionNames =
+    typeof Intl !== 'undefined' && (Intl as any).DisplayNames
+      ? new (Intl as any).DisplayNames(['en'], { type: 'region' })
+      : null;
+  const all = getCountries()
+    .map((code) => (regionNames?.of(code) as string | undefined) ?? code)
+    .filter(Boolean) as string[];
+  const rest = Array.from(new Set(all))
+    .filter((name) => !pinned.includes(name))
+    .sort((a, b) => a.localeCompare(b));
+  return [...pinned, ...rest];
+})();
 
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -67,15 +82,6 @@ function getLocationConfig(country: string): LocationConfig {
     default:
       return { regionLabel: 'State', regionPlaceholder: 'CA', cityLabel: 'City', cityPlaceholder: 'Los Angeles' };
   }
-}
-
-// ─── Phone formatting ───
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length === 0) return '';
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)} - ${digits.slice(6)}`;
 }
 
 // ─── Searchable City Dropdown (for China) ───
@@ -206,6 +212,7 @@ function FormDropdown({
   placeholder,
   accentColor = 'purple',
   settingsNote,
+  searchable = false,
 }: {
   label: string;
   required?: boolean;
@@ -215,9 +222,12 @@ function FormDropdown({
   placeholder?: string;
   accentColor?: string;
   settingsNote?: string;
+  searchable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -226,6 +236,20 @@ function FormDropdown({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => {
+    if (open && searchable) {
+      setQuery('');
+      setTimeout(() => searchRef.current?.focus(), 0);
+    }
+  }, [open, searchable]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable) return options;
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((opt) => opt.toLowerCase().includes(q));
+  }, [options, query, searchable]);
 
   const ringColor: Record<string, string> = {
     purple: 'ring-purple-500/30 border-purple-500',
@@ -283,10 +307,26 @@ function FormDropdown({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               transition={{ duration: 0.12 }}
-              className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 overflow-hidden max-h-60 overflow-y-auto"
+              className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 overflow-hidden flex flex-col max-h-72"
             >
-              <div className="py-1">
-                {options.map((opt) => {
+              {searchable && (
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search…"
+                    className="flex-1 bg-transparent border-0 outline-none text-sm text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+              )}
+              <div className="py-1 overflow-y-auto">
+                {filteredOptions.length === 0 && (
+                  <div className="px-4 py-3 text-center text-sm text-slate-500">No matches</div>
+                )}
+                {filteredOptions.map((opt) => {
                   const badge = getStatusBadge(opt);
                   return (
                     <button
@@ -448,11 +488,6 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
       ...prev,
       productsSupplied: prev.productsSupplied.filter((_, i) => i !== index)
     }));
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setFormData(prev => ({ ...prev, phone: formatted }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -777,12 +812,12 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
-                            <input
-                              type="tel"
-                              placeholder="(555) 123 - 4567"
+                            <PhoneInput
                               value={formData.phone}
-                              onChange={handlePhoneChange}
-                              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-all"
+                              onChange={(v) => setFormData((prev) => ({ ...prev, phone: v }))}
+                              placeholder="(555) 123 - 4567"
+                              className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-green-500/30 focus-within:border-green-500 transition-all"
+                              inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400"
                             />
                           </div>
                         </div>
@@ -913,6 +948,7 @@ export function AddVendorDrawer({ isOpen, onClose, vendorData, onSuccess }: AddV
                       placeholder="Select country"
                       accentColor="pink"
                       settingsNote="General Settings"
+                      searchable
                     />
 
                     {formData.country && (

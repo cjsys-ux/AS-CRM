@@ -3,6 +3,7 @@ import { Warehouse, Plus, Search, MapPin, Trash2, Eye, Edit2, X, ChevronDown, Re
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { PhoneInput } from './PhoneInput';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -255,7 +256,12 @@ function AddWarehouseDrawer({ isOpen, onClose, onSave, editData }: { isOpen: boo
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
-                    <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={inputCls} />
+                    <PhoneInput
+                      value={form.phone}
+                      onChange={(v) => setForm({ ...form, phone: v })}
+                      className="flex items-stretch w-full border-2 border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all"
+                      inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+                    />
                   </div>
                 </div>
               </div>

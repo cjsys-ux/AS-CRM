@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { DatePicker } from './DatePicker';
 import { X, User, Upload, Mail, Phone, Building2, MapPin, FileText, Tag, Calendar } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { PhoneInput } from './PhoneInput';
 
 interface AddContactDrawerProps {
   isOpen: boolean;
@@ -667,12 +668,12 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess, cust
                         <label className="block text-sm font-bold text-slate-700 mb-2">
                           Phone
                         </label>
-                        <input
-                          type="tel"
-                          placeholder="+1 (555) 123-4567"
+                        <PhoneInput
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium"
+                          onChange={(v) => setFormData({ ...formData, phone: v })}
+                          placeholder="(555) 123-4567"
+                          className="flex items-stretch w-full bg-slate-50 border-2 border-slate-200 rounded-2xl overflow-visible focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500 transition-all"
+                          inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-4 text-slate-900 placeholder:text-slate-400 font-medium"
                         />
                       </div>
                     </div>

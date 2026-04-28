@@ -3,6 +3,7 @@ import { User, Mail, Phone, Briefcase, Building2, Camera, Save, Edit3, Key, X, C
 import { useState, useRef, useEffect } from 'react';
 import { TimezonePicker } from './TimezonePicker';
 import { Toast } from './Toast';
+import { PhoneInput } from './PhoneInput';
 import { UserProfile } from '../App';
 import { SetupAuthenticatorModal } from './SetupAuthenticatorModal';
 import { SetupSMSModal } from './SetupSMSModal';
@@ -75,23 +76,6 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.sub]);
-
-  const formatPhoneNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    
-    if (cleaned.length <= 3) {
-      return cleaned;
-    } else if (cleaned.length <= 6) {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
-    } else {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
-    }
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setFormData({ ...formData, phone: formatted });
-  };
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState({ current: '', new: '', confirm: '' });
@@ -791,13 +775,13 @@ export function ProfileSettings({ userProfile, onUpdate }: ProfileSettingsProps)
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Phone Number
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={handlePhoneChange}
+                  onChange={(v) => setFormData({ ...formData, phone: v })}
                   disabled={!isEditing}
                   placeholder="Not set"
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 disabled:opacity-60 disabled:cursor-not-allowed placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  className="flex items-stretch w-full bg-slate-50 border border-slate-200 rounded-lg overflow-visible focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
+                  inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
 

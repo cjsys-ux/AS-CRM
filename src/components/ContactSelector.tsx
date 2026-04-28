@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, User, Plus, Search, MapPin, Loader2, BookUser, Building2, Mail, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { PhoneInput } from './PhoneInput';
 
 interface Contact {
   id: string;
@@ -44,18 +45,6 @@ export function ContactSelector({ isOpen, onClose, onSelectContact, existingCont
   const [isLoadingModuleContacts, setIsLoadingModuleContacts] = useState(false);
   const [hasLoadedModule, setHasLoadedModule] = useState(false);
 
-  const formatPhoneNumber = (value: string): string => {
-    const digits = value.replace(/\D/g, '').slice(0, 10);
-    if (digits.length === 0) return '';
-    if (digits.length <= 3) return `(${digits}`;
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setNewContact({ ...newContact, phone: formatted });
-  };
 
   // Fetch contacts from global Contacts module when the selector opens
   useEffect(() => {
@@ -412,12 +401,12 @@ export function ContactSelector({ isOpen, onClose, onSelectContact, existingCont
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Phone Number
                   </label>
-                  <input
-                    type="tel"
+                  <PhoneInput
                     value={newContact.phone}
-                    onChange={handlePhoneChange}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    onChange={(v) => setNewContact({ ...newContact, phone: v })}
                     placeholder="(305) 555-0100"
+                    className="flex items-stretch w-full bg-slate-50 border-2 border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all"
+                    inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-3 text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
 
