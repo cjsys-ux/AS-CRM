@@ -36,6 +36,10 @@ interface ProductDetailsProps {
     competitorName?: string;
     competitorLink?: string;
     competitorPrice?: string;
+    pricePerUnit?: number;
+    yearlyQty?: number;
+    totalValue?: number;
+    targetMargin?: string;
   };
   onProductUpdate?: (updatedProduct: any) => void;
   onNavigate?: (page: string) => void;
@@ -96,6 +100,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
     competitorName: productData?.competitorName || '',
     competitorLink: productData?.competitorLink || '',
     competitorPrice: productData?.competitorPrice || '',
+    pricePerUnit: productData?.pricePerUnit ?? 0,
+    yearlyQty: productData?.yearlyQty ?? 0,
+    totalValue: productData?.totalValue ?? 0,
+    targetMargin: productData?.targetMargin || '',
     artTemplate: productData?.artTemplate || '',
     artTemplateName: productData?.artTemplateName || '',
   });
@@ -167,6 +175,10 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
             competitorName: data.product.competitorName || prev.competitorName || '',
             competitorLink: data.product.competitorLink || prev.competitorLink || '',
             competitorPrice: data.product.competitorPrice || prev.competitorPrice || '',
+            pricePerUnit: data.product.pricePerUnit ?? prev.pricePerUnit ?? 0,
+            yearlyQty: data.product.yearlyQty ?? prev.yearlyQty ?? 0,
+            totalValue: data.product.totalValue ?? prev.totalValue ?? 0,
+            targetMargin: data.product.targetMargin || prev.targetMargin || '',
             htsCode: data.product.htsCode || prev.htsCode || '',
             htsRate: data.product.htsRate || prev.htsRate || '',
             htsBaseRate: data.product.htsBaseRate || prev.htsBaseRate || '',
@@ -599,6 +611,40 @@ export function ProductDetails({ productId, onBack, productData, onProductUpdate
                     ) : (
                       <span className="text-sm text-slate-400 italic font-normal">No sizes defined</span>
                     )}
+                  </div>
+
+                  {/* Pricing & Quantity */}
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Target Price/Unit</div>
+                    <div className="text-sm font-semibold text-emerald-600">
+                      {productInfo.pricePerUnit > 0
+                        ? `$${productInfo.pricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : <span className="text-slate-400 italic font-normal">—</span>}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Est. Yearly Qty</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      {productInfo.yearlyQty > 0
+                        ? productInfo.yearlyQty.toLocaleString()
+                        : <span className="text-slate-400 italic font-normal">—</span>}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Total Value</div>
+                    <div className="text-sm font-bold text-emerald-600">
+                      {(productInfo.pricePerUnit * productInfo.yearlyQty) > 0
+                        ? `$${(productInfo.pricePerUnit * productInfo.yearlyQty).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : <span className="text-slate-400 italic font-normal">—</span>}
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-slate-500 mb-1">Target Margin</div>
+                    <div className="text-sm font-semibold text-slate-900">
+                      {productInfo.targetMargin
+                        ? `${productInfo.targetMargin}%`
+                        : <span className="text-slate-400 italic font-normal">—</span>}
+                    </div>
                   </div>
 
                   {/* Competitor Analysis Section */}
