@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Upload, Package, FileText, MessageSquare, Truck, ChevronRight, RefreshCw, Trash2, Download } from 'lucide-react';
+import { Plus, Upload, Package, FileText, MessageSquare, Truck, ChevronRight, RefreshCw, Trash2, Download, ExternalLink } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { ChecklistWidget, ChecklistItem } from './ChecklistWidget';
@@ -43,6 +43,23 @@ interface SampleOrder {
     id?: string;
     name?: string;
     location?: string;
+    warehouseId?: string;
+    customAddress?: {
+      name?: string;
+      street?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+    };
+  }>;
+  shipToAddresses?: Array<{
+    name?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+    contact?: string;
   }>;
   additionalNotes?: string;
 }
@@ -70,8 +87,13 @@ interface UploadedFile {
 interface SamplesTabProps {
   productId?: string;
   refreshKey?: number;
+  productName?: string;
+  projectNumber?: string;
+  clientName?: string;
+  competitorLink?: string;
   onChecklistChanged?: (all: Record<string, ChecklistItem[]>) => void;
   onActivityDetected?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; border: string; dot: string }> = {
@@ -95,7 +117,17 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onActivityDetected }: SamplesTabProps) {
+export function SamplesTab({
+  productId = '',
+  refreshKey,
+  productName,
+  projectNumber,
+  clientName,
+  competitorLink,
+  onChecklistChanged,
+  onActivityDetected,
+  onNavigate,
+}: SamplesTabProps) {
   const [orders, setOrders] = useState<SampleOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [feedbackSamples, setFeedbackSamples] = useState<FeedbackSample[]>([]);
@@ -188,6 +220,36 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
 
   const orderTotal = (order: SampleOrder) => {
     return typeof order.total === 'number' ? order.total : (order.totalCost ?? 0);
+  };
+
+  const resolveDestinations = (order: SampleOrder): Array<{ name: string; address?: string }> => {
+    if (order.shipToAddresses && order.shipToAddresses.length > 0) {
+      return order.shipToAddresses.map((a) => {
+        const line = [a.address, [a.city, a.state].filter(Boolean).join(', '), a.zip]
+          .filter(Boolean)
+          .join(' · ');
+        return { name: a.name?.trim() || 'Ship-to', address: line || undefined };
+      });
+    }
+    if (order.destinations && order.destinations.length > 0) {
+      return order.destinations.map((d) => {
+        if (d.customAddress) {
+          const ca = d.customAddress;
+          const line = [ca.street, [ca.city, ca.state].filter(Boolean).join(', '), ca.zip]
+            .filter(Boolean)
+            .join(' · ');
+          return { name: ca.name?.trim() || d.name || 'Custom address', address: line || undefined };
+        }
+        return { name: d.name?.trim() || 'Destination' };
+      });
+    }
+    return [];
+  };
+
+  const handleOpenPo = (poNumber?: string) => {
+    if (!poNumber || !onNavigate) return;
+    sessionStorage.setItem('purchasing_deep_link_poNumber', poNumber);
+    onNavigate('purchasing');
   };
 
   const handleDeleteFeedbackSample = async (id: string) => {
@@ -409,6 +471,20 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
                         >
                           <div className="px-6 pb-4 pt-1">
                             <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+                              {onNavigate && order.poNumber && (
+                                <div className="flex justify-end">
+                                  <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={(e) => { e.stopPropagation(); handleOpenPo(order.poNumber); }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                                    View PO in Purchasing
+                                  </motion.button>
+                                </div>
+                              )}
+
                               {/* Variants table */}
                               {order.variants && order.variants.length > 0 && (
                                 <div>
@@ -441,19 +517,31 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
                               )}
 
                               {/* Destinations */}
-                              {order.destinations && order.destinations.length > 0 && (
-                                <div>
-                                  <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Destinations</h5>
-                                  <div className="flex flex-wrap gap-2">
-                                    {order.destinations.map((d, i) => (
-                                      <span key={d.id || i} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700">
-                                        <Truck className="w-3 h-3 text-slate-400" />
-                                        {d.location || d.name || '—'}
-                                      </span>
-                                    ))}
+                              {(() => {
+                                const resolved = resolveDestinations(order);
+                                if (resolved.length === 0) return null;
+                                const isSplit = resolved.length > 1;
+                                return (
+                                  <div>
+                                    <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                      {isSplit ? `Destinations · Split into ${resolved.length} addresses` : 'Destination'}
+                                    </h5>
+                                    <div className="space-y-2">
+                                      {resolved.map((r, i) => (
+                                        <div key={i} className="flex items-start gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg">
+                                          <Truck className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                          <div className="min-w-0">
+                                            <p className="text-xs font-semibold text-slate-800 truncate">{r.name}</p>
+                                            {r.address && (
+                                              <p className="text-[11px] text-slate-500 truncate">{r.address}</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                );
+                              })()}
 
                               {/* Notes */}
                               {order.additionalNotes && (
@@ -729,7 +817,7 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
         isOpen={isAddSampleDrawerOpen}
         onClose={() => setIsAddSampleDrawerOpen(false)}
         productId={productId}
-        onSuccess={() => { fetchFeedbackSamples(); onActivityDetected?.(); }}
+        onSuccess={() => { fetchFeedbackSamples(); fetchOrders(); onActivityDetected?.(); }}
       />
 
       {/* Order Sample Drawer */}
@@ -737,6 +825,10 @@ export function SamplesTab({ productId = '', refreshKey, onChecklistChanged, onA
         isOpen={isOrderSampleDrawerOpen}
         onClose={() => setIsOrderSampleDrawerOpen(false)}
         productId={productId}
+        productName={productName}
+        projectNumber={projectNumber}
+        clientName={clientName}
+        competitorLink={competitorLink}
         onSuccess={() => { fetchOrders(); onActivityDetected?.(); }}
       />
 

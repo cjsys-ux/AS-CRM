@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DatePicker } from './DatePicker';
 import { ModernDropdown } from './ModernDropdown';
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 type OrderSampleDrawerProps = {
   isOpen: boolean;
@@ -671,7 +672,7 @@ export function OrderSampleDrawer({
   // Fetch warehouses from DB
   const fetchWarehouses = async () => {
     try {
-      const response = await fetch(`/api/wms/list`);
+      const response = await fetch(`/api/warehouses/list`);
       const data = await response.json();
       if (data.success && data.warehouses) {
         setWarehouseOptions(
@@ -1001,14 +1002,29 @@ export function OrderSampleDrawer({
                   <div className="relative" ref={vendorDropdownRef}>
                     <button
                       onClick={() => setIsVendorDropdownOpen(!isVendorDropdownOpen)}
-                      className={`w-full px-4 py-2.5 bg-slate-50 border rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 flex items-center justify-between ${showValidationErrors && !vendor?.trim() ? 'border-red-400 bg-red-50/50' : 'border-slate-200'}`}
+                      className={`w-full px-4 py-2.5 bg-slate-50 border rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 flex items-center justify-between gap-3 ${showValidationErrors && !vendor?.trim() ? 'border-red-400 bg-red-50/50' : 'border-slate-200'}`}
                     >
                       {vendor ? (
-                        <span className="text-slate-900">{vendor}</span>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {(() => {
+                            const selectedVendor = availableVendors.find(v => v.id === vendorId);
+                            const logo = selectedVendor?.logo;
+                            return logo ? (
+                              <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                                <img src={logo} alt={vendor} className="w-full h-full object-contain p-0.5" />
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">{vendor.charAt(0) || '?'}</span>
+                              </div>
+                            );
+                          })()}
+                          <span className="text-slate-900 truncate">{vendor}</span>
+                        </div>
                       ) : (
                         <span className={showValidationErrors ? 'text-red-400' : 'text-slate-400'}>Select a vendor...</span>
                       )}
-                      <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isVendorDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-4 h-4 text-slate-500 flex-shrink-0 transition-transform ${isVendorDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
                     <AnimatePresence>
@@ -1053,11 +1069,19 @@ export function OrderSampleDrawer({
                                   }}
                                   className="w-full px-4 py-2.5 text-sm text-left hover:bg-slate-50 transition-colors flex items-center gap-3"
                                 >
-                                  <Check 
-                                    className={`w-4 h-4 flex-shrink-0 ${vendor === vendorOption.name ? 'text-blue-600' : 'text-transparent'}`} 
+                                  <Check
+                                    className={`w-4 h-4 flex-shrink-0 ${vendor === vendorOption.name ? 'text-blue-600' : 'text-transparent'}`}
                                   />
                                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    {vendorOption.logo ? (
+                                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
+                                        <img src={vendorOption.logo} alt={vendorOption.name} className="w-full h-full object-contain p-0.5" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-8 h-8 min-w-[32px] min-h-[32px] shrink-0 rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center">
+                                        <span className="text-white text-xs font-bold">{vendorOption.name?.charAt(0) || '?'}</span>
+                                      </div>
+                                    )}
                                     <span className={`truncate ${vendor === vendorOption.name ? 'text-slate-900 font-semibold' : 'text-slate-700'}`}>
                                       {vendorOption.name}
                                     </span>
@@ -1620,23 +1644,32 @@ export function OrderSampleDrawer({
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium text-slate-700 mb-2">Street Address</label>
-                              <input
-                                type="text"
-                                placeholder="e.g., 123 Main Street"
+                              <AddressAutocomplete
+                                label="Street Address"
+                                placeholder="Start typing an address..."
                                 value={dest.customAddress?.street || ''}
-                                onChange={(e) => {
-                                  setDestinations(destinations.map(d => 
+                                onChange={(street) => {
+                                  setDestinations(destinations.map(d =>
+                                    d.id === dest.id ? {
+                                      ...d,
+                                      customAddress: { ...d.customAddress!, street }
+                                    } : d
+                                  ));
+                                }}
+                                onSelect={(addr) => {
+                                  setDestinations(destinations.map(d =>
                                     d.id === dest.id ? {
                                       ...d,
                                       customAddress: {
                                         ...d.customAddress!,
-                                        street: e.target.value
+                                        street: addr.street,
+                                        city: addr.city,
+                                        state: addr.state,
+                                        zip: addr.zip,
                                       }
                                     } : d
                                   ));
                                 }}
-                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                               />
                             </div>
 

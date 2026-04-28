@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModernDropdownProps {
   value: string;
@@ -11,13 +12,57 @@ interface ModernDropdownProps {
   compact?: boolean;
 }
 
+function stylesEqual(a: React.CSSProperties, b: React.CSSProperties): boolean {
+  return a.position === b.position
+    && a.left === b.left
+    && a.top === b.top
+    && a.bottom === b.bottom
+    && a.width === b.width
+    && a.zIndex === b.zIndex;
+}
+
 export function ModernDropdown({ value, onChange, options, label, icon, compact }: ModernDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+
+  const computeMenuStyle = useCallback((): React.CSSProperties | null => {
+    if (!triggerRef.current) return null;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const rowHeight = compact ? 32 : 44;
+    const estimatedHeight = Math.min(options.length * rowHeight + 16, 320);
+    const opensUp = spaceBelow < estimatedHeight && rect.top > estimatedHeight;
+    const width = compact ? Math.max(rect.width, 140) : rect.width;
+    return {
+      position: 'fixed',
+      left: rect.left,
+      width,
+      top: opensUp ? undefined : rect.bottom + 8,
+      bottom: opensUp ? window.innerHeight - rect.top + 8 : undefined,
+      zIndex: 9999,
+    };
+  }, [options.length, compact]);
+
+  const handleToggle = () => {
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+    const style = computeMenuStyle();
+    if (style) setMenuStyle(style);
+    setIsOpen(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        wrapperRef.current && !wrapperRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -26,24 +71,44 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const reposition = () => {
+      const next = computeMenuStyle();
+      if (!next) return;
+      // Bail out on identical recomputes so scroll events don't
+      // re-render the menu tree (and its per-option spring animations)
+      // hundreds of times per second.
+      setMenuStyle(prev => stylesEqual(prev, next) ? prev : next);
+    };
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    return () => {
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+    };
+  }, [isOpen, computeMenuStyle]);
+
   const handleSelect = (option: string) => {
     onChange(option);
     setIsOpen(false);
   };
 
+  const iconSize = compact ? 'w-3.5 h-3.5' : 'w-5 h-5';
+
   return (
-    <div ref={dropdownRef} className="relative">
+    <div ref={wrapperRef} className="relative">
       {label && (
         <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
           {icon}
           {label}
         </label>
       )}
-      
-      {/* Dropdown Button */}
+
       <motion.button
+        ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         className={compact
@@ -56,52 +121,60 @@ export function ModernDropdown({ value, onChange, options, label, icon, compact 
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronDown className={compact ? "w-3.5 h-3.5 text-slate-400" : "w-5 h-5 text-slate-400"} />
+          <ChevronDown className={`${iconSize} text-slate-400`} />
         </motion.div>
       </motion.button>
 
-      {/* Dropdown Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className={compact
-              ? "absolute z-50 min-w-[140px] mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
-              : "absolute z-50 w-full mt-2 bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
-            }
-          >
-            {options.map((option, index) => (
-              <motion.button
-                key={option}
-                type="button"
-                onClick={() => handleSelect(option)}
-                whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
-                className={`w-full text-left transition-colors flex items-center justify-between ${
-                  compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'
-                } ${
-                  index !== options.length - 1 ? 'border-b border-slate-100' : ''
-                } ${value === option ? 'bg-blue-50' : ''}`}
-              >
-                <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
-                  {option}
-                </span>
-                {value === option && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  >
-                    <Check className={compact ? "w-3.5 h-3.5 text-blue-600" : "w-5 h-5 text-blue-600"} />
-                  </motion.div>
-                )}
-              </motion.button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Menu is portaled into document.body so ancestor transforms
+          (framer-motion drawer/card animations) don't become the
+          containing block for our position:fixed, and ancestor
+          overflow:hidden doesn't clip us. */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={menuRef}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              style={menuStyle}
+              className={compact
+                ? "bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
+                : "bg-white border-2 border-slate-200 rounded-xl shadow-xl overflow-hidden"
+              }
+            >
+              {options.map((option, index) => (
+                <motion.button
+                  key={option}
+                  type="button"
+                  onClick={() => handleSelect(option)}
+                  whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
+                  className={`w-full text-left transition-colors flex items-center justify-between ${
+                    compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'
+                  } ${
+                    index !== options.length - 1 ? 'border-b border-slate-100' : ''
+                  } ${value === option ? 'bg-blue-50' : ''}`}
+                >
+                  <span className={`font-medium ${value === option ? 'text-blue-600' : 'text-slate-700'}`}>
+                    {option}
+                  </span>
+                  {value === option && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    >
+                      <Check className={`${iconSize} text-blue-600`} />
+                    </motion.div>
+                  )}
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

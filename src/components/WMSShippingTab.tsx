@@ -339,7 +339,7 @@ function ShipmentDetailPanel({ record, onClose, onUpdate, onStatusChange, custom
               </button>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-slate-900">{record.id}</h2>
+                  <h2 className="text-lg font-bold text-slate-900">{record.orderNumber || record.id}</h2>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${STATUS_COLORS[record.status]}`}>{record.status}</span>
                 </div>
                 <p className="text-sm text-slate-500 mt-0.5">Order {record.orderNumber} &bull; {record.customer}</p>

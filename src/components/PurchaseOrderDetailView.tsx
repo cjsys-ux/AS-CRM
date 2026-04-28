@@ -19,14 +19,17 @@ import { SubmitPOModal } from './SubmitPOModal';
 import { VendorSelector } from './VendorSelector';
 import { ShipToEditor } from './ShipToEditor';
 import { MissedInHandsDialog } from './MissedInHandsDialog';
+import { getProjectBadgeStaticClasses } from './projectNumberUtils';
 import { toast } from 'sonner';
 import { useAuth } from '../context/AuthContext';
+import { jsPDF } from 'jspdf';
 
 interface PurchaseOrder {
   id: string;
   poNumber: string;
   poDate: string;
   project: string;
+  projectNumber?: string;
   vendor: string;
   customer: string;
   status: string;
@@ -211,19 +214,18 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
   });
   const [isEditingFooterContact, setIsEditingFooterContact] = useState(false);
 
-  // Confirmed PO edit protection
+  // Confirmed PO edit protection — once a PO is Confirmed (or further
+  // along the pipeline), fields are locked. Reverting status to
+  // Created/Submitted from the header dropdown unlocks them.
   const isConfirmedOrBeyond = ['Confirmed', 'In Production', 'Shipped', 'Delivered'].includes(status);
   const [showConfirmedEditWarning, setShowConfirmedEditWarning] = useState(false);
-  const [confirmedEditCallback, setConfirmedEditCallback] = useState<(() => void) | null>(null);
-  const [editWarningDismissedForSession, setEditWarningDismissedForSession] = useState(false);
 
   const guardConfirmedEdit = (callback: () => void) => {
-    if (isConfirmedOrBeyond && !editWarningDismissedForSession) {
-      setConfirmedEditCallback(() => callback);
+    if (isConfirmedOrBeyond) {
       setShowConfirmedEditWarning(true);
-    } else {
-      callback();
+      return;
     }
+    callback();
   };
 
   // Initialize ship-to from order's shipToAddresses or default
@@ -545,6 +547,224 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
     }
   };
 
+  // Build a clean commonsku-style PO PDF. Returns the jsPDF instance so
+  // both the Download and Print buttons can share the same layout.
+  const buildPoPdf = (): jsPDF => {
+    const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 40;
+    const contentWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    // Header bar
+    pdf.setFillColor(30, 64, 175); // slate/blue
+    pdf.rect(0, 0, pageWidth, 72, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text('PURCHASE ORDER', margin, 36);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(companyInfo.name || 'Activate Swag', margin, 54);
+    pdf.setFontSize(9);
+    pdf.text([companyInfo.address, companyInfo.cityStateZip].filter(Boolean).join(' · '), margin, 66);
+
+    // PO number block (top-right)
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.text(`#${order.poNumber || order.id}`, pageWidth - margin, 36, { align: 'right' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    const headerDate = order.poDate || new Date().toISOString().slice(0, 10);
+    pdf.text(`Date: ${headerDate}`, pageWidth - margin, 52, { align: 'right' });
+    if (order.projectNumber) {
+      pdf.text(`Project: ${order.projectNumber}`, pageWidth - margin, 64, { align: 'right' });
+    }
+
+    y = 96;
+    pdf.setTextColor(15, 23, 42);
+
+    // Vendor + Ship-To two-column block
+    const colGap = 16;
+    const colWidth = (contentWidth - colGap) / 2;
+
+    const drawBlock = (title: string, lines: string[], x: number, startY: number): number => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(title.toUpperCase(), x, startY);
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      let cy = startY + 14;
+      for (const line of lines) {
+        if (!line) continue;
+        const wrapped = pdf.splitTextToSize(line, colWidth);
+        for (const w of wrapped) {
+          pdf.text(w, x, cy);
+          cy += 13;
+        }
+      }
+      return cy;
+    };
+
+    const shipTo = (order.shipToAddresses && order.shipToAddresses[0]) || shipToAddress;
+    const vendorLines = [
+      vendor || order.vendor || '',
+      vendorAddress || '',
+      vendorContactPerson || '',
+    ];
+    const shipToLines = shipTo
+      ? [
+          shipTo.name || '',
+          shipTo.address || '',
+          [shipTo.city, shipTo.state, shipTo.zip].filter(Boolean).join(', '),
+          shipTo.country || '',
+          shipTo.contact ? `c/o ${shipTo.contact}` : '',
+        ]
+      : [];
+
+    const endLeft = drawBlock('Vendor', vendorLines, margin, y);
+    const endRight = drawBlock('Ship To', shipToLines, margin + colWidth + colGap, y);
+    y = Math.max(endLeft, endRight) + 12;
+
+    // Meta row
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('STATUS', margin, y);
+    pdf.text('IN-HANDS', margin + 120, y);
+    pdf.text('SHIP DATE', margin + 240, y);
+    pdf.text('TERMS', margin + 360, y);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFontSize(10);
+    pdf.text(status || 'Created', margin, y + 14);
+    pdf.text(String(inHandsDate || '—'), margin + 120, y + 14);
+    pdf.text(String(shipDate || '—'), margin + 240, y + 14);
+    pdf.text(String(paymentTerms || 'Net 30'), margin + 360, y + 14);
+    y += 34;
+
+    // Line items table
+    pdf.setFillColor(241, 245, 249);
+    pdf.rect(margin, y, contentWidth, 22, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(71, 85, 105);
+    pdf.text('SKU', margin + 8, y + 14);
+    pdf.text('DESCRIPTION', margin + 90, y + 14);
+    pdf.text('QTY', margin + contentWidth - 130, y + 14, { align: 'right' });
+    pdf.text('UNIT', margin + contentWidth - 70, y + 14, { align: 'right' });
+    pdf.text('TOTAL', margin + contentWidth - 8, y + 14, { align: 'right' });
+    y += 28;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(15, 23, 42);
+    const items = (lineItems && lineItems.length > 0)
+      ? lineItems
+      : (order.variants || []).map((v: any) => ({
+          sku: v.sku,
+          description: [v.size, v.color].filter(Boolean).join(' / ') || order.project || '',
+          quantity: v.qty,
+          unitPrice: v.costPerUnit,
+        }));
+
+    let computedSubtotal = 0;
+    for (const item of items) {
+      if (y > pageHeight - 140) {
+        pdf.addPage();
+        y = margin;
+      }
+      const sku = String(item.sku || '—');
+      const desc = String(item.description || item.productName || '—');
+      const qty = Number(item.quantity ?? item.qty ?? 0);
+      const unit = Number(item.unitPrice ?? item.costPerUnit ?? 0);
+      const lineTotal = qty * unit;
+      computedSubtotal += lineTotal;
+
+      const wrappedDesc = pdf.splitTextToSize(desc, contentWidth - 280);
+      pdf.text(sku.slice(0, 20), margin + 8, y);
+      pdf.text(wrappedDesc, margin + 90, y);
+      pdf.text(String(qty), margin + contentWidth - 130, y, { align: 'right' });
+      pdf.text(`$${unit.toFixed(2)}`, margin + contentWidth - 70, y, { align: 'right' });
+      pdf.text(`$${lineTotal.toFixed(2)}`, margin + contentWidth - 8, y, { align: 'right' });
+      y += Math.max(16, wrappedDesc.length * 13);
+    }
+
+    // Totals
+    y += 8;
+    pdf.setDrawColor(226, 232, 240);
+    pdf.line(margin + contentWidth - 220, y, margin + contentWidth, y);
+    y += 16;
+    const taxAmt = computedSubtotal * (salesTaxRate || 0);
+    const grandTotal = computedSubtotal + taxAmt;
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Subtotal', margin + contentWidth - 140, y, { align: 'right' });
+    pdf.text(`$${computedSubtotal.toFixed(2)}`, margin + contentWidth - 8, y, { align: 'right' });
+    y += 14;
+    pdf.text(`Tax (${((salesTaxRate || 0) * 100).toFixed(2)}%)`, margin + contentWidth - 140, y, { align: 'right' });
+    pdf.text(`$${taxAmt.toFixed(2)}`, margin + contentWidth - 8, y, { align: 'right' });
+    y += 16;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text('Total', margin + contentWidth - 140, y, { align: 'right' });
+    pdf.text(`$${grandTotal.toFixed(2)}`, margin + contentWidth - 8, y, { align: 'right' });
+
+    // Notes
+    if (order.additionalNotes) {
+      y += 28;
+      if (y > pageHeight - 120) { pdf.addPage(); y = margin; }
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('NOTES', margin, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(15, 23, 42);
+      const notesWrapped = pdf.splitTextToSize(String(order.additionalNotes), contentWidth);
+      pdf.text(notesWrapped, margin, y + 14);
+    }
+
+    // Footer
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(
+      `${companyInfo.name || 'Activate Swag'} · ${companyInfo.phone || ''} · ${companyInfo.website || ''}`,
+      pageWidth / 2,
+      pageHeight - 24,
+      { align: 'center' },
+    );
+
+    return pdf;
+  };
+
+  const handleDownloadPdf = () => {
+    try {
+      const pdf = buildPoPdf();
+      pdf.save(`PO_${order.poNumber || order.id}.pdf`);
+      toast.success('PDF downloaded');
+    } catch (err) {
+      console.error('Error generating PO PDF:', err);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const handlePrintPo = () => {
+    try {
+      const pdf = buildPoPdf();
+      pdf.autoPrint();
+      // Opens the PDF in a new tab with the browser's print dialog already invoked.
+      const blob = pdf.output('bloburl');
+      window.open(blob, '_blank');
+    } catch (err) {
+      console.error('Error preparing PO for print:', err);
+      toast.error('Failed to open print dialog');
+    }
+  };
+
   // Handle artwork file upload -> S3 presign -> upload -> record in MongoDB
   const handleArtworkUpload = async (file: File) => {
     // Validate file type
@@ -669,7 +889,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
               Back to All POs
             </motion.button>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-900">Purchase Order #{order.id}</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Purchase Order #{order.poNumber}</h1>
               {order.isSample && (
                 <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
                   order.sampleType === 'competitor'
@@ -686,6 +906,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handleDownloadPdf}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
             >
               <Download className="w-4 h-4" />
@@ -694,6 +915,7 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={handlePrintPo}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-colors"
             >
               <Printer className="w-4 h-4" />
@@ -779,6 +1001,13 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-6 py-4 text-right shadow-xl">
                   <p className="text-xs font-semibold text-blue-600 mb-1">PURCHASE ORDER</p>
                   <p className="text-2xl font-bold text-slate-900">#{order.poNumber}</p>
+                  {order.projectNumber && (
+                    <div className="mt-1 flex justify-end">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${getProjectBadgeStaticClasses(order.projectNumber)}`}>
+                        {order.projectNumber}
+                      </span>
+                    </div>
+                  )}
                   <div className="mt-2 pt-2 border-t border-slate-200">
                     <p className="text-xs text-slate-600 mb-2">Date: <span className="font-semibold text-slate-900">{formatDateDisplay(order.poDate)}</span></p>
                     {/* Status Dropdown */}
@@ -2432,17 +2661,14 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
         poNumber={order.poNumber}
       />
 
-      {/* Confirmed PO Edit Warning */}
+      {/* Confirmed PO Lock Notice */}
       <AnimatePresence>
         {showConfirmedEditWarning && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
-              setShowConfirmedEditWarning(false);
-              setConfirmedEditCallback(null);
-            }}
+            onClick={() => setShowConfirmedEditWarning(false)}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
           >
             <motion.div
@@ -2455,42 +2681,27 @@ export function PurchaseOrderDetailView({ order, onBack, onEdit, onStatusChange,
             >
               <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 flex items-center gap-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-white" />
+                  <Lock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">PO Has Been Confirmed</h3>
+                  <h3 className="text-lg font-bold text-white">PO Is Locked</h3>
                   <p className="text-amber-100 text-sm">PO #{order.poNumber} -- Status: {status}</p>
                 </div>
               </div>
               <div className="p-6">
                 <p className="text-slate-700 text-sm mb-4">
-                  This purchase order has already been confirmed with the vendor. Editing confirmed PO details may cause discrepancies with the vendor's records and the linked order.
+                  This purchase order has been confirmed with the vendor. Line items, vendor, ship-to, and contact details cannot be edited while the status is <span className="font-semibold">{status}</span>.
                 </p>
-                <p className="text-slate-600 text-sm font-medium">Are you sure you want to make changes?</p>
+                <p className="text-slate-600 text-sm">
+                  To make changes, use the status selector at the top of the PO to revert to <span className="font-semibold">Created</span> or <span className="font-semibold">Submitted</span> first.
+                </p>
               </div>
-              <div className="bg-slate-50 px-6 py-4 flex items-center gap-3 border-t border-slate-200">
+              <div className="bg-slate-50 px-6 py-4 flex items-center justify-end border-t border-slate-200">
                 <button
-                  onClick={() => {
-                    setShowConfirmedEditWarning(false);
-                    setConfirmedEditCallback(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  onClick={() => setShowConfirmedEditWarning(false)}
+                  className="px-5 py-2.5 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setShowConfirmedEditWarning(false);
-                    setEditWarningDismissedForSession(true);
-                    if (confirmedEditCallback) {
-                      confirmedEditCallback();
-                    }
-                    setConfirmedEditCallback(null);
-                  }}
-                  className="flex-1 px-4 py-2.5 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Edit className="w-4 h-4" />
-                  Yes, Edit Anyway
+                  Got it
                 </button>
               </div>
             </motion.div>

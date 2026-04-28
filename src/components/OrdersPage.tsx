@@ -179,7 +179,9 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
   const [vendorLogoMap, setVendorLogoMap] = useState<Record<string, string>>({});
   const [customerLogoMap, setCustomerLogoMap] = useState<Record<string, string>>({});
 
-  // Fetch vendor and customer logos for table display
+  // Fetch vendor and customer logos for table display. Neither endpoint
+  // returns a `success` flag, so key off the HTTP status and accept
+  // either `name` or `vendorName` on vendor docs (legacy schema).
   useEffect(() => {
     const fetchLogos = async () => {
       try {
@@ -187,15 +189,21 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
           fetch('/api/vendors/list'),
           fetch('/api/customers/list'),
         ]);
-        const [vendorData, customerData] = await Promise.all([vendorRes.json(), customerRes.json()]);
-        if (vendorData.success) {
+        if (vendorRes.ok) {
+          const vendorData = await vendorRes.json();
           const map: Record<string, string> = {};
-          (vendorData.vendors || []).forEach((v: any) => { if (v.name && v.logo) map[v.name.trim().toLowerCase()] = v.logo; });
+          (vendorData.vendors || []).forEach((v: any) => {
+            const name = v.name || v.vendorName;
+            if (name && v.logo) map[String(name).trim().toLowerCase()] = v.logo;
+          });
           setVendorLogoMap(map);
         }
-        if (customerData.success) {
+        if (customerRes.ok) {
+          const customerData = await customerRes.json();
           const map: Record<string, string> = {};
-          (customerData.customers || []).forEach((c: any) => { if (c.name && c.logo) map[c.name.trim().toLowerCase()] = c.logo; });
+          (customerData.customers || []).forEach((c: any) => {
+            if (c.name && c.logo) map[String(c.name).trim().toLowerCase()] = c.logo;
+          });
           setCustomerLogoMap(map);
         }
       } catch (err) {
@@ -410,6 +418,7 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       order.id?.toLowerCase().includes(searchLower) ||
+      order.orderNumber?.toLowerCase().includes(searchLower) ||
       order.customer?.toLowerCase().includes(searchLower) ||
       order.email?.toLowerCase().includes(searchLower) ||
       order.projectName?.toLowerCase().includes(searchLower) ||
@@ -729,7 +738,7 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
                       >
                         {isColVisible('orderId') && <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-slate-900">{order.id}</span>
+                            <span className="text-sm font-semibold text-slate-900">{order.orderNumber || order.id}</span>
                             {order.isSampleOrder && (
                               <span className="px-1.5 py-0.5 bg-cyan-100 text-cyan-700 rounded text-[9px] font-bold border border-cyan-200">SAMPLE</span>
                             )}
@@ -1047,7 +1056,7 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
                               className="hover:bg-orange-50/30 transition-colors"
                             >
                               <td className="px-4 py-4 whitespace-nowrap">
-                                <span className="text-sm font-semibold text-slate-900">{order.id}</span>
+                                <span className="text-sm font-semibold text-slate-900">{order.orderNumber || order.id}</span>
                               </td>
                               <td className="px-4 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
@@ -1271,7 +1280,7 @@ export function OrdersPage({ onNavigate }: { onNavigate?: (page: string) => void
                 <div className="px-6 py-5">
                   <p className="text-slate-700">
                     Are you sure you want to delete order{' '}
-                    <span className="font-bold text-slate-900">{deleteOrder.id}</span>
+                    <span className="font-bold text-slate-900">{deleteOrder.orderNumber || deleteOrder.id}</span>
                     {deleteOrder.projectName && (
                       <> for project <span className="font-bold text-slate-900">"{deleteOrder.projectName}"</span></>
                     )}

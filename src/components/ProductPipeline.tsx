@@ -72,7 +72,11 @@ type ProjectsApiResponse = {
 };
 
 
-export function ProductPipeline() {
+interface ProductPipelineProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function ProductPipeline({ onNavigate }: ProductPipelineProps = {}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -213,6 +217,7 @@ const handleOpenColumnPicker = () => {
               )
             );
           }}
+          onNavigate={onNavigate}
         />
         {/* Add Product Drawer - needs to be available even in detail view */}
         <AddProductDrawer 

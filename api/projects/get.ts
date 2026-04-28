@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const db = await getDb();
-    const product = await db.collection('projects').findOne(filter);
+    const product = await db.collection('product_pipelines').findOne(filter);
 
     if (!product) {
       return res.status(404).json({ error: 'Product not found.' });

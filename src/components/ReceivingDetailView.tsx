@@ -25,6 +25,7 @@ interface ReceivingLineItem {
 
 interface ReceivingRecord {
   id: string;
+  receiptNumber?: string;
   poNumber?: string;
   vendor: string;
   expectedDate: string;
@@ -227,7 +228,7 @@ export function ReceivingDetailView({
 
     // Seed activity log
     setActivityLog([
-      { time: receipt.createdAt, action: 'Receipt Created', user: 'System', detail: `Inbound receipt ${receipt.id} created` },
+      { time: receipt.createdAt, action: 'Receipt Created', user: 'System', detail: `Inbound receipt ${receipt.receiptNumber || receipt.id} created` },
       ...(receipt.status !== 'Scheduled' ? [{ time: new Date().toISOString(), action: 'Status Changed', user: 'System', detail: `Status set to ${receipt.status}` }] : []),
     ]);
   }, [receipt]);
@@ -562,7 +563,7 @@ export function ReceivingDetailView({
             </motion.button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-slate-900">{receipt.id}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">{receipt.receiptNumber || receipt.id}</h1>
                 <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border ${STATUS_COLORS[localStatus] || ''}`}>{localStatus}</span>
                 {receipt.projectNumber && (
                   <button
@@ -1091,7 +1092,7 @@ export function ReceivingDetailView({
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-slate-900">Barcode Scanner</h2>
-                      <p className="text-sm text-slate-500">{receipt.id} &middot; {receipt.vendor}</p>
+                      <p className="text-sm text-slate-500">{receipt.receiptNumber || receipt.id} &middot; {receipt.vendor}</p>
                     </div>
                   </div>
                   <button onClick={() => setScanMode(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><X className="w-5 h-5 text-slate-500" /></button>

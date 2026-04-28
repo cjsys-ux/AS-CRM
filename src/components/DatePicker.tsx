@@ -1,236 +1,274 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 interface DatePickerProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  title?: string;
 }
 
-export function DatePicker({ value, onChange, placeholder = 'mm/dd/yyyy', className = '' }: DatePickerProps) {
+function parseDate(value: string): Date | null {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const d = new Date(value + 'T00:00:00');
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+    const [m, d, y] = value.split('/').map(Number);
+    const date = new Date(y, m - 1, d);
+    return isNaN(date.getTime()) ? null : date;
+  }
+  const fallback = new Date(value);
+  return isNaN(fallback.getTime()) ? null : fallback;
+}
+
+function formatMDY(date: Date): string {
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const y = date.getFullYear();
+  return `${m}/${d}/${y}`;
+}
+
+export function DatePicker({
+  value,
+  onChange,
+  placeholder = 'mm/dd/yyyy',
+  className = '',
+  title = 'Select Date',
+}: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => parseDate(value) ?? new Date());
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  useEffect(() => {
+    const parsed = parseDate(value);
+    if (parsed) setCurrentMonth(parsed);
+  }, [value]);
 
-  const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const days: (number | null)[] = [];
-    
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-    
-    // Add the days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
 
-    // Add empty cells to complete the last row
-    const remainingCells = 42 - days.length; // 6 rows * 7 days = 42
-    for (let i = 0; i < remainingCells; i++) {
-      days.push(null);
-    }
-
-    return days;
+  const previousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   };
 
-  const handlePreviousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-
-  const handleDateSelect = (day: number) => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const selectedDate = new Date(year, month, day);
-    
-    const formattedDate = `${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
-    onChange(formattedDate);
+  const selectDate = (day: number) => {
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    onChange(formatMDY(date));
     setIsOpen(false);
   };
 
-  const handleClear = () => {
-    onChange('');
-    setIsOpen(false);
-  };
-
-  const handleToday = () => {
+  const setToday = () => {
     const today = new Date();
-    const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
-    onChange(formattedDate);
-    setCurrentDate(today);
+    setCurrentMonth(today);
+    onChange(formatMDY(today));
+    setIsOpen(false);
+  };
+
+  const clearDate = () => {
+    onChange('');
     setIsOpen(false);
   };
 
   const isToday = (day: number) => {
     const today = new Date();
-    return day === today.getDate() && 
-           currentDate.getMonth() === today.getMonth() && 
-           currentDate.getFullYear() === today.getFullYear();
+    return day === today.getDate() &&
+           currentMonth.getMonth() === today.getMonth() &&
+           currentMonth.getFullYear() === today.getFullYear();
   };
 
   const isSelected = (day: number) => {
-    if (!value) return false;
-    const [month, dayStr, year] = value.split('/');
-    return day === parseInt(dayStr) && 
-           currentDate.getMonth() === parseInt(month) - 1 && 
-           currentDate.getFullYear() === parseInt(year);
+    const parsed = parseDate(value);
+    if (!parsed) return false;
+    return day === parsed.getDate() &&
+           currentMonth.getMonth() === parsed.getMonth() &&
+           currentMonth.getFullYear() === parsed.getFullYear();
   };
 
-  const days = getDaysInMonth(currentDate);
+  const renderDays = () => {
+    const cells: React.ReactNode[] = [];
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      cells.push(<div key={`empty-${i}`} className="h-9" />);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      const selected = isSelected(day);
+      const today = isToday(day);
+      cells.push(
+        <motion.button
+          key={day}
+          type="button"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => selectDate(day)}
+          className={`h-9 w-9 rounded-full font-semibold text-sm transition-all mx-auto ${
+            selected
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+              : today
+              ? 'ring-2 ring-blue-500 text-blue-700 font-bold'
+              : 'text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          {day}
+        </motion.button>
+      );
+    }
+    return cells;
+  };
+
+  const displayValue = (() => {
+    const parsed = parseDate(value);
+    return parsed ? formatMDY(parsed) : '';
+  })();
+
+  const handleOpen = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const popupHeight = 420;
+      if (spaceBelow < popupHeight && rect.top > popupHeight) {
+        setDropdownStyle({
+          position: 'fixed',
+          left: rect.left,
+          bottom: window.innerHeight - rect.top + 8,
+          width: 320,
+          zIndex: 9999,
+        });
+      } else {
+        setDropdownStyle({
+          position: 'fixed',
+          left: rect.left,
+          top: rect.bottom + 8,
+          width: 320,
+          zIndex: 9999,
+        });
+      }
+    }
+    setIsOpen(!isOpen);
+  };
 
   return (
-    <div className={`relative ${className}`}>
-      <input
-        type="text"
-        value={value}
-        onClick={() => setIsOpen(!isOpen)}
-        readOnly
-        placeholder={placeholder}
-        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
-      />
+    <div className={`relative ${className}`} ref={triggerRef}>
+      <div className="relative">
+        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <input
+          type="text"
+          value={displayValue}
+          onClick={handleOpen}
+          readOnly
+          placeholder={placeholder}
+          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+        />
+      </div>
 
       <AnimatePresence>
         {isOpen && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
+              className="fixed inset-0 z-[9998]"
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-40"
             />
 
             <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              initial={{ opacity: 0, y: -10, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute left-0 top-full mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 p-4 w-[280px]"
+              exit={{ opacity: 0, y: -10, scale: 0.97 }}
+              transition={{ duration: 0.18 }}
+              style={dropdownStyle}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
             >
-              {/* Month/Year Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-900">
-                    {months[currentDate.getMonth()]} {currentDate.getFullYear()}
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </div>
-                <div className="flex items-center gap-1">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={handlePreviousMonth}
-                    className="p-1 hover:bg-slate-100 rounded transition-colors"
-                  >
-                    <ChevronLeft className="w-5 h-5 text-slate-600" />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={handleNextMonth}
-                    className="p-1 hover:bg-slate-100 rounded transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5 text-slate-600" />
-                  </motion.button>
-                </div>
+              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-4 py-3 flex items-center justify-between">
+                <h3 className="text-white font-bold text-sm">{title}</h3>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
               </div>
 
-              {/* Days of Week Header */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {daysOfWeek.map((day, index) => (
-                  <div key={index} className="text-center text-xs font-medium text-slate-500 py-1">
-                    {day}
-                  </div>
-                ))}
+              <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 px-4 py-2.5 flex items-center justify-between border-b border-slate-100">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={previousMonth}
+                  className="p-1.5 hover:bg-white/60 rounded-lg transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4 text-slate-600" />
+                </motion.button>
+
+                <p className="text-sm font-bold text-slate-800">
+                  {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                </p>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextMonth}
+                  className="p-1.5 hover:bg-white/60 rounded-lg transition-all"
+                >
+                  <ChevronRight className="w-4 h-4 text-slate-600" />
+                </motion.button>
               </div>
 
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {days.slice(0, 35).map((day, index) => (
-                  <div key={index}>
-                    {day !== null ? (
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDateSelect(day)}
-                        className={`w-full aspect-square flex items-center justify-center text-sm rounded-lg transition-all ${
-                          isSelected(day)
-                            ? 'bg-blue-600 text-white font-bold'
-                            : isToday(day)
-                            ? 'bg-slate-100 text-slate-900 font-semibold'
-                            : 'text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        {day}
-                      </motion.button>
-                    ) : (
-                      <div className="w-full aspect-square" />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Show second row if needed */}
-              {days.length > 35 && (
-                <div className="grid grid-cols-7 gap-1 mt-1">
-                  {days.slice(35).map((day, index) => (
-                    <div key={index + 35}>
-                      {day !== null ? (
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDateSelect(day)}
-                          className={`w-full aspect-square flex items-center justify-center text-sm rounded-lg transition-all ${
-                            isSelected(day)
-                              ? 'bg-blue-600 text-white font-bold'
-                              : isToday(day)
-                              ? 'bg-slate-100 text-slate-900 font-semibold'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          }`}
-                        >
-                          {day}
-                        </motion.button>
-                      ) : (
-                        <div className="w-full aspect-square" />
-                      )}
+              <div className="p-3">
+                <div className="grid grid-cols-7 gap-1 mb-1">
+                  {dayNames.map((d, i) => (
+                    <div key={`day-${i}`} className="h-8 flex items-center justify-center">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">{d}</span>
                     </div>
                   ))}
                 </div>
-              )}
 
-              {/* Footer Actions */}
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-200">
-                <button
-                  onClick={handleClear}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={handleToday}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                >
-                  Today
-                </button>
+                <div className="grid grid-cols-7 gap-1">
+                  {renderDays()}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={setToday}
+                    className="flex-1 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+                  >
+                    Today
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={clearDate}
+                    className="px-4 py-2 text-slate-500 hover:text-red-600 hover:bg-red-50 text-sm font-medium rounded-xl transition-colors"
+                  >
+                    Clear
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </>

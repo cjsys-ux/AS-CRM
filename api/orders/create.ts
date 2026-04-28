@@ -1,11 +1,26 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_mongodb';
 
-function generateOrderNumber(): string {
-  const now = new Date();
-  const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `ORD-${datePart}-${rand}`;
+// Matches the reference scheme (Use as reference/src/supabase/functions/
+// server/index.tsx:2387-2393): sequential ORD-NNNN starting from the max
+// existing order number. Scans both legacy random `ORD-YYYYMMDD-NNNN`
+// and the target's earlier records so we never reissue a used number.
+async function nextOrderNumber(db: Awaited<ReturnType<typeof getDb>>): Promise<string> {
+  const rows = await db
+    .collection('orders')
+    .find({}, { projection: { orderNumber: 1 } })
+    .toArray();
+  let maxNum = 1000; // so the first allocated number is ORD-1001
+  for (const r of rows) {
+    const on = (r as { orderNumber?: unknown }).orderNumber;
+    if (typeof on !== 'string') continue;
+    const match = on.match(/ORD-(\d+)(?:-(\d+))?$/);
+    if (!match) continue;
+    // Legacy random format ORD-YYYYMMDD-NNNN → take the trailing 4-digit group
+    const n = parseInt(match[2] ?? match[1], 10);
+    if (Number.isFinite(n) && n > maxNum) maxNum = n;
+  }
+  return `ORD-${String(maxNum + 1).padStart(4, '0')}`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,10 +38,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const db = await getDb();
 
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await nextOrderNumber(db);
+
+    // Auto-generate incremental PP-XXXXX project number for the Orders module
+    // (mirrors api/projects/create.ts's ADP-XXXXX scheme for Pipeline products).
+    // Respect an explicit projectNumber on the request body if the caller
+    // already supplied one.
+    let projectNumber: string | null = typeof body.projectNumber === 'string' && body.projectNumber.trim()
+      ? body.projectNumber.trim()
+      : null;
+    if (!projectNumber) {
+      const lastOrder = await db
+        .collection('orders')
+        .find({ projectNumber: { $regex: /^PP-/ } })
+        .sort({ projectNumber: -1 })
+        .limit(1)
+        .toArray();
+      let nextNumber = 1;
+      if (lastOrder.length > 0 && lastOrder[0].projectNumber) {
+        const match = String(lastOrder[0].projectNumber).match(/PP-(\d+)/);
+        if (match) nextNumber = parseInt(match[1], 10) + 1;
+      }
+      projectNumber = `PP-${String(nextNumber).padStart(5, '0')}`;
+    }
 
     const doc: Record<string, unknown> = {
       orderNumber,
+      projectNumber,
       customer: customer as string,
       customerId: body.customerId ?? null,
       email: email as string,
