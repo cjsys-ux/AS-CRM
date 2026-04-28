@@ -864,82 +864,102 @@ function DealCard({ lead, stage, onEdit, onDelete, onMove, onDragStart, isSelect
   const daysSinceActivity = lead.lastActivity ? Math.floor((Date.now() - new Date(lead.lastActivity).getTime()) / 86400000) : 0;
   const isStale = daysSinceActivity > 7;
 
+  const inHandsLabel = lead.inHandsDate
+    ? new Date(lead.inHandsDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null;
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      exit={{ opacity: 0, scale: 0.97 }}
       draggable
       onDragStart={(e: any) => onDragStart(e, lead.id)}
-      className={`bg-white rounded-xl border shadow-sm hover:shadow-lg hover:border-slate-300 transition-all group cursor-grab active:cursor-grabbing active:shadow-xl active:scale-[1.02] relative overflow-hidden ${isSelected ? 'border-indigo-400 ring-2 ring-indigo-500/20' : 'border-slate-200/80'}`}
+      className={`group relative bg-white border rounded-md transition-all cursor-grab active:cursor-grabbing
+        ${isSelected ? 'border-indigo-400 ring-1 ring-indigo-400/40' : 'border-slate-200 hover:border-slate-300 hover:shadow-[0_2px_8px_rgba(15,23,42,0.06)]'}
+      `}
     >
-      {/* Color accent line */}
-      <div className="h-0.5 w-full" style={{ backgroundColor: stage.color }} />
-
-      <div className="p-3.5">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-2.5">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
-            {/* Bulk select checkbox */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onSelect(lead.id); }}
-              className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 hover:border-indigo-400 bg-white'}`}
-            >
-              {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
-            </button>
-            <div className="flex-1 min-w-0">
-              <h4 onClick={(e) => { e.stopPropagation(); onView(); }} className="text-[13px] font-bold text-slate-900 truncate leading-tight cursor-pointer hover:text-indigo-600 transition-colors">{lead.title}</h4>
-              <p className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center gap-1">
-                <Building2 className="w-3 h-3 shrink-0" />
-                {lead.company}
-              </p>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Amount */}
-        {lead.amount > 0 && (
-          <div className="flex items-center gap-1.5 mb-2">
-            <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="text-sm font-bold text-slate-900">${lead.amount.toLocaleString()}</span>
-            {lead.quantity > 0 && <span className="text-[10px] text-slate-400 ml-1">· {lead.quantity} units</span>}
-          </div>
-        )}
-
-        {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-          {lead.productType && <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600">{lead.productType}</span>}
-          <ScoreBadge score={lead.score} breakdown={lead.scoreBreakdown} />
-          {isStale && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200"><AlertTriangle className="w-2.5 h-2.5" />Stale</span>}
-        </div>
-
-        {/* Date */}
-        {lead.inHandsDate && (
-          <div className="flex items-center gap-1.5 mb-2.5 text-[11px] text-slate-500">
-            <Calendar className="w-3 h-3" />
-            <span>In-Hands: {new Date(lead.inHandsDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-          <div className="flex items-center gap-1.5">
-            {lead.ownerInitials && (
-              <div className="w-6 h-6 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-full flex items-center justify-center">
-                <span className="text-[9px] font-bold text-white">{lead.ownerInitials}</span>
-              </div>
+      <div className="px-3 pt-2.5 pb-2">
+        {/* Title row */}
+        <div className="flex items-start gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onSelect(lead.id); }}
+            aria-label={isSelected ? 'Deselect' : 'Select'}
+            className={`mt-[3px] w-3.5 h-3.5 rounded-sm flex items-center justify-center shrink-0 transition-all
+              ${isSelected
+                ? 'bg-indigo-600 border border-indigo-600'
+                : 'border border-slate-300 bg-white opacity-0 group-hover:opacity-100 hover:border-indigo-400'}`}
+          >
+            {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onView(); }}
+            className="text-left flex-1 min-w-0"
+          >
+            <h4 className="text-[13px] font-semibold text-slate-900 truncate leading-snug">{lead.title}</h4>
+            {lead.company && (
+              <p className="text-[11.5px] text-slate-500 truncate mt-px">{lead.company}</p>
             )}
-            <div className="flex flex-col">
-              {lead.owner && <span className="text-[10px] text-slate-700 font-semibold leading-tight">{lead.owner}</span>}
-              <span className="text-[10px] text-slate-400 font-medium">{lead.source}</span>
-            </div>
+          </button>
+          <ScoreBadge score={lead.score} breakdown={lead.scoreBreakdown} />
+        </div>
+
+        {/* Amount + qty + in-hands — single typographic line */}
+        {(lead.amount > 0 || inHandsLabel) && (
+          <div className="mt-2 flex items-baseline gap-2 text-[12px]">
+            {lead.amount > 0 && (
+              <span className="font-semibold text-slate-900 tabular-nums">${lead.amount.toLocaleString()}</span>
+            )}
+            {lead.quantity > 0 && (
+              <span className="text-slate-400 tabular-nums">{lead.quantity.toLocaleString()} units</span>
+            )}
+            {inHandsLabel && (
+              <span className="ml-auto text-slate-500 tabular-nums">In-hands {inHandsLabel}</span>
+            )}
           </div>
-          <div className="flex items-center gap-0.5">
-            <button className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Phone className="w-3 h-3" /></button>
-            <button className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Mail className="w-3 h-3" /></button>
-            <button onClick={onEdit} className="p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"><Edit className="w-3 h-3" /></button>
+        )}
+
+        {/* Footer: owner / product / actions */}
+        <div className="mt-2 flex items-center gap-2">
+          {lead.ownerInitials && (
+            <div
+              className="w-5 h-5 rounded-full bg-slate-700 flex items-center justify-center shrink-0"
+              title={lead.owner}
+            >
+              <span className="text-[9px] font-semibold text-white tracking-wide">{lead.ownerInitials}</span>
+            </div>
+          )}
+          {lead.productType && (
+            <span className="text-[11px] text-slate-500 truncate">{lead.productType}</span>
+          )}
+          {isStale && (
+            <span className="inline-flex items-center gap-0.5 text-[10.5px] font-medium text-amber-700">
+              <AlertTriangle className="w-2.5 h-2.5" />Stale
+            </span>
+          )}
+          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); }}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+              title="Call"
+            >
+              <Phone className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); }}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+              title="Email"
+            >
+              <Mail className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+              title="Edit"
+            >
+              <Edit className="w-3 h-3" />
+            </button>
           </div>
         </div>
       </div>
@@ -1261,127 +1281,107 @@ export function SalesLeadModule() {
 
   return (
     <>
-      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/30 overflow-hidden h-full">
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden h-full">
         {/* Header */}
-        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="max-w-[2200px] mx-auto">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                  <Target className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Deals</h1>
-                    <span className="px-2.5 py-1 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-lg text-[11px] font-bold text-indigo-700 uppercase tracking-wider">Pipeline</span>
-                  </div>
-                  <p className="text-slate-500 text-sm flex items-center gap-1.5 mt-0.5">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Sales lead pipeline management
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('board')}
-                    className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 text-sm font-semibold transition-colors ${viewMode === 'board' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                    <span className="hidden sm:inline">Board</span>
-                  </button>
-                  <div className="w-px h-5 bg-slate-200" />
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`flex items-center gap-1.5 px-3 py-2 sm:py-2.5 text-sm font-semibold transition-colors ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
-                  >
-                    <List className="w-4 h-4" />
-                    <span className="hidden sm:inline">List</span>
-                  </button>
-                </div>
+        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3.5">
+          <div className="max-w-[2200px] mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-baseline gap-3 min-w-0">
+              <h1 className="text-2xl font-bold text-slate-900 leading-none">Deals</h1>
+              <span className="text-sm text-slate-500 leading-none">
+                {activeDeals} active <span className="text-slate-300">·</span> {filteredLeads.length} total
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
                 <button
-                  onClick={() => setEmbedOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors text-sm"
-                  title="Embed lead capture form"
+                  onClick={() => setViewMode('board')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'board' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <Code className="w-4 h-4" /> <span className="hidden md:inline">Embed</span>
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Board</span>
                 </button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => { setEditLead(null); setDrawerOpen(true); }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Create</span> Deal
-                </motion.button>
+                  <List className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">List</span>
+                </button>
               </div>
+              <button
+                onClick={() => setEmbedOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                title="Embed lead capture form"
+              >
+                <Code className="w-3.5 h-3.5" /> <span className="hidden md:inline">Embed</span>
+              </button>
+              <button
+                onClick={fetchLeads}
+                className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+              <div className="w-px h-5 bg-slate-200 mx-0.5" />
+              <button
+                onClick={() => { setEditLead(null); setDrawerOpen(true); }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-semibold rounded-lg hover:shadow-md hover:shadow-indigo-500/20 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" /> Create deal
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Metrics */}
+        {/* Metrics — inline strip */}
         {showMetrics && (
-          <div className="px-4 sm:px-6 lg:px-8 mt-4 sm:mt-5 mb-4">
-            <div className="max-w-[2200px] mx-auto">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                {[
-                  { label: 'Active Deals', value: String(activeDeals), icon: Target, gradient: 'from-indigo-500 to-indigo-600', shadow: 'shadow-indigo-500/15' },
-                  { label: 'Pipeline Value', value: `$${totalPipelineValue.toLocaleString()}`, icon: DollarSign, gradient: 'from-blue-500 to-blue-600', shadow: 'shadow-blue-500/15' },
-                  { label: 'Weighted Value', value: `$${Math.round(weightedValue).toLocaleString()}`, icon: TrendingUp, gradient: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/15' },
-                  { label: 'Closed Won', value: `$${wonValue.toLocaleString()}`, icon: CheckCircle2, gradient: 'from-emerald-500 to-green-600', shadow: 'shadow-emerald-500/15' },
-                  { label: 'Closed Lost', value: `$${lostValue.toLocaleString()}`, icon: XCircle, gradient: 'from-red-500 to-red-600', shadow: 'shadow-red-500/15' },
-                ].map((stat, i) => {
-                  const Icon = stat.icon;
-                  return (
-                    <motion.div key={stat.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                      className={`bg-white rounded-2xl border border-slate-200/60 p-4 shadow-lg ${stat.shadow}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center shadow-sm`}>
-                          <Icon className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <div className="text-[11px] text-slate-500 font-medium">{stat.label}</div>
-                          <div className="text-lg font-bold text-slate-900">{stat.value}</div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+          <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2 border-b border-slate-100 bg-white">
+            <div className="max-w-[2200px] mx-auto flex flex-wrap items-baseline gap-x-6 gap-y-1.5 text-[13px]">
+              <span className="text-slate-500">Pipeline <strong className="text-slate-900 font-semibold tabular-nums">${totalPipelineValue.toLocaleString()}</strong></span>
+              <span className="text-slate-500">Weighted <strong className="text-slate-900 font-semibold tabular-nums">${Math.round(weightedValue).toLocaleString()}</strong></span>
+              <span className="text-slate-500">Won <strong className="text-emerald-700 font-semibold tabular-nums">${wonValue.toLocaleString()}</strong></span>
+              <span className="text-slate-500">Lost <strong className="text-slate-900 font-semibold tabular-nums">${lostValue.toLocaleString()}</strong></span>
             </div>
           </div>
         )}
 
         {/* Search + Filters */}
-        <div className={`px-4 sm:px-6 lg:px-8 mb-4 shrink-0 ${!showMetrics ? 'mt-4 sm:mt-5' : ''}`}>
-          <div className="max-w-[2200px] mx-auto">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-              <div className="flex-1 min-w-[180px] relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input type="text" placeholder="Search deals..." value={search} onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 shadow-sm" />
-              </div>
-              <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="hidden sm:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
-                <option>All Sources</option>
-                {LEAD_SOURCES.map(s => <option key={s}>{s}</option>)}
-              </select>
-              <select value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} className="hidden sm:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
-                <option>All Owners</option>
-                {owners.map(o => <option key={o}>{o}</option>)}
-              </select>
-              <select value={sourceCategoryFilter} onChange={e => setSourceCategoryFilter(e.target.value)} className="hidden md:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
-                <option>All Categories</option>
-                {SOURCE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-              <select value={minScoreFilter} onChange={e => setMinScoreFilter(e.target.value)} className="hidden md:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
-                <option>All Scores</option>
-                <option>Hot 71+</option>
-                <option>Warm 41+</option>
-              </select>
-              <button onClick={() => setShowMetrics(!showMetrics)} className={`p-2.5 rounded-xl border transition-all shadow-sm ${showMetrics ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                <BarChart3 className="w-4 h-4" />
-              </button>
-              <button onClick={fetchLeads} className="p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-colors">
-                <RefreshCw className={`w-4 h-4 text-slate-500 ${loading ? 'animate-spin' : ''}`} />
+        <div className="px-4 sm:px-6 lg:px-8 py-2.5 border-b border-slate-200 bg-white shrink-0">
+          <div className="max-w-[2200px] mx-auto flex flex-wrap items-center gap-2">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search name, company, contact…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-transparent rounded-md text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-300 focus:ring-2 focus:ring-indigo-500/15 transition-all"
+              />
+            </div>
+            <select value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} className="hidden sm:block px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[12px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:border-slate-400 cursor-pointer">
+              <option>All Owners</option>
+              {owners.map(o => <option key={o}>{o}</option>)}
+            </select>
+            <select value={sourceCategoryFilter} onChange={e => setSourceCategoryFilter(e.target.value)} className="hidden md:block px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[12px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:border-slate-400 cursor-pointer">
+              <option>All Categories</option>
+              {SOURCE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </select>
+            <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="hidden md:block px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[12px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:border-slate-400 cursor-pointer">
+              <option>All Sources</option>
+              {LEAD_SOURCES.map(s => <option key={s}>{s}</option>)}
+            </select>
+            <select value={minScoreFilter} onChange={e => setMinScoreFilter(e.target.value)} className="hidden lg:block px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[12px] font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:border-slate-400 cursor-pointer">
+              <option>All Scores</option>
+              <option>Hot 71+</option>
+              <option>Warm 41+</option>
+            </select>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={() => setShowMetrics(!showMetrics)}
+                className={`flex items-center gap-1.5 px-2 py-1.5 text-[12px] font-medium rounded-md transition-colors ${showMetrics ? 'text-indigo-600 hover:bg-indigo-50' : 'text-slate-500 hover:bg-slate-50'}`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{showMetrics ? 'Hide' : 'Show'} metrics</span>
               </button>
             </div>
           </div>
@@ -1389,143 +1389,134 @@ export function SalesLeadModule() {
 
         {/* Bulk Action Bar */}
         {selectedIds.size > 0 && (
-          <div className="px-4 sm:px-6 lg:px-8 mb-3 shrink-0">
-            <div className="max-w-[2200px] mx-auto">
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-indigo-600 rounded-xl px-4 py-3 flex items-center gap-3 flex-wrap shadow-lg shadow-indigo-500/20">
-                <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-bold">{selectedIds.size} selected</span>
-                  <button onClick={clearSelection} className="p-1 hover:bg-white/15 rounded-lg transition-colors"><X className="w-4 h-4 text-white/70" /></button>
-                </div>
-                <div className="h-5 w-px bg-white/20" />
-                <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/90 hover:bg-red-500 text-white text-xs font-semibold rounded-lg transition-colors">
+          <motion.div
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+            className="px-4 sm:px-6 lg:px-8 py-2 bg-slate-900 shrink-0"
+          >
+            <div className="max-w-[2200px] mx-auto flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-white text-[13px] font-semibold tabular-nums">{selectedIds.size}</span>
+                <span className="text-slate-400 text-[13px]">selected</span>
+                <button onClick={clearSelection} className="ml-1 p-0.5 hover:bg-white/10 rounded transition-colors">
+                  <X className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
+                </button>
+              </div>
+              <div className="h-4 w-px bg-white/15" />
+              <select
+                value={bulkStage}
+                onChange={e => { if (e.target.value) handleBulkStatusUpdate(e.target.value); }}
+                className="px-2 py-1 bg-transparent hover:bg-white/10 text-white text-[12px] font-medium rounded border border-white/15 cursor-pointer focus:outline-none [&>option]:text-slate-900"
+              >
+                <option value="">Move to stage…</option>
+                {PIPELINE_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+              <div className="relative" ref={bulkOwnerRef}>
+                <button
+                  onClick={async () => {
+                    if (bulkUsers.length === 0) {
+                      try {
+                        const res = await fetch('/api/users/list', { headers: headers_json });
+                        const data = await res.json();
+                        if (data.success) setBulkUsers(data.users || []);
+                      } catch {}
+                    }
+                    setShowBulkOwnerList(!showBulkOwnerList);
+                  }}
+                  className="flex items-center gap-1.5 px-2 py-1 hover:bg-white/10 text-white text-[12px] font-medium rounded border border-white/15 transition-colors"
+                >
+                  <User className="w-3 h-3" /> Assign owner
+                </button>
+                <AnimatePresence>
+                  {showBulkOwnerList && (
+                    <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg border border-slate-200 shadow-xl z-50 max-h-48 overflow-y-auto">
+                      {bulkUsers.map(user => {
+                        const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+                        const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+                        return (
+                          <button key={user.id} type="button" onClick={() => handleBulkOwnerUpdate(name)} className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2.5 border-b border-slate-100 last:border-0 transition-colors">
+                            <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center shrink-0">
+                              <span className="text-[9px] font-semibold text-white">{initials}</span>
+                            </div>
+                            <span className="text-[13px] text-slate-900">{name}</span>
+                          </button>
+                        );
+                      })}
+                      {bulkUsers.length === 0 && <div className="px-3 py-3 text-[12px] text-slate-400 text-center">No users found</div>}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-2 py-1 text-red-300 hover:text-white hover:bg-red-500/80 text-[12px] font-medium rounded transition-colors">
                   <Trash2 className="w-3 h-3" /> Delete
                 </button>
-                <div className="h-5 w-px bg-white/20" />
-                <select
-                  value={bulkStage}
-                  onChange={e => { if (e.target.value) handleBulkStatusUpdate(e.target.value); }}
-                  className="px-3 py-1.5 bg-white/15 hover:bg-white/20 text-white text-xs font-semibold rounded-lg border border-white/20 cursor-pointer focus:outline-none [&>option]:text-slate-900"
-                >
-                  <option value="">Update Status...</option>
-                  {PIPELINE_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-                <div className="relative" ref={bulkOwnerRef}>
-                  <button
-                    onClick={async () => {
-                      if (bulkUsers.length === 0) {
-                        try {
-                          const res = await fetch('/api/users/list', { headers: headers_json });
-                          const data = await res.json();
-                          if (data.success) setBulkUsers(data.users || []);
-                        } catch {}
-                      }
-                      setShowBulkOwnerList(!showBulkOwnerList);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/20 text-white text-xs font-semibold rounded-lg border border-white/20 transition-colors"
-                  >
-                    <User className="w-3 h-3" /> Assign Owner
-                  </button>
-                  <AnimatePresence>
-                    {showBulkOwnerList && (
-                      <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                        {bulkUsers.map(user => {
-                          const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
-                          return (
-                            <button key={user.id} type="button" onClick={() => handleBulkOwnerUpdate(name)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-0 transition-colors">
-                              <div className="w-6 h-6 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-full flex items-center justify-center shrink-0">
-                                <span className="text-[9px] font-bold text-white">{name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}</span>
-                              </div>
-                              <span className="text-sm font-medium text-slate-900">{name}</span>
-                            </button>
-                          );
-                        })}
-                        {bulkUsers.length === 0 && <div className="px-4 py-3 text-xs text-slate-400 text-center">No users found</div>}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Pipeline Board */}
         {viewMode === 'board' ? (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden px-4 sm:px-6 lg:px-8 pt-4 pb-3">
           <div className="max-w-[2200px] mx-auto h-full">
-            <div className="flex gap-3 h-full" style={{ minWidth: `${visibleStages.length * 260}px` }}>
+            <div className="flex gap-3 h-full" style={{ minWidth: `${visibleStages.length * 280}px` }}>
               {visibleStages.map((stage) => {
                 const stageLeads = filteredLeads.filter(l => l.stage === stage.id);
                 const stageTotal = stageLeads.reduce((s, l) => s + l.amount, 0);
-                const stageWeighted = stageLeads.reduce((s, l) => s + l.amount * stage.weight, 0);
                 const isDragOver = dragOverStage === stage.id;
-                const isClosedCol = stage.id === 'closed-won' || stage.id === 'closed-lost';
 
                 return (
                   <div
                     key={stage.id}
-                    className={`flex-1 min-w-[250px] flex flex-col rounded-2xl transition-all ${
-                      isDragOver ? 'bg-indigo-50/70 ring-2 ring-indigo-400 ring-offset-2' : 'bg-white/50'
-                    }`}
+                    className="flex-1 min-w-[260px] flex flex-col"
                     onDragOver={e => onDragOver(e, stage.id)}
                     onDragLeave={onDragLeave}
                     onDrop={e => onDrop(e, stage.id)}
                   >
                     {/* Column Header */}
-                    <div className={`px-3 py-3 rounded-t-2xl border-b ${isDragOver ? 'border-indigo-200' : 'border-slate-200/60'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stage.color }} />
-                          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{stage.label}</h3>
-                          <span className="min-w-[20px] h-5 px-1.5 bg-slate-200/80 text-slate-600 rounded-full text-[10px] font-bold flex items-center justify-center">{stageLeads.length}</span>
+                    <div className="pb-2 mb-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+                          <h3 className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider truncate">{stage.label}</h3>
+                          <span className="text-[11px] text-slate-400 tabular-nums">{stageLeads.length}</span>
                         </div>
+                        <span className="text-[11px] text-slate-400 tabular-nums shrink-0">
+                          ${stageTotal >= 1000 ? `${Math.round(stageTotal / 1000)}k` : stageTotal.toLocaleString()}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Cards */}
-                    <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
-                      <AnimatePresence>
-                        {stageLeads.map(lead => (
-                          <DealCard
-                            key={lead.id} lead={lead} stage={stage}
-                            onEdit={() => { setEditLead(lead); setDrawerOpen(true); }}
-                            onDelete={() => handleDelete(lead.id)}
-                            onMove={(newStage) => handleMove(lead, newStage)}
-                            onDragStart={onDragStart}
-                            isSelected={selectedIds.has(lead.id)}
-                            onSelect={toggleSelect}
-                            onView={() => setViewingLead(lead)}
-                          />
-                        ))}
-                      </AnimatePresence>
-                      {stageLeads.length === 0 && (
-                        <div className={`flex flex-col items-center justify-center py-10 rounded-xl border-2 border-dashed transition-colors ${
-                          isDragOver ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-200 bg-slate-50/30'
-                        }`}>
-                          {isDragOver ? (
-                            <>
-                              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.5 }} className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center mb-2">
-                                <ArrowRight className="w-5 h-5 text-indigo-500" />
-                              </motion.div>
-                              <p className="text-xs font-semibold text-indigo-600">Drop here</p>
-                            </>
-                          ) : (
-                            <>
-                              <div className={`w-8 h-8 ${stage.bg} rounded-lg flex items-center justify-center mb-2`}>
-                                <Target className={`w-4 h-4 ${stage.text}`} />
-                              </div>
+                    {/* Cards container */}
+                    <div className={`flex-1 overflow-y-auto custom-scrollbar rounded-lg transition-colors ${
+                      isDragOver ? 'bg-indigo-50/60 ring-1 ring-indigo-300' : ''
+                    }`}>
+                      <div className="space-y-1.5 pb-2">
+                        <AnimatePresence>
+                          {stageLeads.map(lead => (
+                            <DealCard
+                              key={lead.id} lead={lead} stage={stage}
+                              onEdit={() => { setEditLead(lead); setDrawerOpen(true); }}
+                              onDelete={() => handleDelete(lead.id)}
+                              onMove={(newStage) => handleMove(lead, newStage)}
+                              onDragStart={onDragStart}
+                              isSelected={selectedIds.has(lead.id)}
+                              onSelect={toggleSelect}
+                              onView={() => setViewingLead(lead)}
+                            />
+                          ))}
+                        </AnimatePresence>
+                        {stageLeads.length === 0 && (
+                          <div className={`flex items-center justify-center py-8 rounded-md border border-dashed transition-colors ${
+                            isDragOver ? 'border-indigo-300 bg-white/60' : 'border-slate-200/70'
+                          }`}>
+                            {isDragOver ? (
+                              <p className="text-[11px] font-semibold text-indigo-600">Drop here</p>
+                            ) : (
                               <p className="text-[11px] text-slate-400">No deals</p>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="px-3 py-2.5 border-t border-slate-200/60 rounded-b-2xl bg-slate-50/30">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-500"><span className="font-bold text-slate-700">${stageTotal.toLocaleString()}</span> total</span>
-                        <span className="text-slate-400">{Math.round(stage.weight * 100)}% wt</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
