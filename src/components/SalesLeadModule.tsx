@@ -304,13 +304,17 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
   const custRef = useRef<HTMLDivElement>(null);
   const ownerRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLDivElement>(null);
+  const prospectRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showProspectMatches, setShowProspectMatches] = useState(false);
+  const [productCategories, setProductCategories] = useState<string[] | null>(null);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (custRef.current && !custRef.current.contains(e.target as Node)) setShowCustomerList(false);
       if (ownerRef.current && !ownerRef.current.contains(e.target as Node)) setShowOwnerList(false);
       if (contactRef.current && !contactRef.current.contains(e.target as Node)) setShowContactList(false);
+      if (prospectRef.current && !prospectRef.current.contains(e.target as Node)) setShowProspectMatches(false);
     };
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h);
   }, []);
@@ -320,6 +324,16 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
       fetch('/api/users/list', { headers: headers_json })
         .then(r => r.json())
         .then(data => { if (data.success) setUsers(data.users || []); })
+        .catch(() => {});
+    }
+    if (isOpen && productCategories === null) {
+      fetch('/api/settings/product-database/get', { headers: headers_json })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.settings?.categories)) {
+            setProductCategories(data.settings.categories);
+          }
+        })
         .catch(() => {});
     }
   }, [isOpen]);
@@ -364,7 +378,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
     finally { setLoadingCustomers(false); }
   }, []);
 
-  useEffect(() => { if (isExistingCompany && customers.length === 0) fetchCustomers(); }, [isExistingCompany]);
+  useEffect(() => { if (isOpen && customers.length === 0) fetchCustomers(); }, [isOpen]);
 
   const filteredCustomers = customers.filter(c =>
     c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
@@ -550,7 +564,66 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
                         </AnimatePresence>
                       </div>
                     ) : (
-                      <input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Company name" className={inputCls} />
+                      <div className="relative" ref={prospectRef}>
+                        <input
+                          value={form.company}
+                          onChange={e => { setForm({ ...form, company: e.target.value }); setShowProspectMatches(true); }}
+                          onFocus={() => setShowProspectMatches(true)}
+                          placeholder="Company name"
+                          className={inputCls}
+                        />
+                        <AnimatePresence>
+                          {showProspectMatches && form.company.trim().length >= 2 && (() => {
+                            const q = form.company.trim().toLowerCase();
+                            const prospectMatches = customers
+                              .filter(c => c.name?.toLowerCase().includes(q))
+                              .slice(0, 6);
+                            if (prospectMatches.length === 0) return null;
+                            return (
+                              <motion.div
+                                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                                className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 max-h-60 overflow-y-auto"
+                              >
+                                <div className="px-3 py-2 border-b border-slate-100 bg-amber-50/60">
+                                  <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                                    <AlertTriangle className="w-3 h-3" /> Existing customer match — link instead?
+                                  </p>
+                                </div>
+                                {prospectMatches.map(cust => (
+                                  <button
+                                    key={cust.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setIsExistingCompany(true);
+                                      selectCustomer(cust);
+                                      setShowProspectMatches(false);
+                                    }}
+                                    className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-0 transition-colors"
+                                  >
+                                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-lg flex items-center justify-center shrink-0">
+                                      <span className="text-[10px] font-bold text-white">{cust.name?.substring(0, 2).toUpperCase()}</span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-semibold text-slate-900 truncate">{cust.name}</div>
+                                      <div className="text-[11px] text-slate-500 truncate">{(cust.contacts?.length || 0)} contact{(cust.contacts?.length || 0) !== 1 ? 's' : ''}</div>
+                                    </div>
+                                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 ml-auto shrink-0" />
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => setShowProspectMatches(false)}
+                                  className="w-full text-left px-4 py-2.5 hover:bg-slate-50 transition-colors border-t border-slate-100"
+                                >
+                                  <span className="text-[11px] text-slate-500">
+                                    Continue with new prospect: <span className="font-semibold text-slate-700">{form.company}</span>
+                                  </span>
+                                </button>
+                              </motion.div>
+                            );
+                          })()}
+                        </AnimatePresence>
+                      </div>
                     )}
                   </div>
 
@@ -564,7 +637,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
                   <div className="grid grid-cols-3 gap-3">
                     <CustomDropdown label="Lead Source" value={form.source} options={LEAD_SOURCES.map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, source: v })} />
-                    <CustomDropdown label="Product Type" value={form.productType} options={PRODUCT_TYPES.map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, productType: v })} />
+                    <CustomDropdown label="Product Type" value={form.productType} options={(productCategories ?? PRODUCT_TYPES).map(s => ({ value: s, label: s }))} onChange={v => setForm({ ...form, productType: v })} />
                     <div>
                       <label className={labelCls}>Quantity</label>
                       <input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} placeholder="500" className={inputCls} />

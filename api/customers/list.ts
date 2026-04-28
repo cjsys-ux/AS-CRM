@@ -12,6 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const customers = await db.collection('customers').find({}).sort({ name: 1 }).toArray();
 
     return res.status(200).json({
+      success: true,
       customers: customers.map((c) => ({
         ...c,
         id: c._id.toString(),
