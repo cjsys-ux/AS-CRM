@@ -90,13 +90,28 @@ const menuData: MenuItem[] = [
 
 interface SidebarProps {
   onNavigate?: (page: string) => void;
+  activeItem?: string;
   isMobileMenuOpen?: boolean;
   onCloseMobileMenu?: () => void;
 }
 
-export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMenu }: SidebarProps = {}) {
-  const [activeItem, setActiveItem] = useState('home');
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+const normalizeActiveItem = (id: string) => (id === 'dashboard' ? 'home' : id);
+
+const findParentSectionId = (childId: string): string | null => {
+  for (const item of menuData) {
+    if (item.subItems?.some((sub) => sub.id === childId)) {
+      return item.id;
+    }
+  }
+  return null;
+};
+
+export function Sidebar({ onNavigate, activeItem: activeItemProp, isMobileMenuOpen = false, onCloseMobileMenu }: SidebarProps = {}) {
+  const [internalActiveItem, setInternalActiveItem] = useState(() => normalizeActiveItem(activeItemProp ?? 'home'));
+  const activeItem = activeItemProp !== undefined ? normalizeActiveItem(activeItemProp) : internalActiveItem;
+  const [expandedSection, setExpandedSection] = useState<string | null>(() =>
+    activeItemProp ? findParentSectionId(normalizeActiveItem(activeItemProp)) : null
+  );
   const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
@@ -105,8 +120,16 @@ export function Sidebar({ onNavigate, isMobileMenuOpen = false, onCloseMobileMen
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (activeItemProp === undefined) return;
+    const parentId = findParentSectionId(normalizeActiveItem(activeItemProp));
+    if (parentId) {
+      setExpandedSection(parentId);
+    }
+  }, [activeItemProp]);
+
   const handleItemClick = (itemId: string) => {
-    setActiveItem(itemId);
+    setInternalActiveItem(itemId);
     if (onNavigate) {
       onNavigate(itemId);
     }

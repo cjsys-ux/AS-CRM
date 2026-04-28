@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Sidebar';
@@ -40,9 +41,21 @@ export interface UserProfile {
   timezone: string;
 }
 
+const CURRENT_PAGE_STORAGE_KEY = 'as-crm:currentPage';
+
 export default function App() {
   const { isAuthenticated, isLoading, user, logout } = useAuth();
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem(CURRENT_PAGE_STORAGE_KEY);
+      return stored && stored !== 'dashboard' ? stored : 'home';
+    } catch {
+      return 'home';
+    }
+  });
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+  const isFirstPageRender = useRef(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     firstName: '',
@@ -87,10 +100,27 @@ export default function App() {
       .catch(() => {});
   }, [user?.sub]);
 
+  useEffect(() => {
+    if (isFirstPageRender.current) {
+      isFirstPageRender.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem(CURRENT_PAGE_STORAGE_KEY, currentPage);
+    } catch {}
+    setIsPageLoading(true);
+    contentScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    const timer = setTimeout(() => setIsPageLoading(false), 350);
+    return () => clearTimeout(timer);
+  }, [currentPage]);
+
   const handleNavigate = (page: string) => {
     if (page === 'logout') {
+      try {
+        localStorage.removeItem(CURRENT_PAGE_STORAGE_KEY);
+      } catch {}
       logout();
-      setCurrentPage('dashboard');
+      setCurrentPage('home');
     } else {
       setCurrentPage(page);
     }
@@ -102,6 +132,8 @@ export default function App() {
 
   const renderContent = () => {
     switch (currentPage) {
+      case 'home':
+        return <Dashboard />;
       case 'profile':
         return <ProfileSettings userProfile={userProfile} onUpdate={handleProfileUpdate} />;
       case 'settings':
@@ -188,8 +220,9 @@ export default function App() {
 
   return (
     <div className="w-full h-screen overflow-hidden flex bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-      <Sidebar 
-        onNavigate={handleNavigate} 
+      <Sidebar
+        onNavigate={handleNavigate}
+        activeItem={currentPage}
         isMobileMenuOpen={isMobileMenuOpen}
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
@@ -201,10 +234,16 @@ export default function App() {
           userProfile={userProfile}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
-        <div className="flex-1 overflow-y-auto">
-          <AnimatePresence>
-            {renderContent()}
-          </AnimatePresence>
+        <div ref={contentScrollRef} className="flex-1 overflow-y-auto">
+          {isPageLoading ? (
+            <div className="size-full flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            </div>
+          ) : (
+            <AnimatePresence>
+              <div key={currentPage}>{renderContent()}</div>
+            </AnimatePresence>
+          )}
         </div>
       </div>
       <Toaster position="top-right" richColors />
