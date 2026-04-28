@@ -1,11 +1,18 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Upload, Image as ImageIcon, ChevronDown, FileImage, Trash2, Check, AlertCircle } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, ChevronDown, FileImage, Trash2, Check, AlertCircle, DollarSign } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { statuses, productTypes } from '../utils/mockData';
 import { createPortal } from 'react-dom';
 
 // ── Size Variants Editor ──
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+
+const formatQty = (value: number | string) => {
+  const raw = String(value ?? '').replace(/[^\d]/g, '');
+  if (!raw) return '';
+  return parseInt(raw, 10).toLocaleString();
+};
+const stripCommas = (value: string) => value.replace(/,/g, '');
 
 function SizeVariantsEditor({ sizes, onChange }: { sizes: string[]; onChange: (sizes: string[]) => void }) {
   const [customSize, setCustomSize] = useState('');
@@ -209,6 +216,10 @@ interface EditProductInfoDrawerProps {
     competitorName?: string;
     competitorLink?: string;
     competitorPrice?: string;
+    pricePerUnit?: number;
+    yearlyQty?: number;
+    totalValue?: number;
+    targetMargin?: string;
     artTemplate?: string;
     artTemplateName?: string;
   };
@@ -220,6 +231,9 @@ interface EditProductInfoDrawerProps {
 
 export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave, linkedVendors, checklistProgress, onOpenLinkVendor }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
+  const [pricePerUnitText, setPricePerUnitText] = useState(
+    productInfo.pricePerUnit ? String(productInfo.pricePerUnit) : ''
+  );
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
   const [dbClients, setDbClients] = useState<any[]>([]);
@@ -276,6 +290,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
   // Sync formData when productInfo changes (and reset transient upload state)
   useEffect(() => {
     setFormData(productInfo);
+    setPricePerUnitText(productInfo.pricePerUnit ? String(productInfo.pricePerUnit) : '');
     setImagePreview(productInfo.image);
     setUploadedImageKey(null);
     setResolvedImageUrl(null);
@@ -385,6 +400,14 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
     setSaveError(null);
     if (productId) {
       try {
+        const yearlyQtyNum = typeof formData.yearlyQty === 'number'
+          ? formData.yearlyQty
+          : parseInt(stripCommas(String(formData.yearlyQty ?? '')), 10) || 0;
+        const pricePerUnitNum = typeof formData.pricePerUnit === 'number'
+          ? formData.pricePerUnit
+          : parseFloat(String(formData.pricePerUnit ?? '')) || 0;
+        const totalValueNum = yearlyQtyNum * pricePerUnitNum;
+
         const payload: Record<string, unknown> = {
           id: productId,
           name: formData.name,
@@ -397,6 +420,10 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
           competitorName: formData.competitorName,
           competitorLink: formData.competitorLink,
           competitorPrice: formData.competitorPrice,
+          pricePerUnit: pricePerUnitNum,
+          yearlyQty: yearlyQtyNum,
+          totalValue: totalValueNum,
+          targetMargin: formData.targetMargin,
           htsCode: formData.htsCode,
           htsRate: formData.htsRate,
           htsBaseRate: formData.htsBaseRate,
@@ -428,8 +455,17 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
         return;
       }
     }
+    const yearlyQtyOut = typeof formData.yearlyQty === 'number'
+      ? formData.yearlyQty
+      : parseInt(stripCommas(String(formData.yearlyQty ?? '')), 10) || 0;
+    const pricePerUnitOut = typeof formData.pricePerUnit === 'number'
+      ? formData.pricePerUnit
+      : parseFloat(String(formData.pricePerUnit ?? '')) || 0;
     onSave({
       ...formData,
+      pricePerUnit: pricePerUnitOut,
+      yearlyQty: yearlyQtyOut,
+      totalValue: yearlyQtyOut * pricePerUnitOut,
       image: resolvedImageUrl ?? formData.image,
       ...(uploadedImageKey ? { imageKey: uploadedImageKey } : {}),
       artTemplate: artTemplateCleared ? '' : (resolvedArtTemplateUrl ?? formData.artTemplate),
@@ -677,6 +713,83 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                     sizes={formData.sizeVariants || []}
                     onChange={(sizes) => setFormData({ ...formData, sizeVariants: sizes })}
                   />
+                </div>
+
+                {/* Pricing & Quantity */}
+                <div className="border-t border-slate-200 pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow">
+                      <DollarSign className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Pricing & Quantity</h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Est. Yearly Qty</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="10,000"
+                        value={formatQty(formData.yearlyQty ?? 0)}
+                        onChange={(e) => {
+                          const raw = stripCommas(e.target.value).replace(/[^\d]/g, '');
+                          setFormData({ ...formData, yearlyQty: raw === '' ? 0 : parseInt(raw, 10) });
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Target Price/Unit</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">$</span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="9.99"
+                          value={pricePerUnitText}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/[^0-9.]/g, '');
+                            const firstDot = val.indexOf('.');
+                            if (firstDot !== -1) {
+                              val = val.slice(0, firstDot + 1) + val.slice(firstDot + 1).replace(/\./g, '');
+                            }
+                            setPricePerUnitText(val);
+                            setFormData({ ...formData, pricePerUnit: val === '' || val === '.' ? 0 : parseFloat(val) || 0 });
+                          }}
+                          className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Target Margin (%)</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="35"
+                          value={formData.targetMargin || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                            setFormData({ ...formData, targetMargin: val });
+                          }}
+                          className="w-full px-3 py-2 pr-8 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">Total Value</label>
+                      <div className="w-full px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm font-bold text-emerald-600">
+                        {((formData.pricePerUnit ?? 0) * (formData.yearlyQty ?? 0)) > 0
+                          ? `$${((formData.pricePerUnit ?? 0) * (formData.yearlyQty ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : <span className="text-slate-400 font-normal">—</span>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Art Template Section */}
