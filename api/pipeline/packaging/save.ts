@@ -12,6 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     length, lengthUnit,
     width, widthUnit,
     height, heightUnit,
+    unitsPerCase,
     primaryPackaging,
     customPrimaryPackaging,
     packagingMaterial,
@@ -38,6 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           widthUnit: widthUnit ?? 'in',
           height: height ?? null,
           heightUnit: heightUnit ?? 'in',
+          unitsPerCase:
+            typeof unitsPerCase === 'number' && Number.isInteger(unitsPerCase) && unitsPerCase >= 0
+              ? unitsPerCase
+              : null,
           primaryPackaging: primaryPackaging ?? '',
           customPrimaryPackaging: customPrimaryPackaging ?? '',
           packagingMaterial: packagingMaterial ?? '',
