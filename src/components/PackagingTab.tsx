@@ -158,6 +158,7 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
   const [widthUnit, setWidthUnit] = useState('in');
   const [height, setHeight] = useState('');
   const [heightUnit, setHeightUnit] = useState('in');
+  const [unitsPerCase, setUnitsPerCase] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Per-size packaging specs (mirrors variant dimensions in SpecificationsTab)
@@ -198,6 +199,7 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
     setLength(''); setLengthUnit('in');
     setWidth(''); setWidthUnit('in');
     setHeight(''); setHeightUnit('in');
+    setUnitsPerCase('');
     setPrimaryPackaging(''); setCustomPrimaryPackaging('');
     setPackagingMaterial(''); setCustomPackagingMaterial('');
     setSpecialRequirements('');
@@ -213,6 +215,11 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
       setWidthUnit(packaging.widthUnit ?? 'in');
       setHeight(packaging.height ?? '');
       setHeightUnit(packaging.heightUnit ?? 'in');
+      setUnitsPerCase(
+        packaging.unitsPerCase === null || packaging.unitsPerCase === undefined
+          ? ''
+          : String(packaging.unitsPerCase)
+      );
       setPrimaryPackaging(packaging.primaryPackaging ?? '');
       setCustomPrimaryPackaging(packaging.customPrimaryPackaging ?? '');
       setPackagingMaterial(packaging.packagingMaterial ?? '');
@@ -263,6 +270,7 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
           widthUnit,
           height: height ? parseFloat(height) : null,
           heightUnit,
+          unitsPerCase: unitsPerCase ? parseInt(unitsPerCase, 10) : null,
           primaryPackaging,
           customPrimaryPackaging,
           packagingMaterial,
@@ -441,6 +449,31 @@ export function PackagingTab({ productId = '', sizeVariants = [], onChecklistCha
                 />
                 <UnitDropdown options={['in', 'cm', 'mm']} defaultOption="in" value={heightUnit} onChange={setHeightUnit} disabled={!isEditing} />
               </div>
+            </div>
+          </div>
+
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Number of Units per Case</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                placeholder="0"
+                value={unitsPerCase}
+                onKeyDown={(e) => {
+                  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+                  setUnitsPerCase(digitsOnly);
+                }}
+                disabled={!isEditing}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              />
             </div>
           </div>
 
