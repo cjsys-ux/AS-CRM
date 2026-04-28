@@ -27,6 +27,8 @@ import { WMSModule } from './components/WMSModule';
 import { SalesLeadModule } from './components/SalesLeadModule';
 import { BillingModule } from './components/BillingModule';
 import { CustomerServiceModule } from './components/CustomerServiceModule';
+import { ExecutiveOverviewEditorial } from './components/dashboard/ExecutiveOverview.Editorial';
+import { ExecutiveOverviewKinetic } from './components/dashboard/ExecutiveOverview.Kinetic';
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from './components/ui/sonner';
 
@@ -134,6 +136,10 @@ export default function App() {
     switch (currentPage) {
       case 'home':
         return <Dashboard />;
+      case 'home-editorial':
+        return <ExecutiveOverviewEditorial />;
+      case 'home-kinetic':
+        return <ExecutiveOverviewKinetic />;
       case 'profile':
         return <ProfileSettings userProfile={userProfile} onUpdate={handleProfileUpdate} />;
       case 'settings':

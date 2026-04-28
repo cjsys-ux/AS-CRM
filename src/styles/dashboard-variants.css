@@ -1,0 +1,181 @@
+/* ==========================================================================
+   Dashboard variants — scoped typography & tokens.
+
+   Every rule below is contained under .dashboard-editorial or .dashboard-kinetic
+   so the rest of the application stays on the existing system stack.
+   ========================================================================== */
+
+/* ------------------------------- Editorial ------------------------------- */
+
+.dashboard-editorial {
+  --paper: oklch(0.985 0.008 75);
+  --paper-warm: oklch(0.965 0.012 70);
+  --rule: oklch(0.86 0.005 250);
+  --ink: oklch(0.16 0.02 250);
+  --ink-soft: oklch(0.36 0.015 250);
+  --ink-mute: oklch(0.55 0.012 250);
+  --accent: oklch(0.42 0.18 260);
+  --accent-soft: oklch(0.42 0.18 260 / 0.08);
+  --good: oklch(0.55 0.13 150);
+  --warn: oklch(0.66 0.14 65);
+  --bad: oklch(0.55 0.19 25);
+
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
+  --font-body: 'Spectral', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-feature-settings: 'ss01', 'liga', 'kern';
+}
+
+.dashboard-editorial .ed-display {
+  font-family: var(--font-display);
+  font-variation-settings: 'wdth' 90, 'opsz' 96;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+.dashboard-editorial .ed-kicker {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.dashboard-editorial .ed-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum', 'zero';
+}
+
+.dashboard-editorial .ed-rule {
+  border-color: var(--rule);
+}
+
+.dashboard-editorial .ed-dropcap::first-letter {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 4.6em;
+  line-height: 0.85;
+  float: left;
+  padding-right: 0.08em;
+  padding-top: 0.06em;
+  color: var(--ink);
+  font-variation-settings: 'wdth' 75, 'opsz' 96;
+}
+
+.dashboard-editorial .ed-pull {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: -0.015em;
+  font-variation-settings: 'wdth' 90, 'opsz' 56;
+}
+
+/* The masthead ticker */
+.dashboard-editorial .ed-masthead-mark {
+  font-family: var(--font-display);
+  font-variation-settings: 'wdth' 75, 'opsz' 96;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+}
+
+/* -------------------------------- Kinetic -------------------------------- */
+
+.dashboard-kinetic {
+  --cream: oklch(0.97 0.012 70);
+  --cream-deep: oklch(0.94 0.014 65);
+  --ink: oklch(0.22 0.05 320);
+  --ink-soft: oklch(0.42 0.04 320);
+  --ink-mute: oklch(0.6 0.03 320);
+  --rule: oklch(0.86 0.012 60);
+  --coral: oklch(0.68 0.16 25);
+  --coral-soft: oklch(0.68 0.16 25 / 0.12);
+  --olive: oklch(0.62 0.08 110);
+  --olive-soft: oklch(0.62 0.08 110 / 0.18);
+  --aubergine: oklch(0.36 0.08 320);
+  --good: oklch(0.6 0.12 145);
+  --warn: oklch(0.7 0.13 70);
+  --bad: oklch(0.6 0.18 22);
+
+  --font-display: 'Caprasimo', Georgia, serif;
+  --font-body: 'Funnel Sans', ui-sans-serif, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-feature-settings: 'ss01', 'kern';
+}
+
+.dashboard-kinetic .kn-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.dashboard-kinetic .kn-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum', 'zero';
+}
+
+.dashboard-kinetic .kn-label {
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-size: 11px;
+}
+
+.dashboard-kinetic .kn-card {
+  background: oklch(1 0 0 / 0.55);
+  border: 1px solid oklch(1 0 0 / 0.7);
+  border-radius: 24px;
+  box-shadow:
+    0 1px 1px oklch(0.22 0.05 320 / 0.04),
+    0 6px 20px oklch(0.22 0.05 320 / 0.06),
+    0 24px 60px oklch(0.22 0.05 320 / 0.04);
+  backdrop-filter: blur(2px);
+}
+
+.dashboard-kinetic .kn-card-bare {
+  background: var(--cream-deep);
+  border-radius: 24px;
+  box-shadow:
+    0 1px 1px oklch(0.22 0.05 320 / 0.04),
+    0 6px 20px oklch(0.22 0.05 320 / 0.05);
+}
+
+.dashboard-kinetic .kn-pulse-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.dashboard-kinetic .kn-pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.18;
+  animation: kn-pulse 2.6s ease-in-out infinite;
+}
+
+@keyframes kn-pulse {
+  0%, 100% { transform: scale(0.7); opacity: 0.18; }
+  50%      { transform: scale(1.3); opacity: 0.0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-kinetic .kn-pulse-dot::after { animation: none; }
+}
