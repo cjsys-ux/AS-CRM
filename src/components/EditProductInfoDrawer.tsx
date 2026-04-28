@@ -231,6 +231,9 @@ interface EditProductInfoDrawerProps {
 
 export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo, onSave, linkedVendors, checklistProgress, onOpenLinkVendor }: EditProductInfoDrawerProps) {
   const [formData, setFormData] = useState(productInfo);
+  const [pricePerUnitText, setPricePerUnitText] = useState(
+    productInfo.pricePerUnit ? String(productInfo.pricePerUnit) : ''
+  );
   const [imagePreview, setImagePreview] = useState(productInfo.image);
   const [projectManagers, setProjectManagers] = useState<{id: string; name: string; role?: string}[]>([]);
   const [dbClients, setDbClients] = useState<any[]>([]);
@@ -287,6 +290,7 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
   // Sync formData when productInfo changes (and reset transient upload state)
   useEffect(() => {
     setFormData(productInfo);
+    setPricePerUnitText(productInfo.pricePerUnit ? String(productInfo.pricePerUnit) : '');
     setImagePreview(productInfo.image);
     setUploadedImageKey(null);
     setResolvedImageUrl(null);
@@ -743,10 +747,15 @@ export function EditProductInfoDrawer({ isOpen, onClose, productId, productInfo,
                           type="text"
                           inputMode="decimal"
                           placeholder="9.99"
-                          value={formData.pricePerUnit ? String(formData.pricePerUnit) : ''}
+                          value={pricePerUnitText}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.]/g, '');
-                            setFormData({ ...formData, pricePerUnit: val === '' ? 0 : parseFloat(val) || 0 });
+                            let val = e.target.value.replace(/[^0-9.]/g, '');
+                            const firstDot = val.indexOf('.');
+                            if (firstDot !== -1) {
+                              val = val.slice(0, firstDot + 1) + val.slice(firstDot + 1).replace(/\./g, '');
+                            }
+                            setPricePerUnitText(val);
+                            setFormData({ ...formData, pricePerUnit: val === '' || val === '.' ? 0 : parseFloat(val) || 0 });
                           }}
                           className="w-full pl-7 pr-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                         />
