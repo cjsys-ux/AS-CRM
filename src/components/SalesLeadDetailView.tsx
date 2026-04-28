@@ -18,6 +18,16 @@ const PIPELINE_STAGES = [
   { id: 'closed-lost', label: 'Closed Lost', color: '#ef4444', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', weight: 0 },
 ];
 
+interface ScoreBreakdown {
+  source: number;
+  email: number;
+  phone: number;
+  amount: number;
+  existingCustomer: number;
+  disposablePenalty: number;
+  disqualifiedPenalty: number;
+}
+
 interface SalesLead {
   id: string;
   title: string;
@@ -31,6 +41,8 @@ interface SalesLead {
   amount: number;
   stage: string;
   source: string;
+  sourceCategory?: string | null;
+  sourceDetail?: string | null;
   productType: string;
   inHandsDate: string;
   createdAt: string;
@@ -42,7 +54,32 @@ interface SalesLead {
   quantity: number;
   tags: string[];
   documents?: { name: string; size: number; type: string; dataUrl?: string }[];
+  score?: number;
+  scoreBreakdown?: ScoreBreakdown;
+  scoreUpdatedAt?: string;
+  disqualifiedReason?: string | null;
+  emailType?: 'business' | 'personal' | 'disposable' | 'unknown' | null;
+  isExistingCustomer?: boolean;
+  enrichedCompany?: string | null;
+  utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string } | null;
+  referrer?: string | null;
+  landingPage?: string | null;
+  gclid?: string | null;
+  fbclid?: string | null;
+  capturedAt?: string | null;
+  captureFormId?: string | null;
+  formSubmitCount?: number;
 }
+
+const DISQUALIFIED_REASON_LABELS: Record<string, string> = {
+  'bad-fit': 'Bad Fit',
+  budget: 'No Budget',
+  timing: 'Bad Timing',
+  competitor: 'Went with Competitor',
+  'no-response': 'No Response',
+  spam: 'Spam / Invalid',
+  duplicate: 'Duplicate',
+};
 
 interface ActivityItem {
   id: string;
@@ -352,6 +389,34 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
                     </AnimatePresence>
                   </div>
 
+                  {typeof lead.score === 'number' && (
+                    <div className="px-3 py-3 rounded-xl border border-slate-200 mb-4 bg-slate-50/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Lead Score</span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${lead.score >= 71 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : lead.score >= 41 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                          <Star className="w-2.5 h-2.5" /> {lead.score}/100
+                        </span>
+                      </div>
+                      {lead.scoreBreakdown && (
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-slate-500">
+                          <span>Source: <strong className="text-slate-700">{lead.scoreBreakdown.source}</strong></span>
+                          <span>Email: <strong className="text-slate-700">{lead.scoreBreakdown.email}</strong></span>
+                          <span>Phone: <strong className="text-slate-700">{lead.scoreBreakdown.phone}</strong></span>
+                          <span>Amount: <strong className="text-slate-700">{lead.scoreBreakdown.amount}</strong></span>
+                          <span>Existing: <strong className="text-slate-700">{lead.scoreBreakdown.existingCustomer}</strong></span>
+                          <span>Penalty: <strong className="text-slate-700">{lead.scoreBreakdown.disposablePenalty + lead.scoreBreakdown.disqualifiedPenalty}</strong></span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {lead.stage === 'closed-lost' && lead.disqualifiedReason && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-xl border border-red-200 mb-4">
+                      <X className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                      <span className="text-[11px] font-semibold text-red-700">Lost: {DISQUALIFIED_REASON_LABELS[lead.disqualifiedReason] || lead.disqualifiedReason}</span>
+                    </div>
+                  )}
+
                   {daysSinceActivity > 7 && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-xl border border-amber-200 mb-4">
                       <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -372,6 +437,8 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
                 <div className="p-5 space-y-3.5">
                   <InfoRow label="Deal Owner" value={lead.owner} icon={User} />
                   <InfoRow label="Lead Source" value={lead.source} icon={Zap} />
+                  {lead.sourceCategory && <InfoRow label="Source Category" value={lead.sourceCategory} icon={Tag} />}
+                  {lead.sourceDetail && <InfoRow label="Source Detail" value={lead.sourceDetail} icon={Hash} />}
                   <InfoRow label="Product Type" value={lead.productType || '—'} icon={Tag} />
                   <InfoRow label="Quantity" value={lead.quantity > 0 ? `${lead.quantity.toLocaleString()} units` : '—'} icon={Hash} />
                   <InfoRow label="In-Hands Date" value={lead.inHandsDate ? formatDate(lead.inHandsDate) : '—'} icon={Calendar} />
@@ -380,6 +447,69 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
                   <InfoRow label="Deal ID" value={lead.id} icon={Hash} mono />
                 </div>
               </div>
+
+              {/* Attribution */}
+              {(lead.utm || lead.referrer || lead.landingPage || lead.capturedAt || lead.gclid || lead.fbclid || (lead.formSubmitCount ?? 0) > 0) && (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100">
+                    <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-slate-400" />
+                      Attribution
+                    </h3>
+                  </div>
+                  <div className="p-5 space-y-3 text-[12px]">
+                    {lead.capturedAt && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Captured</p>
+                        <p className="text-slate-700">{new Date(lead.capturedAt).toLocaleString()}</p>
+                      </div>
+                    )}
+                    {(lead.formSubmitCount ?? 0) > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Form submissions</p>
+                        <p className="text-slate-700 font-semibold">{lead.formSubmitCount}</p>
+                      </div>
+                    )}
+                    {lead.landingPage && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Landing page</p>
+                        <p className="text-slate-700 break-all">{lead.landingPage}</p>
+                      </div>
+                    )}
+                    {lead.referrer && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Referrer</p>
+                        <p className="text-slate-700 break-all">{lead.referrer}</p>
+                      </div>
+                    )}
+                    {lead.utm && (lead.utm.source || lead.utm.medium || lead.utm.campaign) && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">UTM</p>
+                        <div className="grid grid-cols-2 gap-1 text-[11px]">
+                          {lead.utm.source && <span className="text-slate-700"><strong>source:</strong> {lead.utm.source}</span>}
+                          {lead.utm.medium && <span className="text-slate-700"><strong>medium:</strong> {lead.utm.medium}</span>}
+                          {lead.utm.campaign && <span className="col-span-2 text-slate-700"><strong>campaign:</strong> {lead.utm.campaign}</span>}
+                          {lead.utm.term && <span className="text-slate-700"><strong>term:</strong> {lead.utm.term}</span>}
+                          {lead.utm.content && <span className="text-slate-700"><strong>content:</strong> {lead.utm.content}</span>}
+                        </div>
+                      </div>
+                    )}
+                    {(lead.gclid || lead.fbclid) && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Click IDs</p>
+                        {lead.gclid && <p className="text-slate-700 break-all"><span className="text-slate-400">gclid:</span> {lead.gclid}</p>}
+                        {lead.fbclid && <p className="text-slate-700 break-all"><span className="text-slate-400">fbclid:</span> {lead.fbclid}</p>}
+                      </div>
+                    )}
+                    {lead.captureFormId && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Form ID</p>
+                        <p className="text-slate-500 font-mono text-[11px]">{lead.captureFormId}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Tags */}
               {lead.tags && lead.tags.length > 0 && (

@@ -4,12 +4,13 @@ import {
   Calendar, User, Clock, ArrowRight, MoreHorizontal, Edit, Trash2, Phone, Mail,
   TrendingUp, Zap, MessageSquare, FileText, Building2,
   BarChart3, AlertTriangle, CheckCircle2, Sparkles, XCircle, ChevronUp, Loader2, Upload, Paperclip,
-  List, LayoutGrid
+  List, LayoutGrid, Code
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef, DragEvent } from 'react';
 import { toast } from 'sonner';
 import { SalesLeadDetailView } from './SalesLeadDetailView';
 import { PhoneInput } from './PhoneInput';
+import { LeadCaptureFormSnippet } from './LeadCaptureFormSnippet';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -26,6 +27,36 @@ const PIPELINE_STAGES = [
 const LEAD_SOURCES = ['Website', 'Referral', 'Trade Show', 'Cold Outreach', 'Social Media', 'Google Ads', 'Email Campaign', 'LinkedIn', 'Partner', 'Inbound Call', 'RFQ Portal'];
 const PRODUCT_TYPES = ['Apparel', 'Drinkware', 'Bags', 'Tech', 'Office', 'Outdoor', 'Stickers', 'Hats', 'Pens', 'Custom'];
 
+const SOURCE_CATEGORIES = [
+  { value: 'organic', label: 'Organic' },
+  { value: 'paid', label: 'Paid Ads' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'direct', label: 'Direct' },
+  { value: 'email', label: 'Email' },
+  { value: 'social', label: 'Social' },
+  { value: 'outbound', label: 'Outbound' },
+] as const;
+
+const DISQUALIFIED_REASONS = [
+  { value: 'bad-fit', label: 'Bad Fit' },
+  { value: 'budget', label: 'No Budget' },
+  { value: 'timing', label: 'Bad Timing' },
+  { value: 'competitor', label: 'Went with Competitor' },
+  { value: 'no-response', label: 'No Response' },
+  { value: 'spam', label: 'Spam / Invalid' },
+  { value: 'duplicate', label: 'Duplicate' },
+] as const;
+
+interface ScoreBreakdown {
+  source: number;
+  email: number;
+  phone: number;
+  amount: number;
+  existingCustomer: number;
+  disposablePenalty: number;
+  disqualifiedPenalty: number;
+}
+
 interface SalesLead {
   id: string;
   title: string;
@@ -39,6 +70,8 @@ interface SalesLead {
   amount: number;
   stage: string;
   source: string;
+  sourceCategory?: string | null;
+  sourceDetail?: string | null;
   productType: string;
   inHandsDate: string;
   createdAt: string;
@@ -50,6 +83,13 @@ interface SalesLead {
   quantity: number;
   tags: string[];
   documents?: { name: string; size: number; type: string; dataUrl?: string }[];
+  score?: number;
+  scoreBreakdown?: ScoreBreakdown;
+  scoreUpdatedAt?: string;
+  disqualifiedReason?: string | null;
+  emailType?: 'business' | 'personal' | 'disposable' | 'unknown' | null;
+  isExistingCustomer?: boolean;
+  enrichedCompany?: string | null;
 }
 
 interface Customer {
@@ -135,13 +175,121 @@ function parseCurrency(value: string): string {
   return value.replace(/,/g, '');
 }
 
+// ────── Score Badge ──────
+function ScoreBadge({ score, breakdown, size = 'sm' }: { score?: number; breakdown?: ScoreBreakdown; size?: 'sm' | 'md' }) {
+  if (typeof score !== 'number') return null;
+  const tier = score >= 71 ? 'hot' : score >= 41 ? 'warm' : 'cold';
+  const styles = tier === 'hot'
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : tier === 'warm'
+    ? 'bg-amber-50 text-amber-700 border-amber-200'
+    : 'bg-slate-100 text-slate-600 border-slate-200';
+  const sizeCls = size === 'md' ? 'px-2 py-0.5 text-[11px]' : 'px-1.5 py-0.5 text-[10px]';
+  const tooltip = breakdown
+    ? `Source ${breakdown.source} · Email ${breakdown.email} · Phone ${breakdown.phone} · Amount ${breakdown.amount} · Existing ${breakdown.existingCustomer} · Disposable ${breakdown.disposablePenalty} · Disqualified ${breakdown.disqualifiedPenalty}`
+    : `Lead score`;
+  return (
+    <span title={tooltip} className={`inline-flex items-center gap-1 rounded-md border font-bold ${sizeCls} ${styles}`}>
+      <Sparkles className="w-2.5 h-2.5" />
+      {score}
+    </span>
+  );
+}
+
+// ────── Dedup Warning Modal ──────
+interface DedupMatch {
+  leadId: string;
+  matchScore: number;
+  reason: 'email' | 'phone' | 'domain+name' | 'company+domain';
+  preview: { title?: string; company?: string; contactEmail?: string; contactName?: string; stage?: string; owner?: string };
+}
+
+function DedupWarningModal({
+  matches, onClose, onCreateAnyway, onOpenExisting, blocking,
+}: {
+  matches: DedupMatch[];
+  onClose: () => void;
+  onCreateAnyway: () => void;
+  onOpenExisting: (leadId: string) => void;
+  blocking: boolean;
+}) {
+  if (matches.length === 0) return null;
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="px-5 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5" />
+            <div>
+              <h3 className="text-sm font-bold">{blocking ? 'Duplicate lead detected' : 'Possible duplicate'}</h3>
+              <p className="text-[11px] text-white/85">{blocking ? 'A lead with this email already exists.' : 'We found leads that may match this contact.'}</p>
+            </div>
+          </div>
+          <div className="p-4 space-y-2 max-h-72 overflow-y-auto">
+            {matches.map((m) => (
+              <button key={m.leadId} type="button" onClick={() => onOpenExisting(m.leadId)} className="w-full text-left px-3 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-indigo-300 transition-colors">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-sm font-semibold text-slate-900 truncate">{m.preview.title || '(no title)'}</span>
+                  <span className="ml-auto text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{m.matchScore}% · {m.reason}</span>
+                </div>
+                <div className="text-[11px] text-slate-500 truncate">{m.preview.company} · {m.preview.contactName} · {m.preview.contactEmail}</div>
+              </button>
+            ))}
+          </div>
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2">
+            <button onClick={onClose} className="flex-1 px-3 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-white transition-colors">Cancel</button>
+            {!blocking && (
+              <button onClick={onCreateAnyway} className="flex-1 px-3 py-2 bg-amber-500 text-white text-xs font-semibold rounded-lg hover:bg-amber-600 transition-colors">Create anyway</button>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ────── Disqualify Modal ──────
+function DisqualifyModal({ onConfirm, onClose }: { onConfirm: (reason: string) => void; onClose: () => void }) {
+  const [reason, setReason] = useState<string>('');
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="px-5 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white flex items-center gap-3">
+            <XCircle className="w-5 h-5" />
+            <div>
+              <h3 className="text-sm font-bold">Mark lead as Closed Lost</h3>
+              <p className="text-[11px] text-white/85">Pick a reason so we can track why deals slip.</p>
+            </div>
+          </div>
+          <div className="p-4 space-y-2">
+            {DISQUALIFIED_REASONS.map((r) => (
+              <button key={r.value} type="button" onClick={() => setReason(r.value)} className={`w-full text-left px-3 py-2.5 border-2 rounded-xl text-sm transition-all ${reason === r.value ? 'border-red-400 bg-red-50 text-red-700 font-semibold' : 'border-slate-200 text-slate-700 hover:border-slate-300'}`}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2">
+            <button onClick={onClose} className="flex-1 px-3 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-white transition-colors">Cancel</button>
+            <button disabled={!reason} onClick={() => reason && onConfirm(reason)} className="flex-1 px-3 py-2 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Confirm</button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 // ────── Create/Edit Lead Drawer ──────
-function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClose: () => void; onSave: (data: any) => void; lead?: SalesLead | null }) {
+function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isOpen: boolean; onClose: () => void; onSave: (data: any) => void; lead?: SalesLead | null; onOpenExistingLead?: (leadId: string) => void }) {
   const [form, setForm] = useState({
     title: '', company: '', companyId: '', contactFirstName: '', contactLastName: '', contactEmail: '', contactPhone: '',
-    amount: '', stage: 'lead-received', source: 'Website', productType: 'Apparel', inHandsDate: '', owner: '', notes: '', quantity: '',
-    contactId: '',
+    amount: '', stage: 'lead-received', source: 'Website', sourceCategory: '', sourceDetail: '',
+    productType: 'Apparel', inHandsDate: '', owner: '', notes: '', quantity: '',
+    contactId: '', disqualifiedReason: '',
   });
+  const [dedupMatches, setDedupMatches] = useState<DedupMatch[]>([]);
+  const [showDedup, setShowDedup] = useState(false);
+  const [dedupBlocking, setDedupBlocking] = useState(false);
   const [isExistingCompany, setIsExistingCompany] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -185,18 +333,22 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
         contactLastName: lead.contactLastName || nameParts.slice(1).join(' ') || '',
         contactEmail: lead.contactEmail, contactPhone: lead.contactPhone,
         amount: lead.amount ? formatCurrency(String(lead.amount)) : '', stage: lead.stage, source: lead.source,
+        sourceCategory: lead.sourceCategory || '', sourceDetail: lead.sourceDetail || '',
         productType: lead.productType,
         inHandsDate: lead.inHandsDate, owner: lead.owner, notes: lead.notes,
         quantity: String(lead.quantity || ''),
-        contactId: '',
+        contactId: '', disqualifiedReason: lead.disqualifiedReason || '',
       });
       setIsExistingCompany(!!lead.companyId);
       setDocuments(lead.documents || []);
     } else {
-      setForm({ title: '', company: '', companyId: '', contactFirstName: '', contactLastName: '', contactEmail: '', contactPhone: '', amount: '', stage: 'lead-received', source: 'Website', productType: 'Apparel', inHandsDate: '', owner: '', notes: '', quantity: '', contactId: '' });
+      setForm({ title: '', company: '', companyId: '', contactFirstName: '', contactLastName: '', contactEmail: '', contactPhone: '', amount: '', stage: 'lead-received', source: 'Website', sourceCategory: '', sourceDetail: '', productType: 'Apparel', inHandsDate: '', owner: '', notes: '', quantity: '', contactId: '', disqualifiedReason: '' });
       setIsExistingCompany(false);
       setDocuments([]);
     }
+    setDedupMatches([]);
+    setShowDedup(false);
+    setDedupBlocking(false);
     setCustomerSearch('');
     setOwnerSearch('');
     setSelectedCustomerContacts([]);
@@ -254,11 +406,40 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
 
   const removeDocument = (index: number) => { setDocuments(prev => prev.filter((_, i) => i !== index)); };
 
-  const handleSubmit = () => {
+  const checkDedupOnEmailBlur = useCallback(async () => {
+    if (lead) return; // editing existing — skip dedup
+    if (!form.contactEmail || !form.contactEmail.includes('@')) return;
+    try {
+      const res = await fetch('/api/sales-leads/dedup-check', {
+        method: 'POST',
+        headers: headers_json,
+        body: JSON.stringify({
+          email: form.contactEmail,
+          phone: form.contactPhone,
+          company: form.company,
+          contactName: `${form.contactFirstName} ${form.contactLastName}`.trim(),
+        }),
+      });
+      const data = await res.json();
+      const matches: DedupMatch[] = data.matches || [];
+      const strong = matches.filter((m) => m.matchScore >= 70);
+      if (strong.length > 0) {
+        setDedupMatches(strong);
+        setDedupBlocking(strong[0].matchScore >= 100);
+        setShowDedup(true);
+      }
+    } catch { /* non-fatal */ }
+  }, [form.contactEmail, form.contactPhone, form.company, form.contactFirstName, form.contactLastName, lead]);
+
+  const submitForm = () => {
     if (!form.title.trim()) { toast.error('Deal title is required'); return; }
     if (!form.company.trim()) { toast.error('Company name is required'); return; }
     if (isExistingCompany && form.companyId && !form.contactFirstName && !form.contactLastName) {
       toast.error('Please select a contact for this customer. If no contacts exist, go to the customer record and add one first.');
+      return;
+    }
+    if (form.stage === 'closed-lost' && !form.disqualifiedReason) {
+      toast.error('Pick a reason — closed-lost leads need one.');
       return;
     }
     const contactName = `${form.contactFirstName} ${form.contactLastName}`.trim();
@@ -268,8 +449,13 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
       amount: parseFloat(parseCurrency(form.amount)) || 0, quantity: parseInt(form.quantity) || 0, ownerInitials: initials,
       probability: PIPELINE_STAGES.find(s => s.id === form.stage)?.weight ? (PIPELINE_STAGES.find(s => s.id === form.stage)!.weight * 100) : 10,
       tags: form.productType ? [form.productType] : [], documents, ...(lead ? { id: lead.id } : {}),
+      sourceCategory: form.sourceCategory || null,
+      sourceDetail: form.sourceDetail || null,
+      disqualifiedReason: form.disqualifiedReason || null,
     });
   };
+
+  const handleSubmit = submitForm;
 
   const inputCls = "w-full px-4 py-2.5 bg-slate-50/80 border-2 border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all";
   const labelCls = "block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider";
@@ -386,6 +572,29 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
+                    <CustomDropdown
+                      label="Source Category"
+                      value={form.sourceCategory || ''}
+                      options={[{ value: '', label: '— None —' }, ...SOURCE_CATEGORIES.map(c => ({ value: c.value, label: c.label }))]}
+                      onChange={v => setForm({ ...form, sourceCategory: v })}
+                    />
+                    <div>
+                      <label className={labelCls}>Source Detail</label>
+                      <input value={form.sourceDetail} onChange={e => setForm({ ...form, sourceDetail: e.target.value })} placeholder="e.g., google-ads, ASI-Vegas-26" className={inputCls} />
+                    </div>
+                  </div>
+
+                  {form.stage === 'closed-lost' && (
+                    <div>
+                      <label className={labelCls}>Disqualification Reason *</label>
+                      <select value={form.disqualifiedReason} onChange={e => setForm({ ...form, disqualifiedReason: e.target.value })} className={inputCls}>
+                        <option value="">Pick a reason…</option>
+                        {DISQUALIFIED_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>In-Hands Date</label>
                       <input type="date" value={form.inHandsDate} onChange={e => setForm({ ...form, inHandsDate: e.target.value })} className={inputCls} />
@@ -480,7 +689,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Email</label>
-                      <input type="email" value={form.contactEmail} onChange={e => setForm({ ...form, contactEmail: e.target.value })} placeholder="email@company.com" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
+                      <input type="email" value={form.contactEmail} onChange={e => setForm({ ...form, contactEmail: e.target.value })} onBlur={checkDedupOnEmailBlur} placeholder="email@company.com" className={inputCls + (isExistingCompany && form.companyId ? ' opacity-60' : '')} disabled={isExistingCompany && !!form.companyId} />
                     </div>
                     <div>
                       <label className={labelCls}>Phone</label>
@@ -544,6 +753,19 @@ function LeadDrawer({ isOpen, onClose, onSave, lead }: { isOpen: boolean; onClos
               </motion.button>
             </div>
           </motion.div>
+          {showDedup && (
+            <DedupWarningModal
+              matches={dedupMatches}
+              blocking={dedupBlocking}
+              onClose={() => setShowDedup(false)}
+              onCreateAnyway={() => setShowDedup(false)}
+              onOpenExisting={(leadId) => {
+                setShowDedup(false);
+                onClose();
+                onOpenExistingLead?.(leadId);
+              }}
+            />
+          )}
         </>
       )}
     </AnimatePresence>
@@ -616,6 +838,7 @@ function DealCard({ lead, stage, onEdit, onDelete, onMove, onDragStart, isSelect
         {/* Meta row */}
         <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
           {lead.productType && <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600">{lead.productType}</span>}
+          <ScoreBadge score={lead.score} breakdown={lead.scoreBreakdown} />
           {isStale && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200"><AlertTriangle className="w-2.5 h-2.5" />Stale</span>}
         </div>
 
@@ -671,6 +894,14 @@ export function SalesLeadModule() {
   const [showBulkOwnerList, setShowBulkOwnerList] = useState(false);
   const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string }[]>([]);
   const bulkOwnerRef = useRef<HTMLDivElement>(null);
+  const [minScoreFilter, setMinScoreFilter] = useState('All Scores');
+  const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
+  const [pendingDisqualify, setPendingDisqualify] = useState<
+    | { kind: 'single'; lead: SalesLead }
+    | { kind: 'bulk'; ids: string[] }
+    | null
+  >(null);
+  const [embedOpen, setEmbedOpen] = useState(false);
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (bulkOwnerRef.current && !bulkOwnerRef.current.contains(e.target as Node)) setShowBulkOwnerList(false); };
@@ -703,17 +934,18 @@ export function SalesLeadModule() {
     } catch { toast.error('Error deleting deals'); }
   };
 
-  const handleBulkStatusUpdate = async (newStage: string) => {
-    const ids = [...selectedIds];
+  const performBulkStatusUpdate = async (ids: string[], newStage: string, disqualifiedReason?: string) => {
     const stageInfo = PIPELINE_STAGES.find(s => s.id === newStage);
     try {
       await Promise.all(ids.map(id => {
         const lead = leads.find(l => l.id === id);
         if (!lead) return Promise.resolve();
+        const body: any = { id, stage: newStage, probability: (stageInfo?.weight || 0) * 100 };
+        if (disqualifiedReason) body.disqualifiedReason = disqualifiedReason;
         return fetch('/api/sales-leads/update', {
           method: 'PATCH',
           headers: headers_json,
-          body: JSON.stringify({ id, stage: newStage, probability: (stageInfo?.weight || 0) * 100 }),
+          body: JSON.stringify(body),
         });
       }));
       toast.success(`${ids.length} deal(s) moved to ${stageInfo?.label}`);
@@ -721,6 +953,21 @@ export function SalesLeadModule() {
       setBulkStage('');
       fetchLeads();
     } catch { toast.error('Error updating deals'); }
+  };
+
+  const handleBulkStatusUpdate = async (newStage: string) => {
+    const ids = [...selectedIds];
+    if (newStage === 'closed-lost') {
+      const needsReason = ids.some(id => {
+        const l = leads.find(x => x.id === id);
+        return l && !l.disqualifiedReason;
+      });
+      if (needsReason) {
+        setPendingDisqualify({ kind: 'bulk', ids });
+        return;
+      }
+    }
+    await performBulkStatusUpdate(ids, newStage);
   };
 
   const handleBulkOwnerUpdate = async (newOwner: string) => {
@@ -777,6 +1024,21 @@ export function SalesLeadModule() {
           body: JSON.stringify(body),
         });
         const result = await res.json();
+        if (res.status === 409 && result.duplicateLeadId) {
+          toast.error('A lead already exists with this email — opening that record.');
+          await fetchLeads();
+          setDrawerOpen(false);
+          setEditLead(null);
+          // jump to the duplicate after the list refreshes
+          setTimeout(() => {
+            setLeads((current) => {
+              const target = current.find(l => l.id === result.duplicateLeadId);
+              if (target) setViewingLead(target);
+              return current;
+            });
+          }, 0);
+          return;
+        }
         if (!res.ok) { toast.error(result.error || 'Failed'); return; }
         toast.success('Deal created!');
       }
@@ -798,22 +1060,38 @@ export function SalesLeadModule() {
     } catch { toast.error('Error deleting'); }
   };
 
-  const handleMove = async (lead: SalesLead, newStage: string) => {
-    if (lead.stage === newStage) return;
+  const performMove = async (lead: SalesLead, newStage: string, disqualifiedReason?: string) => {
     const stageInfo = PIPELINE_STAGES.find(s => s.id === newStage);
     // Optimistic update
-    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString() } : l));
+    setLeads(prev => prev.map(l => l.id === lead.id
+      ? { ...l, stage: newStage, probability: (stageInfo?.weight || 0) * 100, lastActivity: new Date().toISOString(), ...(disqualifiedReason ? { disqualifiedReason } : {}) }
+      : l));
     try {
-      await fetch('/api/sales-leads/update', {
+      const body: any = { id: lead.id, stage: newStage, probability: (stageInfo?.weight || 0) * 100 };
+      if (disqualifiedReason) body.disqualifiedReason = disqualifiedReason;
+      const res = await fetch('/api/sales-leads/update', {
         method: 'PATCH',
         headers: headers_json,
-        body: JSON.stringify({ id: lead.id, stage: newStage, probability: (stageInfo?.weight || 0) * 100 }),
+        body: JSON.stringify(body),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Update failed');
+      }
       toast.success(`Moved to ${stageInfo?.label}`);
-    } catch {
-      toast.error('Error moving deal');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error moving deal');
       fetchLeads();
     }
+  };
+
+  const handleMove = async (lead: SalesLead, newStage: string) => {
+    if (lead.stage === newStage) return;
+    if (newStage === 'closed-lost' && !lead.disqualifiedReason) {
+      setPendingDisqualify({ kind: 'single', lead });
+      return;
+    }
+    await performMove(lead, newStage);
   };
 
   // Drag handlers
@@ -846,6 +1124,11 @@ export function SalesLeadModule() {
     }
     if (sourceFilter !== 'All Sources' && l.source !== sourceFilter) return false;
     if (ownerFilter !== 'All Owners' && l.owner !== ownerFilter) return false;
+    if (sourceCategoryFilter !== 'All Categories' && l.sourceCategory !== sourceCategoryFilter) return false;
+    if (minScoreFilter !== 'All Scores') {
+      const threshold = minScoreFilter === 'Hot 71+' ? 71 : minScoreFilter === 'Warm 41+' ? 41 : 0;
+      if ((l.score ?? 0) < threshold) return false;
+    }
     return true;
   });
 
@@ -871,7 +1154,34 @@ export function SalesLeadModule() {
           onDelete={async () => { await handleDelete(currentViewingLead.id); setViewingLead(null); }}
           onStageChange={(lead, newStage) => handleMove(lead, newStage)}
         />
-        <LeadDrawer isOpen={drawerOpen} onClose={() => { setDrawerOpen(false); setEditLead(null); }} onSave={handleSave} lead={editLead} />
+        <LeadDrawer
+          isOpen={drawerOpen}
+          onClose={() => { setDrawerOpen(false); setEditLead(null); }}
+          onSave={handleSave}
+          lead={editLead}
+          onOpenExistingLead={(leadId) => {
+            const target = leads.find(l => l.id === leadId);
+            if (target) {
+              setDrawerOpen(false);
+              setEditLead(null);
+              setViewingLead(target);
+            }
+          }}
+        />
+        {pendingDisqualify && (
+          <DisqualifyModal
+            onClose={() => setPendingDisqualify(null)}
+            onConfirm={async (reason) => {
+              const action = pendingDisqualify;
+              setPendingDisqualify(null);
+              if (action.kind === 'single') {
+                await performMove(action.lead, 'closed-lost', reason);
+              } else {
+                await performBulkStatusUpdate(action.ids, 'closed-lost', reason);
+              }
+            }}
+          />
+        )}
       </>
     );
   }
@@ -915,6 +1225,13 @@ export function SalesLeadModule() {
                     <span className="hidden sm:inline">List</span>
                   </button>
                 </div>
+                <button
+                  onClick={() => setEmbedOpen(true)}
+                  className="flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors text-sm"
+                  title="Embed lead capture form"
+                >
+                  <Code className="w-4 h-4" /> <span className="hidden md:inline">Embed</span>
+                </button>
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => { setEditLead(null); setDrawerOpen(true); }}
@@ -977,6 +1294,15 @@ export function SalesLeadModule() {
               <select value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} className="hidden sm:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
                 <option>All Owners</option>
                 {owners.map(o => <option key={o}>{o}</option>)}
+              </select>
+              <select value={sourceCategoryFilter} onChange={e => setSourceCategoryFilter(e.target.value)} className="hidden md:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
+                <option>All Categories</option>
+                {SOURCE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+              <select value={minScoreFilter} onChange={e => setMinScoreFilter(e.target.value)} className="hidden md:block px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm cursor-pointer">
+                <option>All Scores</option>
+                <option>Hot 71+</option>
+                <option>Warm 41+</option>
               </select>
               <button onClick={() => setShowMetrics(!showMetrics)} className={`p-2.5 rounded-xl border transition-all shadow-sm ${showMetrics ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
                 <BarChart3 className="w-4 h-4" />
@@ -1160,6 +1486,7 @@ export function SalesLeadModule() {
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Contact</th>
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Amount</th>
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Stage</th>
+                      <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Score</th>
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Source</th>
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Owner</th>
                       <th className="text-left px-4 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">In-Hands</th>
@@ -1170,7 +1497,7 @@ export function SalesLeadModule() {
                   <tbody>
                     {filteredLeads.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="px-6 py-12 text-center">
+                        <td colSpan={12} className="px-6 py-12 text-center">
                           <Target className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                           <p className="text-sm text-slate-400">No deals found</p>
                         </td>
@@ -1214,7 +1541,11 @@ export function SalesLeadModule() {
                               </span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
+                              <ScoreBadge score={lead.score} breakdown={lead.scoreBreakdown} size="md" />
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap">
                               <span className="text-sm text-slate-700">{lead.source}</span>
+                              {lead.sourceCategory && <span className="block text-[10px] text-slate-400 capitalize">{lead.sourceCategory}</span>}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-2">
@@ -1274,7 +1605,35 @@ export function SalesLeadModule() {
         )}
       </div>
 
-      <LeadDrawer isOpen={drawerOpen} onClose={() => { setDrawerOpen(false); setEditLead(null); }} onSave={handleSave} lead={editLead} />
+      <LeadDrawer
+        isOpen={drawerOpen}
+        onClose={() => { setDrawerOpen(false); setEditLead(null); }}
+        onSave={handleSave}
+        lead={editLead}
+        onOpenExistingLead={(leadId) => {
+          const target = leads.find(l => l.id === leadId);
+          if (target) {
+            setDrawerOpen(false);
+            setEditLead(null);
+            setViewingLead(target);
+          }
+        }}
+      />
+      {pendingDisqualify && (
+        <DisqualifyModal
+          onClose={() => setPendingDisqualify(null)}
+          onConfirm={async (reason) => {
+            const action = pendingDisqualify;
+            setPendingDisqualify(null);
+            if (action.kind === 'single') {
+              await performMove(action.lead, 'closed-lost', reason);
+            } else {
+              await performBulkStatusUpdate(action.ids, 'closed-lost', reason);
+            }
+          }}
+        />
+      )}
+      <LeadCaptureFormSnippet open={embedOpen} onClose={() => setEmbedOpen(false)} />
     </>
   );
 }
