@@ -107,7 +107,7 @@ interface SalesLead {
   orderLinkedAt?: string | null;
 }
 
-type ActivityType = 'created' | 'stage-change' | 'note' | 'task' | 'call' | 'email' | 'order-linked' | 'system';
+type ActivityType = 'created' | 'stage-change' | 'edit' | 'file-upload' | 'note' | 'task' | 'call' | 'email' | 'order-linked' | 'system';
 
 interface ActivityItem {
   id: string;
@@ -129,6 +129,8 @@ interface ActivityItem {
 const ACTIVITY_TYPE_META: Record<ActivityType, { icon: any; chip: string; label: string }> = {
   'created':       { icon: Sparkles,    chip: 'bg-emerald-100 text-emerald-700', label: 'Created' },
   'stage-change':  { icon: Activity,    chip: 'bg-indigo-100 text-indigo-700',   label: 'Stage' },
+  'edit':          { icon: Pencil,      chip: 'bg-slate-100 text-slate-700',     label: 'Edit' },
+  'file-upload':   { icon: Paperclip,   chip: 'bg-fuchsia-100 text-fuchsia-700', label: 'File' },
   'note':          { icon: NotepadText, chip: 'bg-amber-100 text-amber-700',     label: 'Note' },
   'task':          { icon: ClipboardList, chip: 'bg-violet-100 text-violet-700', label: 'Task' },
   'call':          { icon: Phone,       chip: 'bg-cyan-100 text-cyan-700',       label: 'Call' },
@@ -865,13 +867,15 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
 
             {/* Filter chips */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {(['all', 'note', 'task', 'call', 'email', 'stage-change', 'order-linked', 'created'] as const).map((f) => {
+              {(['all', 'note', 'task', 'call', 'email', 'stage-change', 'edit', 'file-upload', 'order-linked', 'created'] as const).map((f) => {
                 const count = f === 'all' ? activities.length : activities.filter(a => a.type === f).length;
                 if (f !== 'all' && count === 0) return null;
                 const label = f === 'all' ? 'All'
                   : f === 'stage-change' ? 'Stage'
                   : f === 'order-linked' ? 'Order'
                   : f === 'created' ? 'Created'
+                  : f === 'file-upload' ? 'File'
+                  : f === 'edit' ? 'Edit'
                   : ACTIVITY_TYPE_META[f as ActivityType].label;
                 const active = filter === f;
                 return (

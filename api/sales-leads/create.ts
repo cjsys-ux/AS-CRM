@@ -53,6 +53,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch { /* non-fatal */ }
 
+    // Soft-fail file-upload activities for any documents attached at creation.
+    try {
+      if (Array.isArray((doc as any).documents) && (doc as any).documents.length > 0) {
+        const ownerName = typeof doc.owner === 'string' && doc.owner ? doc.owner : 'You';
+        const ownerInitials = typeof doc.ownerInitials === 'string' && doc.ownerInitials ? doc.ownerInitials : 'YO';
+        for (const f of (doc as any).documents) {
+          await db.collection('lead_activities').insertOne({
+            leadId,
+            type: 'file-upload',
+            content: `Uploaded ${f?.name ?? 'a file'}`,
+            details: f?.size ? `${(Number(f.size) / 1024).toFixed(1)} KB${f?.type ? ' · ' + f.type : ''}` : undefined,
+            user: ownerName,
+            userInitials: ownerInitials,
+            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
+          });
+        }
+      }
+    } catch { /* non-fatal */ }
+
     return res.status(201).json({
       success: true,
       lead: { id: leadId, ...doc },

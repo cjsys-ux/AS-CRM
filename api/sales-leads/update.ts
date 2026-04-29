@@ -23,6 +23,62 @@ const VALID_SOURCE_CATEGORIES: SourceCategory[] = [
   'organic', 'paid', 'referral', 'direct', 'email', 'social', 'outbound',
 ];
 
+// Fields whose user-facing edits we surface in the activity feed.
+// Excluded on purpose:
+//   - stage / disqualifiedReason → already logged via stage-change.
+//   - documents → logged separately as file-upload.
+//   - probability, lastActivity → auto-bumped alongside stage.
+//   - ownerInitials → derived from owner.
+//   - companyId / contactId → opaque ids, not user-meaningful.
+//   - emailType / isExistingCustomer / enrichedCompany / score* /
+//     normalized* / enrichmentRunAt / sourceOrderId* → enrichment / link
+//     bookkeeping, not direct edits.
+const EDITABLE_LOGGABLE_FIELDS: Record<string, string> = {
+  title: 'Title',
+  company: 'Company',
+  contactName: 'Contact name',
+  contactFirstName: 'First name',
+  contactLastName: 'Last name',
+  contactEmail: 'Email',
+  contactPhone: 'Phone',
+  amount: 'Amount',
+  source: 'Lead source',
+  sourceCategory: 'Source category',
+  sourceDetail: 'Source detail',
+  productType: 'Product',
+  inHandsDate: 'In-hands date',
+  owner: 'Owner',
+  notes: 'Notes',
+  quantity: 'Quantity',
+  tags: 'Tags',
+};
+
+function valuesEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function summarizeValue(field: string, v: any): string {
+  if (v == null || v === '') return '—';
+  if (Array.isArray(v)) return v.length === 0 ? '—' : `${v.length} item${v.length === 1 ? '' : 's'}`;
+  if (field === 'amount') {
+    const n = Number(v);
+    return Number.isFinite(n) ? `$${n.toLocaleString()}` : String(v);
+  }
+  if (field === 'inHandsDate') {
+    const d = new Date(String(v));
+    return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  const s = String(v);
+  return s.length > 60 ? s.slice(0, 57) + '…' : s;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH' && req.method !== 'PUT') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -74,19 +130,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = await getDb();
     const collection = db.collection('salesLeads');
 
+    // Single fetch of existing — used for closed-lost validation, score
+    // recompute baseline, and activity-diff comparison.
+    const existing = await collection.findOne(filter);
+    if (!existing) {
+      return res.status(404).json({ error: 'Sales lead not found.' });
+    }
+
     if (fields.stage === 'closed-lost') {
-      const existing = await collection.findOne(filter, { projection: { disqualifiedReason: 1 } });
-      const incomingReason = setPayload.disqualifiedReason ?? existing?.disqualifiedReason ?? null;
+      const incomingReason = setPayload.disqualifiedReason ?? existing.disqualifiedReason ?? null;
       if (!incomingReason) {
         return res.status(400).json({ error: 'disqualifiedReason is required when stage is closed-lost.' });
       }
     }
 
     if (scoreNeedsRecompute) {
-      const existing = await collection.findOne(filter);
-      if (!existing) {
-        return res.status(404).json({ error: 'Sales lead not found.' });
-      }
       const merged = { ...existing, ...setPayload } as Record<string, unknown>;
       const { score, breakdown } = computeScore({
         sourceCategory: (merged.sourceCategory as SourceCategory | null) ?? null,
@@ -101,22 +159,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       setPayload.scoreUpdatedAt = new Date().toISOString();
     }
 
-    let beforeStage: string | null = null;
-    if ('stage' in fields) {
-      const before = await collection.findOne(filter, { projection: { stage: 1 } });
-      beforeStage = (before?.stage as string | null) ?? null;
-    }
+    const beforeStage: string | null = (existing.stage as string | null) ?? null;
 
     const result = await collection.updateOne(filter, { $set: setPayload });
     if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Sales lead not found.' });
     }
 
-    // Soft-fail activity log: stage transitions get auto-recorded so the
-    // detail-view feed reflects every move regardless of which client did it.
-    if ('stage' in fields && fields.stage !== beforeStage) {
+    // ─── Activity logging (all soft-fail; never blocks the primary write) ───
+    const leadIdStr = String(id);
+    const stageChanged = 'stage' in fields && fields.stage !== beforeStage;
+
+    // Stage transitions
+    if (stageChanged) {
       try {
-        const leadIdStr = String(id);
         await db.collection('lead_activities').insertOne({
           leadId: leadIdStr,
           type: 'stage-change',
@@ -128,10 +184,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           timestamp: new Date().toISOString(),
           createdAt: new Date(),
         });
-      } catch {
-        // Activity logging never blocks the primary operation.
-      }
+      } catch { /* non-fatal */ }
     }
+
+    // File uploads (newly-added documents only)
+    if ('documents' in fields) {
+      try {
+        const before: any[] = Array.isArray(existing.documents) ? (existing.documents as any[]) : [];
+        const after: any[] = Array.isArray(fields.documents) ? fields.documents : [];
+        const beforeKey = (d: any) => `${d?.name ?? ''}|${d?.size ?? ''}|${d?.type ?? ''}`;
+        const beforeKeys = new Set(before.map(beforeKey));
+        const added = after.filter(d => !beforeKeys.has(beforeKey(d)));
+        for (const doc of added) {
+          await db.collection('lead_activities').insertOne({
+            leadId: leadIdStr,
+            type: 'file-upload',
+            content: `Uploaded ${doc?.name ?? 'a file'}`,
+            details: doc?.size ? `${(Number(doc.size) / 1024).toFixed(1)} KB${doc?.type ? ' · ' + doc.type : ''}` : undefined,
+            user: 'You',
+            userInitials: 'YO',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
+          });
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    // User-meaningful field edits (single grouped activity per PATCH).
+    try {
+      const changes: Array<{ field: string; label: string; from: any; to: any }> = [];
+      for (const [field, label] of Object.entries(EDITABLE_LOGGABLE_FIELDS)) {
+        if (!(field in fields)) continue;
+        const before = (existing as any)[field];
+        const after = (fields as any)[field];
+        if (valuesEqual(before, after)) continue;
+        changes.push({ field, label, from: before, to: after });
+      }
+      if (changes.length > 0) {
+        let content: string;
+        let details: string | undefined;
+        if (changes.length === 1) {
+          const c = changes[0];
+          content = `Changed ${c.label}: ${summarizeValue(c.field, c.from)} → ${summarizeValue(c.field, c.to)}`;
+        } else if (changes.length <= 3) {
+          content = `Updated ${changes.map(c => c.label).join(', ')}`;
+          details = changes.map(c => `${c.label}: ${summarizeValue(c.field, c.from)} → ${summarizeValue(c.field, c.to)}`).join('\n');
+        } else {
+          content = `Updated ${changes.length} fields`;
+          details = changes.map(c => `${c.label}: ${summarizeValue(c.field, c.from)} → ${summarizeValue(c.field, c.to)}`).join('\n');
+        }
+        await db.collection('lead_activities').insertOne({
+          leadId: leadIdStr,
+          type: 'edit',
+          content,
+          details,
+          user: 'You',
+          userInitials: 'YO',
+          timestamp: new Date().toISOString(),
+          createdAt: new Date(),
+        });
+      }
+    } catch { /* non-fatal */ }
 
     return res.status(200).json({ success: true });
   } catch (error: any) {
