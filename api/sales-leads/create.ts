@@ -38,9 +38,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const result = await db.collection('salesLeads').insertOne(doc);
+    const leadId = result.insertedId.toString();
+
+    // Soft-fail activity log: every new lead gets a 'created' card in its feed.
+    try {
+      await db.collection('lead_activities').insertOne({
+        leadId,
+        type: 'created',
+        content: `Deal "${doc.title}" was created`,
+        user: typeof doc.owner === 'string' && doc.owner ? doc.owner : 'System',
+        userInitials: typeof doc.ownerInitials === 'string' && doc.ownerInitials ? doc.ownerInitials : 'SY',
+        timestamp: new Date().toISOString(),
+        createdAt: new Date(),
+      });
+    } catch { /* non-fatal */ }
+
     return res.status(201).json({
       success: true,
-      lead: { id: result.insertedId.toString(), ...doc },
+      lead: { id: leadId, ...doc },
     });
   } catch (error: any) {
     if (error?.code === 11000 && error?.keyPattern?.normalizedEmail) {

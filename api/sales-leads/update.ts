@@ -101,10 +101,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       setPayload.scoreUpdatedAt = new Date().toISOString();
     }
 
+    let beforeStage: string | null = null;
+    if ('stage' in fields) {
+      const before = await collection.findOne(filter, { projection: { stage: 1 } });
+      beforeStage = (before?.stage as string | null) ?? null;
+    }
+
     const result = await collection.updateOne(filter, { $set: setPayload });
     if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Sales lead not found.' });
     }
+
+    // Soft-fail activity log: stage transitions get auto-recorded so the
+    // detail-view feed reflects every move regardless of which client did it.
+    if ('stage' in fields && fields.stage !== beforeStage) {
+      try {
+        const leadIdStr = String(id);
+        await db.collection('lead_activities').insertOne({
+          leadId: leadIdStr,
+          type: 'stage-change',
+          content: `Stage changed${beforeStage ? ` from ${beforeStage}` : ''} to ${fields.stage}`,
+          fromStage: beforeStage,
+          toStage: fields.stage,
+          user: 'System',
+          userInitials: 'SY',
+          timestamp: new Date().toISOString(),
+          createdAt: new Date(),
+        });
+      } catch {
+        // Activity logging never blocks the primary operation.
+      }
+    }
+
     return res.status(200).json({ success: true });
   } catch (error: any) {
     if (error?.code === 11000 && error?.keyPattern?.normalizedEmail) {

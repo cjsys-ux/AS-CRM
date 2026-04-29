@@ -1430,6 +1430,23 @@ export function SalesLeadModule() {
       return;
     }
 
+    // Soft-fail activity log: deal feed gets the order link as a card.
+    try {
+      await fetch('/api/sales-leads/activities/create', {
+        method: 'POST',
+        headers: headers_json,
+        body: JSON.stringify({
+          leadId: lead.id,
+          type: 'order-linked',
+          content: `Closed Won — order ${order.orderNumber} created`,
+          orderId: order.id,
+          orderNumber: order.orderNumber ?? null,
+          user: lead.owner || 'You',
+          userInitials: lead.ownerInitials || 'YO',
+        }),
+      });
+    } catch { /* non-fatal */ }
+
     toast.success(`Order ${order.orderNumber} created`, {
       action: { label: 'View', onClick: () => { window.location.hash = `#orders/${order.id}`; } },
     });
