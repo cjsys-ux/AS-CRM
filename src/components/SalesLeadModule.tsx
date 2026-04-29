@@ -540,13 +540,30 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
     c.contact?.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
-  const selectCustomer = (cust: Customer) => {
-    const contacts = cust.contacts || [];
-    setSelectedCustomerContacts(contacts);
+  const selectCustomer = async (cust: Customer) => {
+    // Customer contacts live in the `customer_contacts` collection — fetch
+    // them on demand instead of trusting an embedded array on the customer
+    // doc (which is rarely populated).
     setForm({ ...form, company: cust.name, companyId: cust.id, contactFirstName: '', contactLastName: '', contactEmail: '', contactPhone: '', contactId: '' });
     setCustomerSearch(cust.name);
     setShowCustomerList(false);
-    if (contacts.length > 0) setShowContactList(true);
+
+    // Fallback to anything embedded on the customer record (legacy data).
+    const embedded = cust.contacts || [];
+    setSelectedCustomerContacts(embedded);
+    if (embedded.length > 0) setShowContactList(true);
+
+    try {
+      const res = await fetch(`/api/customers/contacts/list?customerId=${encodeURIComponent(cust.id)}`, { headers: headers_json });
+      if (!res.ok) return;
+      const data = await res.json();
+      const fetched = Array.isArray(data.contacts) ? data.contacts : [];
+      // Merge: prefer fetched (canonical) but fall back to embedded if both exist.
+      setSelectedCustomerContacts(fetched.length > 0 ? fetched : embedded);
+      if (fetched.length > 0) setShowContactList(true);
+    } catch {
+      // Soft-fail: keep whatever was set from the embedded fallback.
+    }
   };
 
   const selectContact = (contact: any) => {
