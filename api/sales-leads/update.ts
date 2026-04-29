@@ -11,6 +11,7 @@ const ALLOWED_FIELDS = [
   'documents', 'lastActivity',
   'sourceCategory', 'sourceDetail', 'disqualifiedReason',
   'emailType', 'isExistingCustomer', 'enrichedCompany',
+  'sourceOrderId', 'sourceOrderNumber', 'orderLinkedAt',
 ];
 
 const SCORE_TRIGGER_FIELDS = new Set([

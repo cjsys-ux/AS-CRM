@@ -90,6 +90,9 @@ interface SalesLead {
   emailType?: 'business' | 'personal' | 'disposable' | 'unknown' | null;
   isExistingCustomer?: boolean;
   enrichedCompany?: string | null;
+  sourceOrderId?: string | null;
+  sourceOrderNumber?: string | null;
+  orderLinkedAt?: string | null;
 }
 
 interface Customer {
@@ -272,6 +275,157 @@ function DisqualifyModal({ onConfirm, onClose }: { onConfirm: (reason: string) =
           <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex gap-2">
             <button onClick={onClose} className="flex-1 px-3 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-white transition-colors">Cancel</button>
             <button disabled={!reason} onClick={() => reason && onConfirm(reason)} className="flex-1 px-3 py-2 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Confirm</button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ────── Closed Won Modal ──────
+interface CloseWonOrderInput {
+  customer: string;
+  email: string;
+  total: number;
+  items: number;
+  inHandsDate: string;
+  productType: string;
+  notes: string;
+}
+
+function CloseWonModal({
+  lead, onClose, onCreateOrder, onSkip,
+}: {
+  lead: SalesLead;
+  onClose: () => void;
+  onCreateOrder: (input: CloseWonOrderInput) => Promise<void>;
+  onSkip: () => Promise<void>;
+}) {
+  const [form, setForm] = useState({
+    customer: lead.company || '',
+    email: lead.contactEmail || '',
+    total: lead.amount ? String(lead.amount) : '',
+    items: lead.quantity ? String(lead.quantity) : '1',
+    inHandsDate: lead.inHandsDate || '',
+    productType: lead.productType || '',
+    notes: lead.notes || '',
+  });
+  const [submitting, setSubmitting] = useState<'create' | 'skip' | null>(null);
+
+  const customerOk = form.customer.trim().length > 0;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const canCreate = customerOk && emailOk && !submitting;
+
+  const handleCreate = async () => {
+    if (!canCreate) return;
+    setSubmitting('create');
+    try {
+      await onCreateOrder({
+        customer: form.customer.trim(),
+        email: form.email.trim(),
+        total: Number(form.total) || 0,
+        items: Number(form.items) || 1,
+        inHandsDate: form.inHandsDate,
+        productType: form.productType.trim(),
+        notes: form.notes.trim(),
+      });
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const handleSkip = async () => {
+    setSubmitting('skip');
+    try {
+      await onSkip();
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const inputCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-md text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all";
+  const labelCls = "block text-[10px] font-semibold text-slate-500 mb-1 uppercase tracking-wider";
+
+  return (
+    <AnimatePresence>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={onClose}>
+        <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="px-5 py-4 bg-gradient-to-r from-emerald-600 to-green-600 text-white flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold leading-tight">Won the deal — create an order?</h3>
+              <p className="text-[11px] text-white/85 truncate">{lead.title}</p>
+            </div>
+          </div>
+
+          <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Customer *</label>
+                <input value={form.customer} onChange={e => setForm({ ...form, customer: e.target.value })} className={inputCls + (customerOk ? '' : ' border-red-300')} placeholder="Customer name" />
+              </div>
+              <div>
+                <label className={labelCls}>Email *</label>
+                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={inputCls + (emailOk ? '' : ' border-red-300')} placeholder="email@company.com" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className={labelCls}>Total ($)</label>
+                <input value={form.total} onChange={e => setForm({ ...form, total: e.target.value.replace(/[^0-9.]/g, '') })} className={inputCls} placeholder="0.00" />
+              </div>
+              <div>
+                <label className={labelCls}>Items</label>
+                <input type="number" value={form.items} onChange={e => setForm({ ...form, items: e.target.value })} className={inputCls} placeholder="1" />
+              </div>
+              <div>
+                <label className={labelCls}>In-Hands</label>
+                <input type="date" value={form.inHandsDate} onChange={e => setForm({ ...form, inHandsDate: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>Product Type</label>
+              <input value={form.productType} onChange={e => setForm({ ...form, productType: e.target.value })} className={inputCls} placeholder="e.g., Apparel" />
+            </div>
+
+            <div>
+              <label className={labelCls}>Notes</label>
+              <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className={inputCls + " resize-none"} placeholder="Optional notes for the order…" />
+            </div>
+
+            {(!customerOk || !emailOk) && (
+              <p className="text-[11px] text-red-600 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                Customer and a valid email are required to create an order.
+              </p>
+            )}
+          </div>
+
+          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row gap-2">
+            <button
+              onClick={onClose}
+              disabled={submitting !== null}
+              className="px-3 py-2 border border-slate-200 text-slate-600 text-xs font-semibold rounded-md hover:bg-white transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSkip}
+              disabled={submitting !== null}
+              className="flex-1 sm:flex-initial px-3 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-md hover:bg-white transition-colors disabled:opacity-50"
+              title="Mark as won but don't create an order (e.g., invoice-only deal)"
+            >
+              {submitting === 'skip' ? 'Saving…' : 'Skip — won, no order'}
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!canCreate}
+              className="flex-1 sm:flex-initial px-3 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-xs font-semibold rounded-md hover:shadow-md hover:shadow-emerald-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            >
+              {submitting === 'create' ? 'Creating…' : <><CheckCircle2 className="w-3.5 h-3.5" /> Create order</>}
+            </button>
           </div>
         </motion.div>
       </motion.div>
@@ -994,6 +1148,7 @@ export function SalesLeadModule() {
     | { kind: 'bulk'; ids: string[] }
     | null
   >(null);
+  const [pendingCloseWon, setPendingCloseWon] = useState<{ lead: SalesLead } | null>(null);
   const [embedOpen, setEmbedOpen] = useState(false);
 
   useEffect(() => {
@@ -1050,6 +1205,11 @@ export function SalesLeadModule() {
 
   const handleBulkStatusUpdate = async (newStage: string) => {
     const ids = [...selectedIds];
+    if (newStage === 'closed-won') {
+      toast.error('Move deals to Closed Won one at a time so each can spawn its own order.');
+      setBulkStage('');
+      return;
+    }
     if (newStage === 'closed-lost') {
       const needsReason = ids.some(id => {
         const l = leads.find(x => x.id === id);
@@ -1178,10 +1338,102 @@ export function SalesLeadModule() {
     }
   };
 
+  const performCloseWon = async (lead: SalesLead, orderInput: CloseWonOrderInput) => {
+    // Create the order first.
+    const orderRes = await fetch('/api/orders/create', {
+      method: 'POST',
+      headers: headers_json,
+      body: JSON.stringify({
+        customer: orderInput.customer,
+        email: orderInput.email,
+        customerId: lead.companyId ?? null,
+        sourceLeadId: lead.id,
+        items: orderInput.items,
+        total: orderInput.total > 0 ? `$${orderInput.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00',
+        subtotal: orderInput.total,
+        inHandsDate: orderInput.inHandsDate || null,
+        notes: orderInput.notes,
+        projectName: lead.title,
+        contacts: [{
+          firstName: lead.contactFirstName,
+          lastName: lead.contactLastName,
+          name: lead.contactName,
+          email: lead.contactEmail,
+          phone: lead.contactPhone,
+          contactId: lead.contactId,
+        }],
+        lineItems: orderInput.productType ? [{
+          productType: orderInput.productType,
+          quantity: orderInput.items,
+          total: orderInput.total,
+        }] : [],
+        documents: lead.documents ?? [],
+        status: 'Pending',
+        paymentStatus: 'Pending',
+      }),
+    });
+    if (!orderRes.ok) {
+      const data = await orderRes.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to create order');
+    }
+    const orderData = await orderRes.json();
+    const order = orderData.order;
+    if (!order || !order.id) throw new Error('Order response missing id');
+
+    // Then move the lead to closed-won and link it.
+    const stageInfo = PIPELINE_STAGES.find(s => s.id === 'closed-won');
+    setLeads(prev => prev.map(l => l.id === lead.id
+      ? {
+          ...l,
+          stage: 'closed-won',
+          probability: 100,
+          lastActivity: new Date().toISOString(),
+          sourceOrderId: order.id,
+          sourceOrderNumber: order.orderNumber ?? null,
+          orderLinkedAt: new Date().toISOString(),
+        }
+      : l));
+
+    const updateRes = await fetch('/api/sales-leads/update', {
+      method: 'PATCH',
+      headers: headers_json,
+      body: JSON.stringify({
+        id: lead.id,
+        stage: 'closed-won',
+        probability: (stageInfo?.weight || 1) * 100,
+        sourceOrderId: order.id,
+        sourceOrderNumber: order.orderNumber ?? null,
+        orderLinkedAt: new Date().toISOString(),
+      }),
+    });
+    if (!updateRes.ok) {
+      // Order was created but lead update failed — surface clearly so the user can retry.
+      toast.error(`Order ${order.orderNumber} created, but the deal didn't update. Retry the move.`);
+      fetchLeads();
+      return;
+    }
+
+    toast.success(`Order ${order.orderNumber} created`, {
+      action: { label: 'View', onClick: () => { window.location.hash = `#orders/${order.id}`; } },
+    });
+  };
+
   const handleMove = async (lead: SalesLead, newStage: string) => {
     if (lead.stage === newStage) return;
     if (newStage === 'closed-lost' && !lead.disqualifiedReason) {
       setPendingDisqualify({ kind: 'single', lead });
+      return;
+    }
+    if (newStage === 'closed-won') {
+      if (lead.sourceOrderId) {
+        // Already linked — just transition silently and surface a toast.
+        await performMove(lead, newStage);
+        toast.message(`Already linked to ${lead.sourceOrderNumber || 'an order'}`, {
+          action: { label: 'View', onClick: () => { window.location.hash = `#orders/${lead.sourceOrderId}`; } },
+        });
+        return;
+      }
+      setPendingCloseWon({ lead });
       return;
     }
     await performMove(lead, newStage);
@@ -1272,6 +1524,27 @@ export function SalesLeadModule() {
               } else {
                 await performBulkStatusUpdate(action.ids, 'closed-lost', reason);
               }
+            }}
+          />
+        )}
+        {pendingCloseWon && (
+          <CloseWonModal
+            lead={pendingCloseWon.lead}
+            onClose={() => setPendingCloseWon(null)}
+            onCreateOrder={async (orderInput) => {
+              const action = pendingCloseWon;
+              setPendingCloseWon(null);
+              try {
+                await performCloseWon(action.lead, orderInput);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : 'Failed to create order');
+                setPendingCloseWon(action);
+              }
+            }}
+            onSkip={async () => {
+              const action = pendingCloseWon;
+              setPendingCloseWon(null);
+              await performMove(action.lead, 'closed-won');
             }}
           />
         )}
@@ -1694,6 +1967,27 @@ export function SalesLeadModule() {
             } else {
               await performBulkStatusUpdate(action.ids, 'closed-lost', reason);
             }
+          }}
+        />
+      )}
+      {pendingCloseWon && (
+        <CloseWonModal
+          lead={pendingCloseWon.lead}
+          onClose={() => setPendingCloseWon(null)}
+          onCreateOrder={async (orderInput) => {
+            const action = pendingCloseWon;
+            setPendingCloseWon(null);
+            try {
+              await performCloseWon(action.lead, orderInput);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Failed to create order');
+              setPendingCloseWon(action);
+            }
+          }}
+          onSkip={async () => {
+            const action = pendingCloseWon;
+            setPendingCloseWon(null);
+            await performMove(action.lead, 'closed-won');
           }}
         />
       )}
