@@ -6,25 +6,45 @@ import { toast } from 'sonner';
 import { PhoneInput } from './PhoneInput';
 
 // Upload a file to S3 via the local presign/complete endpoints and return the key.
-async function uploadFileToS3(file: File, entityType: string, entityId: string): Promise<string | null> {
-  try {
-    const presignRes = await fetch('/api/files/presign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, fileType: file.type, entityType, entityId }),
-    });
-    if (!presignRes.ok) return null;
-    const { uploadUrl, key } = await presignRes.json();
-    await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
-    await fetch('/api/files/complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType, entityId, uploadedBy: 'User' }),
-    });
-    return key;
-  } catch {
-    return null;
+// Throws on failure so callers can surface a real error to the user instead of
+// silently storing a customer with no logo.
+async function uploadFileToS3(file: File, entityType: string, entityId: string): Promise<string> {
+  const presignRes = await fetch('/api/files/presign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName: file.name, fileType: file.type, entityType, entityId }),
+  });
+  if (!presignRes.ok) {
+    const data = await presignRes.json().catch(() => ({}));
+    throw new Error(data.error || `Could not start upload (${presignRes.status})`);
   }
+  const { uploadUrl, key } = await presignRes.json();
+  if (!uploadUrl || !key) {
+    throw new Error('Presign response missing uploadUrl or key.');
+  }
+
+  const putRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': file.type },
+  });
+  if (!putRes.ok) {
+    throw new Error(`S3 upload failed (${putRes.status}). Check bucket CORS and credentials.`);
+  }
+
+  const completeRes = await fetch('/api/files/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType, entityId, uploadedBy: 'User' }),
+  });
+  if (!completeRes.ok) {
+    // The file is in S3 even though metadata recording failed — return the key
+    // so the customer record still gets the logoKey. The metadata table is
+    // secondary for image rendering.
+    console.warn('files/complete failed but PUT succeeded — returning key anyway');
+  }
+
+  return key;
 }
 
 interface AddCustomerDrawerProps {
@@ -219,24 +239,30 @@ export function AddCustomerDrawer({ isOpen, onClose, customerData, onSuccess }: 
       }
 
       if (customerId && hasFreshLogo && logoFile) {
-        const key = await uploadFileToS3(logoFile, 'customer-logo', customerId);
-        if (key) {
+        try {
+          const key = await uploadFileToS3(logoFile, 'customer-logo', customerId);
           await fetch('/api/customers/update', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: customerId, logoKey: key }),
           });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Logo upload failed';
+          toast.error(`Customer saved, but the logo failed to upload: ${msg}`);
         }
       }
 
       if (customerId && hasFreshCert && certFile) {
-        const key = await uploadFileToS3(certFile, 'customer-cert', customerId);
-        if (key) {
+        try {
+          const key = await uploadFileToS3(certFile, 'customer-cert', customerId);
           await fetch('/api/customers/update', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: customerId, certKey: key }),
           });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Cert upload failed';
+          toast.error(`Customer saved, but the resale cert failed to upload: ${msg}`);
         }
       }
 

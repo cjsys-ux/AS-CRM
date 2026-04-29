@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../_mongodb';
-import { getPublicS3Url } from '../_s3';
+import { getReadUrl } from '../_s3';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -29,11 +29,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Customer not found.' });
     }
 
+    const logoUrl = customer.logoKey
+      ? await getReadUrl(customer.logoKey as string)
+      : (customer.logo ?? null);
+
     return res.status(200).json({
       customer: {
         ...customer,
         id: customer._id.toString(),
-        logo: customer.logoKey ? getPublicS3Url(customer.logoKey) : (customer.logo ?? null),
+        logo: logoUrl,
       },
     });
   } catch (error) {

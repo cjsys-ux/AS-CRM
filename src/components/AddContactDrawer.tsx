@@ -326,7 +326,20 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess, cust
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Client-side guard: API requires name + email; surface specifics here so
+    // users see the exact missing field, not a generic "Failed to create".
+    const hasName = (formData.firstName?.trim() || formData.lastName?.trim());
+    const hasEmail = !!formData.email?.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
+    if (!hasName) {
+      toast.error('First or last name is required.');
+      return;
+    }
+    if (!hasEmail) {
+      toast.error('A valid email address is required.');
+      return;
+    }
+
     const contact = {
       firstName: formData.firstName,
       lastName: formData.lastName,
@@ -386,7 +399,10 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess, cust
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: contactData.id, ...basePayload }),
         });
-        if (!response.ok) throw new Error('Failed to update contact');
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.error || 'Failed to update contact');
+        }
         onSuccess?.({ ...contactData, ...basePayload, id: contactData.id });
         onClose();
       } else {
@@ -396,25 +412,38 @@ export function AddContactDrawer({ isOpen, onClose, contactData, onSuccess, cust
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(basePayload),
         });
-        if (!response.ok) throw new Error('Failed to create contact');
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          throw new Error(errBody.error || 'Failed to create contact');
+        }
         const data = await response.json();
         const saved = data.contact ?? { ...basePayload, ...contact };
         // If this drawer is scoped to a customer (used by CustomerDetailView),
         // mirror the row into customer_contacts so the customer's contacts
-        // tab picks it up.
+        // tab picks it up. Soft-warn on failure — the global contact is saved
+        // either way.
         if (customerId) {
-          await fetch('/api/customers/contacts/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              customerId,
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              phone: formData.phone,
-              role: formData.jobTitle || null,
-            }),
-          }).catch(() => undefined);
+          try {
+            const mirrorRes = await fetch('/api/customers/contacts/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customerId,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                phone: formData.phone,
+                role: formData.jobTitle || null,
+              }),
+            });
+            if (!mirrorRes.ok) {
+              const mirrorErr = await mirrorRes.json().catch(() => ({}));
+              toast.warning(`Contact saved, but couldn't link to this customer's Contacts tab: ${mirrorErr.error || 'unknown error'}`);
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'unknown error';
+            toast.warning(`Contact saved, but couldn't link to this customer's Contacts tab: ${msg}`);
+          }
         }
         onSuccess?.(saved);
         onClose();
