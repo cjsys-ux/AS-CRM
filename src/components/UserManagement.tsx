@@ -432,6 +432,7 @@ export function UserManagement() {
           email: selectedUser.email,
           phone: selectedUser.phone,
           role: selectedUser.role,
+          jobTitle: selectedUser.jobTitle,
           status: selectedUser.status,
           created: selectedUser.created ?? selectedUser.lastLogin,
         } : undefined}
