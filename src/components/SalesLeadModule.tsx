@@ -13,6 +13,7 @@ import { PhoneInput } from './PhoneInput';
 import { LeadCaptureFormSnippet } from './LeadCaptureFormSnippet';
 import { DatePicker } from './DatePicker';
 import { SalesRevenueHeader, type TimeRange } from './SalesRevenueHeader';
+import { isSalesTitle } from '../lib/jobTitles';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -452,7 +453,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [documents, setDocuments] = useState<{ name: string; size: number; type: string; dataUrl?: string }[]>([]);
-  const [users, setUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; email?: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; email?: string; jobTitle?: string; status?: string }[]>([]);
   const [showOwnerList, setShowOwnerList] = useState(false);
   const [ownerSearch, setOwnerSearch] = useState('');
   const [selectedCustomerContacts, setSelectedCustomerContacts] = useState<any[]>([]);
@@ -591,7 +592,15 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
     setShowContactList(false);
   };
 
-  const filteredUsers = users.filter(u => {
+  // Restrict deal-owner choices to users tagged with a sales-facing job title.
+  // If nobody has been tagged yet, fall back to active users so the picker
+  // never shows up empty during the migration period.
+  const salesEligibleUsers = (() => {
+    const active = users.filter(u => (u.status ?? 'Active') !== 'Inactive');
+    const tagged = active.filter(u => isSalesTitle(u.jobTitle));
+    return tagged.length > 0 ? tagged : active;
+  })();
+  const filteredUsers = salesEligibleUsers.filter(u => {
     const name = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
     return name.toLowerCase().includes(ownerSearch.toLowerCase());
   });
@@ -1186,7 +1195,7 @@ export function SalesLeadModule() {
   const [bulkStage, setBulkStage] = useState('');
   const [bulkOwner, setBulkOwner] = useState('');
   const [showBulkOwnerList, setShowBulkOwnerList] = useState(false);
-  const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string }[]>([]);
+  const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; jobTitle?: string; status?: string }[]>([]);
   const bulkOwnerRef = useRef<HTMLDivElement>(null);
   const [minScoreFilter, setMinScoreFilter] = useState('All Scores');
   const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
@@ -1866,9 +1875,13 @@ export function SalesLeadModule() {
                   <User className="w-3 h-3" /> Assign owner
                 </button>
                 <AnimatePresence>
-                  {showBulkOwnerList && (
+                  {showBulkOwnerList && (() => {
+                    const activeBulk = bulkUsers.filter(u => (u.status ?? 'Active') !== 'Inactive');
+                    const taggedBulk = activeBulk.filter(u => isSalesTitle(u.jobTitle));
+                    const eligible = taggedBulk.length > 0 ? taggedBulk : activeBulk;
+                    return (
                     <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg border border-slate-200 shadow-xl z-50 max-h-48 overflow-y-auto">
-                      {bulkUsers.map(user => {
+                      {eligible.map(user => {
                         const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
                         const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
                         return (
@@ -1880,9 +1893,10 @@ export function SalesLeadModule() {
                           </button>
                         );
                       })}
-                      {bulkUsers.length === 0 && <div className="px-3 py-3 text-[12px] text-slate-400 text-center">No users found</div>}
+                      {eligible.length === 0 && <div className="px-3 py-3 text-[12px] text-slate-400 text-center">No salespeople found</div>}
                     </motion.div>
-                  )}
+                    );
+                  })()}
                 </AnimatePresence>
               </div>
               <div className="ml-auto flex items-center gap-2">

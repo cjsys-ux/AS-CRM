@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { firstName, lastName, email, phone, role, status } = req.body ?? {};
+  const { firstName, lastName, email, phone, role, status, jobTitle } = req.body ?? {};
 
   if (!firstName || !email) {
     return res.status(400).json({ error: 'firstName and email are required.' });
@@ -78,6 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user_metadata: {
         phone: phone ?? '',
         role: role ?? 'Sales Rep',
+        jobTitle: jobTitle ?? 'Salesperson',
       },
     }),
   });
@@ -129,6 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email: newUser.email,
       phone: newUser.user_metadata?.phone ?? '',
       role: newUser.user_metadata?.role ?? role ?? 'Sales Rep',
+      jobTitle: newUser.user_metadata?.jobTitle ?? jobTitle ?? 'Salesperson',
       status: newUser.blocked ? 'Inactive' : 'Active',
       lastLogin: 'Never',
       created: newUser.created_at ?? new Date().toISOString(),
