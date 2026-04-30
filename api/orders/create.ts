@@ -102,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       shipToAddresses: Array.isArray(body.shipToAddresses) ? body.shipToAddresses : [],
       contacts: Array.isArray(body.contacts) ? body.contacts : [],
       documents: Array.isArray(body.documents) ? body.documents : [],
+      sourceLeadId: typeof body.sourceLeadId === 'string' ? body.sourceLeadId : null,
       createdBy: createdBy ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
