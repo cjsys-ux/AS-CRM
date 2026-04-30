@@ -12,6 +12,7 @@ import { SalesLeadDetailView } from './SalesLeadDetailView';
 import { PhoneInput } from './PhoneInput';
 import { LeadCaptureFormSnippet } from './LeadCaptureFormSnippet';
 import { DatePicker } from './DatePicker';
+import { SalesRevenueHeader, type TimeRange } from './SalesRevenueHeader';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -1196,6 +1197,27 @@ export function SalesLeadModule() {
   >(null);
   const [pendingCloseWon, setPendingCloseWon] = useState<{ lead: SalesLead } | null>(null);
   const [embedOpen, setEmbedOpen] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  const [monthlyGoal, setMonthlyGoal] = useState(0);
+  const [goalLoaded, setGoalLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/settings/company-goals/get', { headers: headers_json });
+        const data = await res.json();
+        if (cancelled) return;
+        const v = Number(data?.goals?.monthlyRevenueGoal) || 0;
+        setMonthlyGoal(v);
+      } catch {
+        // soft-fail: goal stays at 0 → ring shows the empty state
+      } finally {
+        if (!cancelled) setGoalLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (bulkOwnerRef.current && !bulkOwnerRef.current.contains(e.target as Node)) setShowBulkOwnerList(false); };
@@ -1577,6 +1599,24 @@ export function SalesLeadModule() {
   const onDragEnd = () => { setDragOverStage(null); setDraggedLeadId(null); };
 
   const owners = [...new Set(leads.map(l => l.owner).filter(Boolean))];
+
+  const isLeadInTimeRange = (l: SalesLead, range: TimeRange): boolean => {
+    if (range === 'all') return true;
+    const createdMs = l.createdAt ? new Date(l.createdAt).getTime() : 0;
+    if (!createdMs) return false;
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    if (range === '7d') return now - createdMs <= 7 * day;
+    if (range === '30d') return now - createdMs <= 30 * day;
+    if (range === 'last-quarter') return now - createdMs <= 90 * day;
+    if (range === 'this-month') {
+      const created = new Date(createdMs);
+      const today = new Date();
+      return created.getFullYear() === today.getFullYear() && created.getMonth() === today.getMonth();
+    }
+    return true;
+  };
+
   const filteredLeads = leads.filter(l => {
     if (search) {
       const q = search.toLowerCase();
@@ -1589,16 +1629,27 @@ export function SalesLeadModule() {
       const threshold = minScoreFilter === 'Hot 71+' ? 71 : minScoreFilter === 'Warm 41+' ? 41 : 0;
       if ((l.score ?? 0) < threshold) return false;
     }
+    if (!isLeadInTimeRange(l, timeRange)) return false;
     return true;
+  });
+
+  // Always month-to-date closed-won (regardless of selected time range) so the
+  // goal ring shows true progress against the company's monthly revenue target.
+  // Uses orderLinkedAt (the actual close date) and falls back to createdAt only
+  // when orderLinkedAt is missing.
+  const monthLeads = leads.filter(l => {
+    if (l.stage !== 'closed-won') return false;
+    const closedSrc = l.orderLinkedAt || l.createdAt;
+    if (!closedSrc) return false;
+    const d = new Date(closedSrc);
+    if (Number.isNaN(d.getTime())) return false;
+    const today = new Date();
+    return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
   });
 
   // Always show all stages including closed-lost
   const visibleStages = PIPELINE_STAGES;
 
-  const totalPipelineValue = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').reduce((s, l) => s + l.amount, 0);
-  const weightedValue = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').reduce((s, l) => s + l.amount * ((l.probability || 0) / 100), 0);
-  const wonValue = filteredLeads.filter(l => l.stage === 'closed-won').reduce((s, l) => s + l.amount, 0);
-  const lostValue = filteredLeads.filter(l => l.stage === 'closed-lost').reduce((s, l) => s + l.amount, 0);
   const activeDeals = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').length;
 
   // When viewing a specific lead, update from latest data
@@ -1721,16 +1772,16 @@ export function SalesLeadModule() {
           </div>
         </div>
 
-        {/* Metrics — inline strip */}
+        {/* Revenue header — animated counters, time-range chips, monthly-goal ring */}
         {showMetrics && (
-          <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2 border-b border-slate-100 bg-white">
-            <div className="max-w-[2200px] mx-auto flex flex-wrap items-baseline gap-x-6 gap-y-1.5 text-[13px]">
-              <span className="text-slate-500">Pipeline <strong className="text-slate-900 font-semibold tabular-nums">${totalPipelineValue.toLocaleString()}</strong></span>
-              <span className="text-slate-500">Weighted <strong className="text-slate-900 font-semibold tabular-nums">${Math.round(weightedValue).toLocaleString()}</strong></span>
-              <span className="text-slate-500">Won <strong className="text-emerald-700 font-semibold tabular-nums">${wonValue.toLocaleString()}</strong></span>
-              <span className="text-slate-500">Lost <strong className="text-slate-900 font-semibold tabular-nums">${lostValue.toLocaleString()}</strong></span>
-            </div>
-          </div>
+          <SalesRevenueHeader
+            rangeLeads={filteredLeads}
+            monthLeads={monthLeads}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            monthlyGoal={monthlyGoal}
+            goalLoaded={goalLoaded}
+          />
         )}
 
         {/* Search + Filters */}

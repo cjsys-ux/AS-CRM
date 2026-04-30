@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { GeneralSettingsPage } from './GeneralSettingsPage';
 import { UserManagement } from './UserManagement';
 import { Permissions } from './Permissions';
-import { Users, Settings as SettingsIcon } from 'lucide-react';
+import { CompanyGoalsSettings } from './CompanyGoalsSettings';
+import { Users, Settings as SettingsIcon, Target } from 'lucide-react';
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'general'>('general');
+  const [activeTab, setActiveTab] = useState<'users' | 'permissions' | 'general' | 'goals'>('general');
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
@@ -47,6 +48,17 @@ export function SettingsPage() {
             <SettingsIcon className="w-4 h-4" />
             General Settings
           </button>
+          <button
+            onClick={() => setActiveTab('goals')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors ${
+              activeTab === 'goals'
+                ? 'text-blue-600 border-blue-600 font-medium'
+                : 'text-slate-600 hover:text-slate-900 border-transparent hover:border-slate-300'
+            }`}
+          >
+            <Target className="w-4 h-4" />
+            Company Goals
+          </button>
         </div>
       </div>
 
@@ -55,6 +67,7 @@ export function SettingsPage() {
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'permissions' && <Permissions />}
         {activeTab === 'general' && <GeneralSettingsPage />}
+        {activeTab === 'goals' && <CompanyGoalsSettings />}
       </div>
     </div>
   );
