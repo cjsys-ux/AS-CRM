@@ -16,8 +16,11 @@ export type JobTitle = (typeof JOB_TITLES)[number];
 
 export const DEFAULT_JOB_TITLE: JobTitle = 'Salesperson';
 
-// Titles whose users are eligible to own a deal in the Sales module.
-export const SALES_TITLES: readonly JobTitle[] = ['Salesperson', 'Sales Manager'];
+// Titles whose users are eligible to own a deal in the Sales module. Admins
+// (the title) are included alongside Salesperson and Sales Manager because
+// admins commonly own deals too — the role-level Admin / Super Admin bypass
+// in isAdminRole below covers permission-tier admins separately.
+export const SALES_TITLES: readonly JobTitle[] = ['Salesperson', 'Sales Manager', 'Admin'];
 
 export function isSalesTitle(title: string | null | undefined): boolean {
   return !!title && (SALES_TITLES as readonly string[]).includes(title);
