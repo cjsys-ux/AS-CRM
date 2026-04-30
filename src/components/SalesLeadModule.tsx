@@ -13,7 +13,7 @@ import { PhoneInput } from './PhoneInput';
 import { LeadCaptureFormSnippet } from './LeadCaptureFormSnippet';
 import { DatePicker } from './DatePicker';
 import { SalesRevenueHeader, type TimeRange } from './SalesRevenueHeader';
-import { isSalesTitle } from '../lib/jobTitles';
+import { isSalesEligibleUser } from '../lib/jobTitles';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -453,7 +453,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [documents, setDocuments] = useState<{ name: string; size: number; type: string; dataUrl?: string }[]>([]);
-  const [users, setUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; email?: string; jobTitle?: string; status?: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; email?: string; role?: string; jobTitle?: string; status?: string }[]>([]);
   const [showOwnerList, setShowOwnerList] = useState(false);
   const [ownerSearch, setOwnerSearch] = useState('');
   const [selectedCustomerContacts, setSelectedCustomerContacts] = useState<any[]>([]);
@@ -592,13 +592,14 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
     setShowContactList(false);
   };
 
-  // Restrict deal-owner choices to users tagged with a sales-facing job title.
-  // If nobody has been tagged yet, fall back to active users so the picker
-  // never shows up empty during the migration period.
+  // Restrict deal-owner choices to users tagged with a sales-facing job title;
+  // admins (Admin / Super Admin) always pass through regardless of their
+  // jobTitle. If nobody is eligible at all, fall back to active users so the
+  // picker is never empty during the migration period.
   const salesEligibleUsers = (() => {
     const active = users.filter(u => (u.status ?? 'Active') !== 'Inactive');
-    const tagged = active.filter(u => isSalesTitle(u.jobTitle));
-    return tagged.length > 0 ? tagged : active;
+    const eligible = active.filter(u => isSalesEligibleUser(u));
+    return eligible.length > 0 ? eligible : active;
   })();
   const filteredUsers = salesEligibleUsers.filter(u => {
     const name = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
@@ -1195,7 +1196,7 @@ export function SalesLeadModule() {
   const [bulkStage, setBulkStage] = useState('');
   const [bulkOwner, setBulkOwner] = useState('');
   const [showBulkOwnerList, setShowBulkOwnerList] = useState(false);
-  const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; jobTitle?: string; status?: string }[]>([]);
+  const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; role?: string; jobTitle?: string; status?: string }[]>([]);
   const bulkOwnerRef = useRef<HTMLDivElement>(null);
   const [minScoreFilter, setMinScoreFilter] = useState('All Scores');
   const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
@@ -1877,7 +1878,7 @@ export function SalesLeadModule() {
                 <AnimatePresence>
                   {showBulkOwnerList && (() => {
                     const activeBulk = bulkUsers.filter(u => (u.status ?? 'Active') !== 'Inactive');
-                    const taggedBulk = activeBulk.filter(u => isSalesTitle(u.jobTitle));
+                    const taggedBulk = activeBulk.filter(u => isSalesEligibleUser(u));
                     const eligible = taggedBulk.length > 0 ? taggedBulk : activeBulk;
                     return (
                     <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg border border-slate-200 shadow-xl z-50 max-h-48 overflow-y-auto">

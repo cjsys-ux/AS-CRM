@@ -22,3 +22,20 @@ export const SALES_TITLES: readonly JobTitle[] = ['Salesperson', 'Sales Manager'
 export function isSalesTitle(title: string | null | undefined): boolean {
   return !!title && (SALES_TITLES as readonly string[]).includes(title);
 }
+
+// Roles that bypass job-title gating — admins act as if they hold every job
+// title, so they always appear in pickers like the Sales deal-owner dropdown.
+export const ADMIN_ROLES = ['Admin', 'Super Admin'] as const;
+
+export function isAdminRole(role: string | null | undefined): boolean {
+  return !!role && (ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+// Is this user eligible to be selected as a deal owner? True for admins
+// (regardless of jobTitle) or anyone tagged with a sales-facing title.
+export function isSalesEligibleUser(
+  user: { role?: string | null; jobTitle?: string | null }
+): boolean {
+  if (isAdminRole(user.role)) return true;
+  return isSalesTitle(user.jobTitle);
+}
