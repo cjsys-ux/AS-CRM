@@ -7,7 +7,7 @@ interface Auth0UserRecord {
   given_name?: string;
   family_name?: string;
   email?: string;
-  user_metadata?: { phone?: string; role?: string; profile_image_key?: string };
+  user_metadata?: { phone?: string; role?: string; jobTitle?: string; department?: string; profile_image_key?: string };
   last_login?: string;
   created_at?: string;
   blocked?: boolean;
@@ -31,6 +31,8 @@ function mapUser(u: Auth0UserRecord) {
     email: u.email ?? '',
     phone: u.user_metadata?.phone ?? '',
     role: u.user_metadata?.role ?? 'Sales Rep',
+    jobTitle: u.user_metadata?.jobTitle ?? '',
+    department: u.user_metadata?.department ?? '',
     status: u.blocked ? 'Inactive' : 'Active',
     lastLogin: u.last_login ? formatRelativeDate(u.last_login) : 'Never',
     created: u.created_at ?? '',

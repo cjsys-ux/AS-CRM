@@ -140,6 +140,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email: updated.email,
       phone: updated.user_metadata?.phone ?? '',
       role: updated.user_metadata?.role ?? '',
+      jobTitle: updated.user_metadata?.jobTitle ?? '',
+      department: updated.user_metadata?.department ?? '',
       status: updated.blocked ? 'Inactive' : 'Active',
       lastLogin: updated.last_login ? formatRelativeDate(updated.last_login) : 'Never',
       created: updated.created_at ?? '',

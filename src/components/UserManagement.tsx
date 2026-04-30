@@ -11,6 +11,7 @@ interface User {
   email: string;
   phone: string;
   role: string;
+  jobTitle?: string;
   status: 'Active' | 'Inactive';
   lastLogin: string;
   created?: string;
@@ -67,6 +68,7 @@ export function UserManagement() {
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
+          jobTitle: formData.jobTitle,
           status: formData.status,
         }),
       });
@@ -85,6 +87,7 @@ export function UserManagement() {
           email: formData.email,
           phone: formData.phone,
           role: formData.role,
+          jobTitle: formData.jobTitle,
           status: formData.status,
         }),
       });
@@ -294,9 +297,14 @@ export function UserManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                        {user.role}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border w-fit ${getRoleBadgeColor(user.role)}`}>
+                          {user.role}
+                        </span>
+                        {user.jobTitle && (
+                          <span className="text-[11px] text-slate-500">{user.jobTitle}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {user.status === 'Active' && user.lastLogin === 'Never' ? (

@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Mail, Phone, Shield, Calendar, Loader2 } from 'lucide-react';
+import { X, User, Mail, Phone, Shield, Calendar, Loader2, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ModernDropdown } from './ModernDropdown';
 import { PhoneInput } from './PhoneInput';
+import { JOB_TITLES, DEFAULT_JOB_TITLE } from '../lib/jobTitles';
 
 interface UserDrawerProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface UserDrawerProps {
     status: string;
     created: string;
     phone?: string;
+    jobTitle?: string;
   };
   onSave?: (userData: any) => Promise<void>;
 }
@@ -27,6 +29,7 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
     email: '',
     phone: '',
     role: 'Sales Rep',
+    jobTitle: DEFAULT_JOB_TITLE as string,
     status: 'Active',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,6 +46,7 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
         email: user.email || '',
         phone: user.phone || '',
         role: user.role || 'Sales Rep',
+        jobTitle: user.jobTitle || DEFAULT_JOB_TITLE,
         status: user.status || 'Active',
       });
     } else {
@@ -52,6 +56,7 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
         email: '',
         phone: '',
         role: 'Sales Rep',
+        jobTitle: DEFAULT_JOB_TITLE,
         status: 'Active',
       });
     }
@@ -193,6 +198,15 @@ export function UserDrawer({ isOpen, onClose, mode, user, onSave }: UserDrawerPr
                   options={['Sales Rep', 'Sales Manager', 'Super Admin']}
                   icon={<Shield className="w-4 h-4" />}
                   label="Role"
+                />
+
+                {/* Job Title — controls who appears in the Sales module deal-owner picker */}
+                <ModernDropdown
+                  value={formData.jobTitle}
+                  onChange={(value) => setFormData({ ...formData, jobTitle: value })}
+                  options={[...JOB_TITLES]}
+                  icon={<Briefcase className="w-4 h-4" />}
+                  label="Job Title"
                 />
 
                 {/* Status field */}

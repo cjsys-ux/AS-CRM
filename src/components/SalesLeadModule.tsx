@@ -12,6 +12,8 @@ import { SalesLeadDetailView } from './SalesLeadDetailView';
 import { PhoneInput } from './PhoneInput';
 import { LeadCaptureFormSnippet } from './LeadCaptureFormSnippet';
 import { DatePicker } from './DatePicker';
+import { SalesRevenueHeader, type TimeRange } from './SalesRevenueHeader';
+import { isSalesEligibleUser } from '../lib/jobTitles';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -451,7 +453,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
   const [showCustomerList, setShowCustomerList] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [documents, setDocuments] = useState<{ name: string; size: number; type: string; dataUrl?: string }[]>([]);
-  const [users, setUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; email?: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; email?: string; role?: string; jobTitle?: string; status?: string }[]>([]);
   const [showOwnerList, setShowOwnerList] = useState(false);
   const [ownerSearch, setOwnerSearch] = useState('');
   const [selectedCustomerContacts, setSelectedCustomerContacts] = useState<any[]>([]);
@@ -590,7 +592,16 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
     setShowContactList(false);
   };
 
-  const filteredUsers = users.filter(u => {
+  // Restrict deal-owner choices to users tagged with a sales-facing job title;
+  // admins (Admin / Super Admin) always pass through regardless of their
+  // jobTitle. If nobody is eligible at all, fall back to active users so the
+  // picker is never empty during the migration period.
+  const salesEligibleUsers = (() => {
+    const active = users.filter(u => (u.status ?? 'Active') !== 'Inactive');
+    const eligible = active.filter(u => isSalesEligibleUser(u));
+    return eligible.length > 0 ? eligible : active;
+  })();
+  const filteredUsers = salesEligibleUsers.filter(u => {
     const name = u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim();
     return name.toLowerCase().includes(ownerSearch.toLowerCase());
   });
@@ -1185,7 +1196,7 @@ export function SalesLeadModule() {
   const [bulkStage, setBulkStage] = useState('');
   const [bulkOwner, setBulkOwner] = useState('');
   const [showBulkOwnerList, setShowBulkOwnerList] = useState(false);
-  const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string }[]>([]);
+  const [bulkUsers, setBulkUsers] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; role?: string; jobTitle?: string; status?: string }[]>([]);
   const bulkOwnerRef = useRef<HTMLDivElement>(null);
   const [minScoreFilter, setMinScoreFilter] = useState('All Scores');
   const [sourceCategoryFilter, setSourceCategoryFilter] = useState('All Categories');
@@ -1196,6 +1207,27 @@ export function SalesLeadModule() {
   >(null);
   const [pendingCloseWon, setPendingCloseWon] = useState<{ lead: SalesLead } | null>(null);
   const [embedOpen, setEmbedOpen] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>('all');
+  const [monthlyGoal, setMonthlyGoal] = useState(0);
+  const [goalLoaded, setGoalLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/settings/company-goals/get', { headers: headers_json });
+        const data = await res.json();
+        if (cancelled) return;
+        const v = Number(data?.goals?.monthlyRevenueGoal) || 0;
+        setMonthlyGoal(v);
+      } catch {
+        // soft-fail: goal stays at 0 → ring shows the empty state
+      } finally {
+        if (!cancelled) setGoalLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const h = (e: MouseEvent) => { if (bulkOwnerRef.current && !bulkOwnerRef.current.contains(e.target as Node)) setShowBulkOwnerList(false); };
@@ -1577,6 +1609,24 @@ export function SalesLeadModule() {
   const onDragEnd = () => { setDragOverStage(null); setDraggedLeadId(null); };
 
   const owners = [...new Set(leads.map(l => l.owner).filter(Boolean))];
+
+  const isLeadInTimeRange = (l: SalesLead, range: TimeRange): boolean => {
+    if (range === 'all') return true;
+    const createdMs = l.createdAt ? new Date(l.createdAt).getTime() : 0;
+    if (!createdMs) return false;
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    if (range === '7d') return now - createdMs <= 7 * day;
+    if (range === '30d') return now - createdMs <= 30 * day;
+    if (range === 'last-quarter') return now - createdMs <= 90 * day;
+    if (range === 'this-month') {
+      const created = new Date(createdMs);
+      const today = new Date();
+      return created.getFullYear() === today.getFullYear() && created.getMonth() === today.getMonth();
+    }
+    return true;
+  };
+
   const filteredLeads = leads.filter(l => {
     if (search) {
       const q = search.toLowerCase();
@@ -1589,16 +1639,27 @@ export function SalesLeadModule() {
       const threshold = minScoreFilter === 'Hot 71+' ? 71 : minScoreFilter === 'Warm 41+' ? 41 : 0;
       if ((l.score ?? 0) < threshold) return false;
     }
+    if (!isLeadInTimeRange(l, timeRange)) return false;
     return true;
+  });
+
+  // Always month-to-date closed-won (regardless of selected time range) so the
+  // goal ring shows true progress against the company's monthly revenue target.
+  // Uses orderLinkedAt (the actual close date) and falls back to createdAt only
+  // when orderLinkedAt is missing.
+  const monthLeads = leads.filter(l => {
+    if (l.stage !== 'closed-won') return false;
+    const closedSrc = l.orderLinkedAt || l.createdAt;
+    if (!closedSrc) return false;
+    const d = new Date(closedSrc);
+    if (Number.isNaN(d.getTime())) return false;
+    const today = new Date();
+    return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth();
   });
 
   // Always show all stages including closed-lost
   const visibleStages = PIPELINE_STAGES;
 
-  const totalPipelineValue = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').reduce((s, l) => s + l.amount, 0);
-  const weightedValue = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').reduce((s, l) => s + l.amount * ((l.probability || 0) / 100), 0);
-  const wonValue = filteredLeads.filter(l => l.stage === 'closed-won').reduce((s, l) => s + l.amount, 0);
-  const lostValue = filteredLeads.filter(l => l.stage === 'closed-lost').reduce((s, l) => s + l.amount, 0);
   const activeDeals = filteredLeads.filter(l => l.stage !== 'closed-lost' && l.stage !== 'closed-won').length;
 
   // When viewing a specific lead, update from latest data
@@ -1721,16 +1782,16 @@ export function SalesLeadModule() {
           </div>
         </div>
 
-        {/* Metrics — inline strip */}
+        {/* Revenue header — animated counters, time-range chips, monthly-goal ring */}
         {showMetrics && (
-          <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2 border-b border-slate-100 bg-white">
-            <div className="max-w-[2200px] mx-auto flex flex-wrap items-baseline gap-x-6 gap-y-1.5 text-[13px]">
-              <span className="text-slate-500">Pipeline <strong className="text-slate-900 font-semibold tabular-nums">${totalPipelineValue.toLocaleString()}</strong></span>
-              <span className="text-slate-500">Weighted <strong className="text-slate-900 font-semibold tabular-nums">${Math.round(weightedValue).toLocaleString()}</strong></span>
-              <span className="text-slate-500">Won <strong className="text-emerald-700 font-semibold tabular-nums">${wonValue.toLocaleString()}</strong></span>
-              <span className="text-slate-500">Lost <strong className="text-slate-900 font-semibold tabular-nums">${lostValue.toLocaleString()}</strong></span>
-            </div>
-          </div>
+          <SalesRevenueHeader
+            rangeLeads={filteredLeads}
+            monthLeads={monthLeads}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
+            monthlyGoal={monthlyGoal}
+            goalLoaded={goalLoaded}
+          />
         )}
 
         {/* Search + Filters */}
@@ -1815,9 +1876,13 @@ export function SalesLeadModule() {
                   <User className="w-3 h-3" /> Assign owner
                 </button>
                 <AnimatePresence>
-                  {showBulkOwnerList && (
+                  {showBulkOwnerList && (() => {
+                    const activeBulk = bulkUsers.filter(u => (u.status ?? 'Active') !== 'Inactive');
+                    const taggedBulk = activeBulk.filter(u => isSalesEligibleUser(u));
+                    const eligible = taggedBulk.length > 0 ? taggedBulk : activeBulk;
+                    return (
                     <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg border border-slate-200 shadow-xl z-50 max-h-48 overflow-y-auto">
-                      {bulkUsers.map(user => {
+                      {eligible.map(user => {
                         const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
                         const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
                         return (
@@ -1829,9 +1894,10 @@ export function SalesLeadModule() {
                           </button>
                         );
                       })}
-                      {bulkUsers.length === 0 && <div className="px-3 py-3 text-[12px] text-slate-400 text-center">No users found</div>}
+                      {eligible.length === 0 && <div className="px-3 py-3 text-[12px] text-slate-400 text-center">No salespeople found</div>}
                     </motion.div>
-                  )}
+                    );
+                  })()}
                 </AnimatePresence>
               </div>
               <div className="ml-auto flex items-center gap-2">
