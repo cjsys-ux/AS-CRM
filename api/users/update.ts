@@ -145,7 +145,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: updated.blocked ? 'Inactive' : 'Active',
       lastLogin: updated.last_login ? formatRelativeDate(updated.last_login) : 'Never',
       created: updated.created_at ?? '',
-      profileImage: updated.picture ?? '',
+      // Match list.ts so the row shows the same proxy URL after save instead
+      // of switching to Auth0's `picture` (often a Gravatar URL the app
+      // can't render).
+      profileImage: updated.user_metadata?.profile_image_key ?? '',
     },
   });
 }
