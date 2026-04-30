@@ -4,13 +4,14 @@ import {
   Calendar, User, Clock, ArrowRight, MoreHorizontal, Edit, Trash2, Phone, Mail,
   TrendingUp, Zap, MessageSquare, FileText, Building2,
   BarChart3, AlertTriangle, CheckCircle2, Sparkles, XCircle, ChevronUp, Loader2, Upload, Paperclip,
-  List, LayoutGrid, Code
+  List, LayoutGrid, Code, Check
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef, DragEvent } from 'react';
 import { toast } from 'sonner';
 import { SalesLeadDetailView } from './SalesLeadDetailView';
 import { PhoneInput } from './PhoneInput';
 import { LeadCaptureFormSnippet } from './LeadCaptureFormSnippet';
+import { DatePicker } from './DatePicker';
 
 const headers_json = { 'Content-Type': 'application/json' };
 
@@ -121,38 +122,38 @@ function CustomDropdown({ label, value, options, onChange, icon: Icon }: {
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">{label}</label>
+      <label className="block text-[11px] font-medium text-slate-500 mb-1">{label}</label>
       <div className="relative" ref={ref}>
         <button
           type="button" onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50/80 border-2 border-slate-200 rounded-xl text-sm text-slate-900 hover:border-slate-300 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+          className="w-full flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-[13px] text-slate-900 hover:border-slate-300 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition-all"
         >
-          <div className="flex items-center gap-2">
-            {selected?.color && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selected.color }} />}
-            {Icon && !selected?.color && <Icon className="w-4 h-4 text-slate-400" />}
-            <span>{selected?.label || value}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            {selected?.color && <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: selected.color }} />}
+            {Icon && !selected?.color && <Icon className="w-3.5 h-3.5 text-slate-400" />}
+            <span className="truncate">{selected?.label || value}</span>
           </div>
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
         <AnimatePresence>
           {open && (
             <motion.div
-              initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.97 }}
-              transition={{ duration: 0.15 }}
-              className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-2xl z-50 max-h-56 overflow-y-auto"
+              initial={{ opacity: 0, y: -4, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.12 }}
+              className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-slate-200 shadow-xl z-50 max-h-56 overflow-y-auto"
             >
               <div className="py-1">
                 {options.map(opt => (
                   <button
                     key={opt.value} type="button"
                     onClick={() => { onChange(opt.value); setOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
-                      value === opt.value ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+                    className={`w-full text-left px-3 py-2 text-[13px] flex items-center gap-2 transition-colors ${
+                      value === opt.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    {opt.color && <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: opt.color }} />}
+                    {opt.color && <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.color }} />}
                     {opt.label}
-                    {value === opt.value && <CheckCircle2 className="w-3.5 h-3.5 ml-auto text-indigo-500" />}
+                    {value === opt.value && <Check className="w-3 h-3 ml-auto text-indigo-500" strokeWidth={3} />}
                   </button>
                 ))}
               </div>
@@ -658,38 +659,31 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
   const handleSubmit = submitForm;
 
-  const inputCls = "w-full px-4 py-2.5 bg-slate-50/80 border-2 border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all";
-  const labelCls = "block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider";
+  const inputCls = "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-[13px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/15 focus:border-indigo-400 transition-all";
+  const labelCls = "block text-[11px] font-medium text-slate-500 mb-1";
+  const sectionCls = "text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-500";
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={onClose} />
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-[460px] bg-white shadow-2xl z-50 flex flex-col">
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 32, stiffness: 320 }} className="fixed right-0 top-0 bottom-0 w-full sm:w-[480px] bg-white shadow-2xl z-50 flex flex-col">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA4KSIvPjwvc3ZnPg==')] opacity-50" />
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-white/15 backdrop-blur rounded-lg flex items-center justify-center border border-white/20">
-                    <Target className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-white">{lead ? 'Edit Deal' : 'Create Deal'}</h2>
-                    <p className="text-[11px] text-white/70">Fill out the deal details below</p>
-                  </div>
-                </div>
-                <button onClick={onClose} className="p-2 hover:bg-white/15 rounded-lg transition-colors"><X className="w-5 h-5 text-white" /></button>
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-semibold text-slate-900 leading-tight">{lead ? 'Edit deal' : 'New deal'}</h2>
+                <p className="text-[12px] text-slate-500 mt-0.5">{lead ? `Updating ${lead.title}` : 'Add a deal to the pipeline'}</p>
               </div>
+              <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
               {/* Deal Info Section */}
               <div>
-                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Deal Information
-                </h3>
+                <h3 className={`${sectionCls} mb-3`}>Deal</h3>
                 <div className="space-y-3">
                   <div>
                     <label className={labelCls}>Deal Title *</label>
@@ -698,16 +692,24 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
                   {/* Company: existing or new toggle */}
                   <div>
-                    <label className={labelCls}>Company *</label>
-                    <div className="flex gap-2 mb-2">
-                      <button type="button" onClick={() => { setIsExistingCompany(false); setForm({ ...form, companyId: '', contactId: '' }); setSelectedCustomerContacts([]); }}
-                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold border-2 transition-all ${!isExistingCompany ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                        <Plus className="w-3 h-3 inline mr-1" /> New Prospect
-                      </button>
-                      <button type="button" onClick={() => setIsExistingCompany(true)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold border-2 transition-all ${isExistingCompany ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                        <Building2 className="w-3 h-3 inline mr-1" /> Existing Customer
-                      </button>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className={labelCls}>Company *</label>
+                      <div className="inline-flex items-center bg-slate-100 rounded-md p-0.5 text-[11px] font-medium">
+                        <button
+                          type="button"
+                          onClick={() => { setIsExistingCompany(false); setForm({ ...form, companyId: '', contactId: '' }); setSelectedCustomerContacts([]); }}
+                          className={`px-2 py-1 rounded transition-all ${!isExistingCompany ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          New
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsExistingCompany(true)}
+                          className={`px-2 py-1 rounded transition-all ${isExistingCompany ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          Existing
+                        </button>
+                      </div>
                     </div>
 
                     {isExistingCompany ? (
@@ -857,7 +859,21 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>In-Hands Date</label>
-                      <input type="date" value={form.inHandsDate} onChange={e => setForm({ ...form, inHandsDate: e.target.value })} className={inputCls} />
+                      <DatePicker
+                        value={form.inHandsDate}
+                        onChange={(mdy) => {
+                          if (!mdy) { setForm({ ...form, inHandsDate: '' }); return; }
+                          const m = mdy.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                          if (m) {
+                            const [, mm, dd, yyyy] = m;
+                            setForm({ ...form, inHandsDate: `${yyyy}-${mm}-${dd}` });
+                          } else {
+                            setForm({ ...form, inHandsDate: mdy });
+                          }
+                        }}
+                        placeholder="mm/dd/yyyy"
+                        title="In-hands date"
+                      />
                     </div>
                     <div ref={ownerRef}>
                       <label className={labelCls}>Deal Owner</label>
@@ -894,18 +910,16 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
               {/* Contact Section */}
               <div>
-                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Contact Details
-                </h3>
+                <h3 className={`${sectionCls} mb-3`}>Contact</h3>
                 <div className="space-y-3">
                   {isExistingCompany && form.companyId && (
                     <div ref={contactRef}>
                       <label className={labelCls}>Select Contact</label>
                       {selectedCustomerContacts.length > 0 ? (
                         <div className="relative">
-                          <button type="button" onClick={() => setShowContactList(!showContactList)} className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50/80 border-2 border-slate-200 rounded-xl text-sm hover:border-slate-300 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-                            <span className={form.contactFirstName ? 'text-slate-900' : 'text-slate-400'}>{form.contactFirstName ? `${form.contactFirstName} ${form.contactLastName}`.trim() : 'Choose a contact...'}</span>
-                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showContactList ? 'rotate-180' : ''}`} />
+                          <button type="button" onClick={() => setShowContactList(!showContactList)} className="w-full flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg text-[13px] hover:border-slate-300 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition-all">
+                            <span className={form.contactFirstName ? 'text-slate-900' : 'text-slate-400'}>{form.contactFirstName ? `${form.contactFirstName} ${form.contactLastName}`.trim() : 'Choose a contact…'}</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showContactList ? 'rotate-180' : ''}`} />
                           </button>
                           <AnimatePresence>
                             {showContactList && (
@@ -958,8 +972,8 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
                         onChange={(v) => setForm({ ...form, contactPhone: v })}
                         placeholder="(xxx) xxx - xxxx"
                         disabled={isExistingCompany && !!form.companyId}
-                        className={`flex items-stretch w-full bg-slate-50/80 border-2 border-slate-200 rounded-xl overflow-visible focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all${isExistingCompany && form.companyId ? ' opacity-60' : ''}`}
-                        inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed"
+                        className={`flex items-stretch w-full bg-white border border-slate-200 rounded-lg overflow-visible focus-within:ring-2 focus-within:ring-indigo-500/15 focus-within:border-indigo-400 transition-all${isExistingCompany && form.companyId ? ' opacity-60' : ''}`}
+                        inputClassName="flex-1 min-w-0 bg-transparent border-0 outline-none px-3 py-2 text-[13px] text-slate-900 placeholder:text-slate-400 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -968,23 +982,21 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
               {/* Documents */}
               <div>
-                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Documents
-                </h3>
+                <h3 className={`${sectionCls} mb-3`}>Documents</h3>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt,.csv" />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl text-sm font-semibold text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all">
-                  <Upload className="w-4 h-4" /> Upload Documents
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed border-slate-300 rounded-lg text-[13px] font-medium text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/40 transition-all">
+                  <Upload className="w-3.5 h-3.5" /> Add files
                 </button>
                 {documents.length > 0 && (
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-2 space-y-1.5">
                     {documents.map((doc, i) => (
-                      <div key={i} className="flex items-center gap-3 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
-                        <Paperclip className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div key={i} className="flex items-center gap-2.5 px-2.5 py-1.5 bg-slate-50 rounded-md border border-slate-200">
+                        <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-slate-700 truncate">{doc.name}</div>
-                          <div className="text-[11px] text-slate-400">{(doc.size / 1024).toFixed(1)} KB</div>
+                          <div className="text-[12.5px] font-medium text-slate-700 truncate">{doc.name}</div>
+                          <div className="text-[10.5px] text-slate-400 tabular-nums">{(doc.size / 1024).toFixed(1)} KB</div>
                         </div>
-                        <button onClick={() => removeDocument(i)} className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => removeDocument(i)} className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-500 transition-colors"><X className="w-3 h-3" /></button>
                       </div>
                     ))}
                   </div>
@@ -993,24 +1005,25 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
               {/* Notes */}
               <div>
-                <h3 className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <div className="w-1 h-3.5 bg-indigo-500 rounded-full" /> Notes
-                </h3>
-                <textarea rows={2} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Additional details about this deal..." className={inputCls + " resize-none"} />
+                <h3 className={`${sectionCls} mb-3`}>Notes</h3>
+                <textarea rows={3} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Anything worth remembering about this deal…" className={inputCls + " resize-none"} />
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex gap-3">
-              <button onClick={onClose} className="flex-1 px-3 py-2.5 border-2 border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-100 transition-colors">Cancel</button>
-              <motion.button
-                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                className="flex-1 px-3 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+            <div className="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button
+                onClick={onClose}
+                className="px-3.5 py-1.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 rounded-md transition-colors"
               >
-                <Sparkles className="w-4 h-4" />
-                {lead ? 'Update Deal' : 'Create Deal'}
-              </motion.button>
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[13px] font-semibold rounded-md hover:shadow-md hover:shadow-indigo-500/20 transition-all"
+              >
+                {lead ? 'Save changes' : 'Create deal'}
+              </button>
             </div>
           </motion.div>
           {showDedup && (
