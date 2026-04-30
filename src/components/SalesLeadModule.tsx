@@ -1422,25 +1422,44 @@ export function SalesLeadModule() {
           isPrimary: true,
         }];
 
-    // Build line items: prefer real ones; fall back to a single-line item from
-    // the modal so legacy deals still get something useful in the order.
+    // Build line items in the canonical OrderLineItem shape that OrderDetailView
+    // expects (productName/clientPrice/netCost/margin/...). Sales-side records
+    // don't carry cost data, so netCost and margin start at 0; the user can
+    // fill them in from Order Details. Sales-only metadata (productType,
+    // decoration, notes) is preserved alongside the canonical fields.
     const lineItemsPayload = leadLineItems.length > 0
-      ? leadLineItems.map((i: any) => ({
-          name: i.name,
-          productType: i.productType,
-          sku: i.sku,
-          quantity: i.quantity,
-          unitPrice: i.unitPrice,
-          decoration: i.decoration,
-          notes: i.notes,
-          total: i.total,
-        }))
+      ? leadLineItems.map((i: any, idx: number) => {
+          const quantity = Number(i.quantity) || 0;
+          const clientPrice = Number(i.unitPrice) || 0;
+          const total = Number(i.total) || quantity * clientPrice;
+          return {
+            productId: String(i.id ?? idx + 1),
+            productName: i.name ?? i.productType ?? 'Item',
+            sku: i.sku ?? '',
+            supplier: '',
+            variant: i.decoration ?? '',
+            quantity,
+            netCost: 0,
+            margin: 0,
+            clientPrice,
+            total,
+            productType: i.productType,
+            decoration: i.decoration,
+            notes: i.notes,
+          };
+        })
       : (orderInput.productType ? [{
-          name: orderInput.productType,
-          productType: orderInput.productType,
+          productId: '1',
+          productName: orderInput.productType,
+          sku: '',
+          supplier: '',
+          variant: '',
           quantity: orderInput.items,
-          unitPrice: orderInput.items > 0 ? orderInput.total / orderInput.items : orderInput.total,
+          netCost: 0,
+          margin: 0,
+          clientPrice: orderInput.items > 0 ? orderInput.total / orderInput.items : orderInput.total,
           total: orderInput.total,
+          productType: orderInput.productType,
         }] : []);
 
     // Items count: total quantity across line items (or 1 if no line items).

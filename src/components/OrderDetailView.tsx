@@ -343,7 +343,30 @@ export function OrderDetailView({ order: initialOrder, onBack, onEdit, onRefresh
 
   // Parse numeric values safely
   const parseTotal = (val: any): number => parseFloat(String(val ?? '0').replace('$', '').replace(',', '')) || 0;
-  const lineItems = order.lineItems || [];
+  // Normalize raw line items from any creation path (Orders module, PO sync,
+  // Sales close-won) into the canonical OrderLineItem shape so render-time
+  // .toFixed() calls don't blow up on legacy/sales-shaped items.
+  const normalizeLineItem = (raw: any, idx: number): OrderLineItem => {
+    const quantity = Number(raw?.quantity) || 0;
+    const clientPrice = Number(raw?.clientPrice ?? raw?.unitPrice) || 0;
+    const netCost = Number(raw?.netCost) || 0;
+    const total = Number(raw?.total) || quantity * clientPrice;
+    const margin = Number(raw?.margin) || (clientPrice > 0 ? ((clientPrice - netCost) / clientPrice) * 100 : 0);
+    return {
+      productId: String(raw?.productId ?? raw?.id ?? idx + 1),
+      productName: String(raw?.productName ?? raw?.name ?? raw?.productType ?? 'Item'),
+      sku: String(raw?.sku ?? ''),
+      supplier: String(raw?.supplier ?? raw?.vendor ?? ''),
+      variant: String(raw?.variant ?? raw?.decoration ?? ''),
+      quantity,
+      netCost,
+      margin,
+      clientPrice,
+      total,
+      imageUrl: raw?.imageUrl,
+    };
+  };
+  const lineItems: OrderLineItem[] = (order.lineItems || []).map(normalizeLineItem);
   const lineItemsSubtotal = lineItems.reduce((sum, li) => sum + (li.total || 0), 0);
   const poCharges: Array<{ id: string; name: string; amount: number; quantity: number }> = (order as any).poCharges || [];
   const poChargesTotal = poCharges.reduce((sum, c) => sum + ((c.amount || 0) * (c.quantity || 1)), 0);
