@@ -12,6 +12,7 @@ const ALLOWED_FIELDS = [
   'sourceCategory', 'sourceDetail', 'disqualifiedReason',
   'emailType', 'isExistingCustomer', 'enrichedCompany',
   'sourceOrderId', 'sourceOrderNumber', 'orderLinkedAt',
+  'lineItems', 'shipToAddresses', 'amountIsManual',
 ];
 
 const SCORE_TRIGGER_FIELDS = new Set([
@@ -119,6 +120,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     setPayload.lastActivity = new Date().toISOString();
   }
 
+  // Auto-derive amount from line items when lineItems changes and the caller
+  // didn't also explicitly send amount or set amountIsManual.
+  if ('lineItems' in fields && Array.isArray(fields.lineItems) && !('amount' in fields)) {
+    try {
+      const sum = (fields.lineItems as any[]).reduce((acc, item) => {
+        const t = Number(item?.total);
+        return acc + (Number.isFinite(t) ? t : 0);
+      }, 0);
+      // Only auto-set if the existing amount wasn't manually overridden.
+      // We let amountIsManual gate this; default false means auto-derive.
+      // (Will check existing.amountIsManual below after fetch.)
+      (setPayload as any).__autoDeriveAmount = sum;
+    } catch { /* non-fatal */ }
+  }
+
   let filter: Record<string, unknown>;
   try {
     filter = { _id: new ObjectId(id as string) };
@@ -161,6 +177,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const beforeStage: string | null = (existing.stage as string | null) ?? null;
 
+    // Apply auto-derived amount if the existing record isn't manually pinned.
+    if ('__autoDeriveAmount' in setPayload) {
+      const auto = (setPayload as any).__autoDeriveAmount;
+      delete (setPayload as any).__autoDeriveAmount;
+      if (!existing.amountIsManual) {
+        setPayload.amount = auto;
+      }
+    }
+
     const result = await collection.updateOne(filter, { $set: setPayload });
     if (result.matchedCount === 0) {
       return res.status(404).json({ error: 'Sales lead not found.' });
@@ -169,6 +194,77 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ─── Activity logging (all soft-fail; never blocks the primary write) ───
     const leadIdStr = String(id);
     const stageChanged = 'stage' in fields && fields.stage !== beforeStage;
+
+    // Line item add/remove diff
+    if ('lineItems' in fields && Array.isArray(fields.lineItems)) {
+      try {
+        const before: any[] = Array.isArray(existing.lineItems) ? (existing.lineItems as any[]) : [];
+        const after: any[] = fields.lineItems;
+        const beforeIds = new Set(before.map((x) => x?.id).filter(Boolean));
+        const afterIds = new Set(after.map((x) => x?.id).filter(Boolean));
+        const added = after.filter((x) => x?.id && !beforeIds.has(x.id));
+        const removed = before.filter((x) => x?.id && !afterIds.has(x.id));
+        for (const item of added) {
+          await db.collection('lead_activities').insertOne({
+            leadId: leadIdStr,
+            type: 'lineitem-added',
+            content: `Added line item: ${item.name ?? 'Item'}`,
+            details: `${item.quantity ?? 0} × $${Number(item.unitPrice ?? 0).toLocaleString()} = $${Number(item.total ?? 0).toLocaleString()}${item.decoration ? '\nDecoration: ' + item.decoration : ''}`,
+            user: 'You',
+            userInitials: 'YO',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
+          });
+        }
+        for (const item of removed) {
+          await db.collection('lead_activities').insertOne({
+            leadId: leadIdStr,
+            type: 'lineitem-removed',
+            content: `Removed line item: ${item.name ?? 'Item'}`,
+            user: 'You',
+            userInitials: 'YO',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
+          });
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    // Ship-to add/remove diff
+    if ('shipToAddresses' in fields && Array.isArray(fields.shipToAddresses)) {
+      try {
+        const before: any[] = Array.isArray(existing.shipToAddresses) ? (existing.shipToAddresses as any[]) : [];
+        const after: any[] = fields.shipToAddresses;
+        const beforeIds = new Set(before.map((x) => x?.id).filter(Boolean));
+        const afterIds = new Set(after.map((x) => x?.id).filter(Boolean));
+        const added = after.filter((x) => x?.id && !beforeIds.has(x.id));
+        const removed = before.filter((x) => x?.id && !afterIds.has(x.id));
+        for (const addr of added) {
+          const cityState = [addr.city, addr.state].filter(Boolean).join(', ');
+          await db.collection('lead_activities').insertOne({
+            leadId: leadIdStr,
+            type: 'shipto-added',
+            content: `Added ship-to: ${addr.label || cityState || 'Address'}`,
+            details: [addr.recipient, addr.line1, cityState, addr.zip].filter(Boolean).join('\n'),
+            user: 'You',
+            userInitials: 'YO',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
+          });
+        }
+        for (const addr of removed) {
+          await db.collection('lead_activities').insertOne({
+            leadId: leadIdStr,
+            type: 'shipto-removed',
+            content: `Removed ship-to: ${addr.label || addr.city || 'Address'}`,
+            user: 'You',
+            userInitials: 'YO',
+            timestamp: new Date().toISOString(),
+            createdAt: new Date(),
+          });
+        }
+      } catch { /* non-fatal */ }
+    }
 
     // Stage transitions
     if (stageChanged) {

@@ -1372,7 +1372,69 @@ export function SalesLeadModule() {
   };
 
   const performCloseWon = async (lead: SalesLead, orderInput: CloseWonOrderInput) => {
-    // Create the order first.
+    // Pull all the rich associations from the lead (or fall back to inputs)
+    // so the order is born complete: line items, contacts, ship-to addresses.
+    const leadLineItems = Array.isArray((lead as any).lineItems) ? (lead as any).lineItems : [];
+    const leadShipToAddresses = Array.isArray((lead as any).shipToAddresses) ? (lead as any).shipToAddresses : [];
+
+    // Fetch the deal's full contact list (lead_contacts collection).
+    let dealContacts: any[] = [];
+    try {
+      const cRes = await fetch(`/api/sales-leads/contacts/list?leadId=${encodeURIComponent(lead.id)}`, { headers: headers_json });
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        if (cData.success && Array.isArray(cData.contacts)) dealContacts = cData.contacts;
+      }
+    } catch { /* fall through */ }
+
+    // If no lead_contacts, fall back to the lead's primary projection.
+    const contactsPayload = dealContacts.length > 0
+      ? dealContacts.map((c) => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          name: [c.firstName, c.lastName].filter(Boolean).join(' ').trim(),
+          email: c.email,
+          phone: c.phone,
+          role: c.role,
+          isPrimary: !!c.isPrimary,
+          contactId: c.id,
+        }))
+      : [{
+          firstName: lead.contactFirstName,
+          lastName: lead.contactLastName,
+          name: lead.contactName,
+          email: lead.contactEmail,
+          phone: lead.contactPhone,
+          contactId: lead.contactId,
+          isPrimary: true,
+        }];
+
+    // Build line items: prefer real ones; fall back to a single-line item from
+    // the modal so legacy deals still get something useful in the order.
+    const lineItemsPayload = leadLineItems.length > 0
+      ? leadLineItems.map((i: any) => ({
+          name: i.name,
+          productType: i.productType,
+          sku: i.sku,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          decoration: i.decoration,
+          notes: i.notes,
+          total: i.total,
+        }))
+      : (orderInput.productType ? [{
+          name: orderInput.productType,
+          productType: orderInput.productType,
+          quantity: orderInput.items,
+          unitPrice: orderInput.items > 0 ? orderInput.total / orderInput.items : orderInput.total,
+          total: orderInput.total,
+        }] : []);
+
+    // Items count: total quantity across line items (or 1 if no line items).
+    const itemsCount = lineItemsPayload.length > 0
+      ? lineItemsPayload.reduce((s: number, i: any) => s + (Number(i.quantity) || 0), 0) || lineItemsPayload.length
+      : Math.max(orderInput.items, 1);
+
     const orderRes = await fetch('/api/orders/create', {
       method: 'POST',
       headers: headers_json,
@@ -1381,25 +1443,15 @@ export function SalesLeadModule() {
         email: orderInput.email,
         customerId: lead.companyId ?? null,
         sourceLeadId: lead.id,
-        items: orderInput.items,
+        items: itemsCount,
         total: orderInput.total > 0 ? `$${orderInput.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00',
         subtotal: orderInput.total,
         inHandsDate: orderInput.inHandsDate || null,
         notes: orderInput.notes,
         projectName: lead.title,
-        contacts: [{
-          firstName: lead.contactFirstName,
-          lastName: lead.contactLastName,
-          name: lead.contactName,
-          email: lead.contactEmail,
-          phone: lead.contactPhone,
-          contactId: lead.contactId,
-        }],
-        lineItems: orderInput.productType ? [{
-          productType: orderInput.productType,
-          quantity: orderInput.items,
-          total: orderInput.total,
-        }] : [],
+        contacts: contactsPayload,
+        lineItems: lineItemsPayload,
+        shipToAddresses: leadShipToAddresses,
         documents: lead.documents ?? [],
         status: 'Pending',
         paymentStatus: 'Pending',

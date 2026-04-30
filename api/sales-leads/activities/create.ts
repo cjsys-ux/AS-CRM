@@ -2,7 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../../_mongodb';
 
 export const ACTIVITY_TYPES = [
-  'created', 'stage-change', 'edit', 'file-upload', 'note', 'task', 'call', 'email', 'order-linked', 'system',
+  'created', 'stage-change', 'edit', 'file-upload', 'note', 'task', 'call', 'email',
+  'order-linked', 'system',
+  'contact-added', 'contact-removed',
+  'lineitem-added', 'lineitem-removed',
+  'shipto-added', 'shipto-removed',
 ] as const;
 export type ActivityType = typeof ACTIVITY_TYPES[number];
 

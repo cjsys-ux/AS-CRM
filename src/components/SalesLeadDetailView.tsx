@@ -4,7 +4,7 @@ import {
   Building2, Target, FileText, MessageSquare, Plus, Send, CheckCircle2,
   AlertTriangle, Zap, TrendingUp, ExternalLink, Paperclip, ChevronDown,
   Tag, Hash, Globe, Activity, Star, ClipboardList, ChevronRight, Check, X,
-  NotepadText, Pencil, ArrowRight, Sparkles, MoreHorizontal,
+  NotepadText, Pencil, ArrowRight, Sparkles, MoreHorizontal, Upload, File, Package, MapPin,
 } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { toast } from 'sonner';
@@ -105,9 +105,39 @@ interface SalesLead {
   sourceOrderId?: string | null;
   sourceOrderNumber?: string | null;
   orderLinkedAt?: string | null;
+  lineItems?: Array<{
+    id: string;
+    name: string;
+    productType?: string;
+    sku?: string;
+    quantity: number;
+    unitPrice: number;
+    decoration?: string;
+    notes?: string;
+    total: number;
+  }>;
+  shipToAddresses?: Array<{
+    id: string;
+    label: string;
+    recipient: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+    quantity?: number;
+    notes?: string;
+  }>;
+  amountIsManual?: boolean;
 }
 
-type ActivityType = 'created' | 'stage-change' | 'edit' | 'file-upload' | 'note' | 'task' | 'call' | 'email' | 'order-linked' | 'system';
+type ActivityType =
+  | 'created' | 'stage-change' | 'edit' | 'file-upload'
+  | 'note' | 'task' | 'call' | 'email' | 'order-linked' | 'system'
+  | 'contact-added' | 'contact-removed'
+  | 'lineitem-added' | 'lineitem-removed'
+  | 'shipto-added' | 'shipto-removed';
 
 interface ActivityItem {
   id: string;
@@ -127,16 +157,22 @@ interface ActivityItem {
 }
 
 const ACTIVITY_TYPE_META: Record<ActivityType, { icon: any; chip: string; label: string }> = {
-  'created':       { icon: Sparkles,    chip: 'bg-emerald-100 text-emerald-700', label: 'Created' },
-  'stage-change':  { icon: Activity,    chip: 'bg-indigo-100 text-indigo-700',   label: 'Stage' },
-  'edit':          { icon: Pencil,      chip: 'bg-slate-100 text-slate-700',     label: 'Edit' },
-  'file-upload':   { icon: Paperclip,   chip: 'bg-fuchsia-100 text-fuchsia-700', label: 'File' },
-  'note':          { icon: NotepadText, chip: 'bg-amber-100 text-amber-700',     label: 'Note' },
-  'task':          { icon: ClipboardList, chip: 'bg-violet-100 text-violet-700', label: 'Task' },
-  'call':          { icon: Phone,       chip: 'bg-cyan-100 text-cyan-700',       label: 'Call' },
-  'email':         { icon: Mail,        chip: 'bg-blue-100 text-blue-700',       label: 'Email' },
-  'order-linked':  { icon: CheckCircle2, chip: 'bg-green-100 text-green-700',    label: 'Order' },
-  'system':        { icon: Zap,         chip: 'bg-slate-100 text-slate-600',     label: 'System' },
+  'created':          { icon: Sparkles,      chip: 'bg-emerald-100 text-emerald-700', label: 'Created' },
+  'stage-change':     { icon: Activity,      chip: 'bg-indigo-100 text-indigo-700',   label: 'Stage' },
+  'edit':             { icon: Pencil,        chip: 'bg-slate-100 text-slate-700',     label: 'Edit' },
+  'file-upload':      { icon: Paperclip,     chip: 'bg-fuchsia-100 text-fuchsia-700', label: 'File' },
+  'note':             { icon: NotepadText,   chip: 'bg-amber-100 text-amber-700',     label: 'Note' },
+  'task':             { icon: ClipboardList, chip: 'bg-violet-100 text-violet-700',   label: 'Task' },
+  'call':             { icon: Phone,         chip: 'bg-cyan-100 text-cyan-700',       label: 'Call' },
+  'email':            { icon: Mail,          chip: 'bg-blue-100 text-blue-700',       label: 'Email' },
+  'order-linked':     { icon: CheckCircle2,  chip: 'bg-green-100 text-green-700',     label: 'Order' },
+  'system':           { icon: Zap,           chip: 'bg-slate-100 text-slate-600',     label: 'System' },
+  'contact-added':    { icon: User,          chip: 'bg-cyan-100 text-cyan-700',       label: 'Contact +' },
+  'contact-removed':  { icon: User,          chip: 'bg-slate-100 text-slate-600',     label: 'Contact −' },
+  'lineitem-added':   { icon: Package,       chip: 'bg-blue-100 text-blue-700',       label: 'Item +' },
+  'lineitem-removed': { icon: Package,       chip: 'bg-slate-100 text-slate-600',     label: 'Item −' },
+  'shipto-added':     { icon: MapPin,        chip: 'bg-teal-100 text-teal-700',       label: 'Ship-to +' },
+  'shipto-removed':   { icon: MapPin,        chip: 'bg-slate-100 text-slate-600',     label: 'Ship-to −' },
 };
 
 function formatDate(dateStr: string | null | undefined) {
@@ -551,6 +587,600 @@ function ActivityCard({
   );
 }
 
+// ────── LineItemsPanel ──────
+interface LineItem {
+  id: string;
+  name: string;
+  productType?: string;
+  sku?: string;
+  quantity: number;
+  unitPrice: number;
+  decoration?: string;
+  notes?: string;
+  total: number;
+}
+
+function uid(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function LineItemsPanel({
+  leadId, items, amountIsManual, onChange,
+}: {
+  leadId: string;
+  items: LineItem[];
+  amountIsManual: boolean;
+  onChange: (next: LineItem[], opts?: { amountIsManual?: boolean }) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<{ name: string; quantity: string; unitPrice: string; decoration: string }>({ name: '', quantity: '', unitPrice: '', decoration: '' });
+  const [saving, setSaving] = useState(false);
+
+  const subtotal = items.reduce((s, i) => s + (Number(i.total) || 0), 0);
+  void leadId;
+
+  const addItem = async () => {
+    if (!draft.name.trim()) { toast.error('Item name is required'); return; }
+    const qty = Number(draft.quantity) || 0;
+    const price = Number(draft.unitPrice) || 0;
+    if (qty <= 0) { toast.error('Quantity must be greater than zero'); return; }
+    const item: LineItem = {
+      id: uid(),
+      name: draft.name.trim(),
+      quantity: qty,
+      unitPrice: price,
+      total: qty * price,
+      decoration: draft.decoration.trim() || undefined,
+    };
+    setSaving(true);
+    try {
+      await onChange([...items, item]);
+      setDraft({ name: '', quantity: '', unitPrice: '', decoration: '' });
+    } finally { setSaving(false); }
+  };
+
+  const removeItem = async (id: string) => {
+    setSaving(true);
+    try { await onChange(items.filter(i => i.id !== id)); } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+        <span className="w-1 h-3.5 rounded-full bg-blue-500" />
+        <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Line items</h3>
+      </div>
+
+      {items.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12.5px]">
+            <thead className="bg-slate-50/60 border-b border-slate-100">
+              <tr>
+                <th className="text-left px-3 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">Item</th>
+                <th className="text-right px-2 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 w-16">Qty</th>
+                <th className="text-right px-2 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 w-24">Unit</th>
+                <th className="text-left px-2 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500">Decoration</th>
+                <th className="text-right px-3 py-2 text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 w-24">Total</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {items.map((item) => (
+                <tr key={item.id} className="group hover:bg-slate-50/50">
+                  <td className="px-3 py-2">
+                    <p className="font-semibold text-slate-900">{item.name}</p>
+                    {item.notes && <p className="text-[11px] text-slate-500">{item.notes}</p>}
+                  </td>
+                  <td className="px-2 py-2 text-right tabular-nums text-slate-700">{item.quantity.toLocaleString()}</td>
+                  <td className="px-2 py-2 text-right tabular-nums text-slate-700">${item.unitPrice.toLocaleString()}</td>
+                  <td className="px-2 py-2 text-slate-600">{item.decoration || '—'}</td>
+                  <td className="px-3 py-2 text-right tabular-nums font-semibold text-slate-900">${item.total.toLocaleString()}</td>
+                  <td className="px-2 py-2">
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      disabled={saving}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                      title="Remove"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="px-4 py-6 text-center text-[12px] text-slate-400">
+          No line items yet. Add the first below.
+        </div>
+      )}
+
+      {/* Inline add row */}
+      <div className="border-t border-slate-100 bg-slate-50/40 px-3 py-2.5">
+        <div className="grid grid-cols-[1fr_72px_92px_1fr_auto] gap-2 items-center">
+          <input
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            placeholder="Item name (e.g., Polo shirt)"
+            className="px-2 py-1.5 bg-white border border-slate-200 rounded-md text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+          />
+          <input
+            value={draft.quantity}
+            onChange={(e) => setDraft({ ...draft, quantity: e.target.value.replace(/[^0-9]/g, '') })}
+            placeholder="Qty"
+            className="px-2 py-1.5 bg-white border border-slate-200 rounded-md text-[12.5px] text-right tabular-nums text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+          />
+          <input
+            value={draft.unitPrice}
+            onChange={(e) => setDraft({ ...draft, unitPrice: e.target.value.replace(/[^0-9.]/g, '') })}
+            placeholder="$ each"
+            className="px-2 py-1.5 bg-white border border-slate-200 rounded-md text-[12.5px] text-right tabular-nums text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+          />
+          <input
+            value={draft.decoration}
+            onChange={(e) => setDraft({ ...draft, decoration: e.target.value })}
+            placeholder="Decoration (optional)"
+            className="px-2 py-1.5 bg-white border border-slate-200 rounded-md text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+          />
+          <button
+            onClick={addItem}
+            disabled={saving || !draft.name.trim()}
+            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[11.5px] font-semibold rounded-md hover:shadow-md hover:shadow-indigo-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-3 h-3" /> Add
+          </button>
+        </div>
+      </div>
+
+      {/* Footer — subtotal + amount-mode */}
+      <div className="px-4 py-2.5 border-t border-slate-200 bg-white flex items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-[11.5px] text-slate-600">
+          <input
+            type="checkbox"
+            checked={amountIsManual}
+            onChange={(e) => onChange(items, { amountIsManual: e.target.checked })}
+            className="w-3.5 h-3.5 accent-indigo-600"
+          />
+          Override deal amount manually
+          <span className="text-slate-400">— otherwise auto-derived from line items</span>
+        </label>
+        <span className="text-[13px] font-semibold text-slate-900 tabular-nums">
+          Subtotal ${subtotal.toLocaleString()}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ────── ShipToPanel ──────
+interface ShipToAddress {
+  id: string;
+  label: string;
+  recipient: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  quantity?: number;
+  notes?: string;
+}
+
+function ShipToPanel({ addresses, onChange }: {
+  addresses: ShipToAddress[];
+  onChange: (next: ShipToAddress[]) => Promise<void>;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<ShipToAddress>({
+    id: '', label: '', recipient: '', line1: '', line2: '', city: '', state: '', zip: '', country: 'US',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setAdding(false);
+    setDraft({ id: '', label: '', recipient: '', line1: '', line2: '', city: '', state: '', zip: '', country: 'US' });
+  };
+
+  const submit = async () => {
+    if (!draft.line1.trim()) { toast.error('Street address is required'); return; }
+    if (!draft.city.trim() || !draft.state.trim()) { toast.error('City and state are required'); return; }
+    setSaving(true);
+    try {
+      const next = [...addresses, { ...draft, id: uid(), label: draft.label.trim() || `Address ${addresses.length + 1}` }];
+      await onChange(next);
+      reset();
+    } finally { setSaving(false); }
+  };
+
+  const remove = async (id: string) => {
+    setSaving(true);
+    try { await onChange(addresses.filter(a => a.id !== id)); } finally { setSaving(false); }
+  };
+
+  const inputCls = "px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400";
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+          <span className="w-1 h-3.5 rounded-full bg-teal-500" />
+          <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Ship-to addresses</h3>
+          {!adding && (
+            <button
+              onClick={() => setAdding(true)}
+              className="ml-auto flex items-center gap-1 px-2 py-1 text-[11.5px] font-semibold text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+            >
+              <Plus className="w-3 h-3" /> Add address
+            </button>
+          )}
+        </div>
+
+        {addresses.length === 0 && !adding ? (
+          <div className="px-4 py-8 text-center text-[12px] text-slate-400">
+            No ship-to addresses yet. Promo orders often ship to 2+ destinations.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {addresses.map((a) => (
+              <div key={a.id} className="group px-4 py-3 hover:bg-slate-50/40">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[12px] font-bold text-slate-900">{a.label}</span>
+                      {typeof a.quantity === 'number' && a.quantity > 0 && (
+                        <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10.5px] font-semibold rounded tabular-nums">
+                          {a.quantity.toLocaleString()} pcs
+                        </span>
+                      )}
+                    </div>
+                    {a.recipient && <p className="text-[12px] text-slate-700">{a.recipient}</p>}
+                    <p className="text-[12px] text-slate-600">
+                      {a.line1}{a.line2 ? `, ${a.line2}` : ''}
+                    </p>
+                    <p className="text-[12px] text-slate-600">
+                      {[a.city, a.state, a.zip].filter(Boolean).join(', ')} {a.country !== 'US' ? a.country : ''}
+                    </p>
+                    {a.notes && <p className="text-[11px] text-slate-500 mt-0.5 italic">{a.notes}</p>}
+                  </div>
+                  <button
+                    onClick={() => remove(a.id)}
+                    disabled={saving}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all shrink-0"
+                    title="Remove"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {adding && (
+        <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Label (e.g., Tradeshow)" className={inputCls} />
+            <input value={draft.recipient} onChange={(e) => setDraft({ ...draft, recipient: e.target.value })} placeholder="Recipient name" className={inputCls} />
+          </div>
+          <input value={draft.line1} onChange={(e) => setDraft({ ...draft, line1: e.target.value })} placeholder="Street address" className={`${inputCls} w-full`} />
+          <input value={draft.line2 || ''} onChange={(e) => setDraft({ ...draft, line2: e.target.value })} placeholder="Apt / suite (optional)" className={`${inputCls} w-full`} />
+          <div className="grid grid-cols-[2fr_1fr_1fr] gap-2">
+            <input value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} placeholder="City" className={inputCls} />
+            <input value={draft.state} onChange={(e) => setDraft({ ...draft, state: e.target.value })} placeholder="State" className={inputCls} />
+            <input value={draft.zip} onChange={(e) => setDraft({ ...draft, zip: e.target.value })} placeholder="ZIP" className={inputCls} />
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <input
+              type="number"
+              value={draft.quantity ?? ''}
+              onChange={(e) => setDraft({ ...draft, quantity: e.target.value ? Number(e.target.value) : undefined })}
+              placeholder="Quantity (optional)"
+              className={`${inputCls} w-40`}
+            />
+            <div className="flex gap-2">
+              <button onClick={reset} className="px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 rounded transition-colors">Cancel</button>
+              <button onClick={submit} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[12px] font-semibold rounded hover:shadow-md hover:shadow-indigo-500/20 transition-all disabled:opacity-40">
+                <Plus className="w-3 h-3" /> Add address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ────── ContactsPanel ──────
+function ContactsPanel({
+  leadId, contacts, loading, onRefresh, afterChange,
+}: {
+  leadId: string;
+  contacts: any[];
+  loading: boolean;
+  onRefresh: () => Promise<void>;
+  afterChange: () => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState({ firstName: '', lastName: '', email: '', phone: '', role: '' });
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => { setAdding(false); setDraft({ firstName: '', lastName: '', email: '', phone: '', role: '' }); };
+
+  const submit = async () => {
+    if (!draft.firstName.trim() && !draft.lastName.trim()) { toast.error('First or last name is required'); return; }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/sales-leads/contacts/create', {
+        method: 'POST',
+        headers: headers_json,
+        body: JSON.stringify({ leadId, ...draft }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Could not add contact');
+        return;
+      }
+      toast.success('Contact added');
+      await onRefresh();
+      afterChange();
+      reset();
+    } finally { setSaving(false); }
+  };
+
+  const setPrimary = async (id: string) => {
+    const res = await fetch('/api/sales-leads/contacts/update', {
+      method: 'PATCH', headers: headers_json,
+      body: JSON.stringify({ id, isPrimary: true }),
+    });
+    if (!res.ok) { toast.error('Could not set primary'); return; }
+    await onRefresh();
+  };
+
+  const remove = async (id: string) => {
+    const res = await fetch('/api/sales-leads/contacts/delete', {
+      method: 'DELETE', headers: headers_json,
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || 'Could not delete');
+      return;
+    }
+    toast.success('Contact removed');
+    await onRefresh();
+    afterChange();
+  };
+
+  const inputCls = "px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-[12.5px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400";
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+          <span className="w-1 h-3.5 rounded-full bg-cyan-500" />
+          <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Contacts</h3>
+          {!adding && (
+            <button onClick={() => setAdding(true)} className="ml-auto flex items-center gap-1 px-2 py-1 text-[11.5px] font-semibold text-indigo-600 hover:bg-indigo-50 rounded transition-colors">
+              <Plus className="w-3 h-3" /> Add contact
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="px-4 py-8 text-center text-[12px] text-slate-400">Loading…</div>
+        ) : contacts.length === 0 && !adding ? (
+          <div className="px-4 py-8 text-center text-[12px] text-slate-400">
+            No contacts on this deal yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {contacts.map((c) => {
+              const display = [c.firstName, c.lastName].filter(Boolean).join(' ').trim() || c.email || 'Contact';
+              const initials = (c.firstName?.[0] ?? '') + (c.lastName?.[0] ?? '') || display.slice(0, 2).toUpperCase();
+              return (
+                <div key={c.id} className="group px-4 py-3 hover:bg-slate-50/40">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                      <span className="text-[10px] font-semibold text-white tracking-wide">{initials.toUpperCase().slice(0, 2)}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[13px] font-semibold text-slate-900">{display}</span>
+                        {c.isPrimary && (
+                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase rounded tracking-wider">Primary</span>
+                        )}
+                      </div>
+                      {c.role && <p className="text-[11.5px] text-slate-600">{c.role}</p>}
+                      {c.email && <p className="text-[11.5px] text-slate-500">{c.email}</p>}
+                      {c.phone && <p className="text-[11.5px] text-slate-500">{c.phone}</p>}
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      {!c.isPrimary && (
+                        <button onClick={() => setPrimary(c.id)} className="text-[11px] font-semibold px-2 py-1 text-emerald-700 hover:bg-emerald-50 rounded transition-colors">
+                          Set primary
+                        </button>
+                      )}
+                      <button onClick={() => remove(c.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Remove">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {adding && (
+        <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <input autoFocus value={draft.firstName} onChange={(e) => setDraft({ ...draft, firstName: e.target.value })} placeholder="First name" className={inputCls} />
+            <input value={draft.lastName} onChange={(e) => setDraft({ ...draft, lastName: e.target.value })} placeholder="Last name" className={inputCls} />
+          </div>
+          <input value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} placeholder="Email" className={`${inputCls} w-full`} />
+          <div className="grid grid-cols-2 gap-2">
+            <input value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} placeholder="Phone (optional)" className={inputCls} />
+            <input value={draft.role} onChange={(e) => setDraft({ ...draft, role: e.target.value })} placeholder="Role (e.g., Buyer)" className={inputCls} />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={reset} className="px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:bg-slate-50 rounded transition-colors">Cancel</button>
+            <button onClick={submit} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[12px] font-semibold rounded hover:shadow-md hover:shadow-indigo-500/20 transition-all disabled:opacity-40">
+              <Plus className="w-3 h-3" /> Add contact
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ────── FilesPanel ──────
+async function uploadLeadFile(file: File, leadId: string): Promise<string> {
+  const presignRes = await fetch('/api/files/presign', {
+    method: 'POST',
+    headers: headers_json,
+    body: JSON.stringify({ fileName: file.name, fileType: file.type, entityType: 'lead-file', entityId: leadId }),
+  });
+  if (!presignRes.ok) {
+    const data = await presignRes.json().catch(() => ({}));
+    throw new Error(data.error || `Could not start upload (${presignRes.status})`);
+  }
+  const { uploadUrl, key } = await presignRes.json();
+  if (!uploadUrl || !key) throw new Error('Presign response missing uploadUrl or key.');
+  const putRes = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+  if (!putRes.ok) throw new Error(`S3 upload failed (${putRes.status}). Check bucket CORS.`);
+  await fetch('/api/files/complete', {
+    method: 'POST',
+    headers: headers_json,
+    body: JSON.stringify({ key, fileName: file.name, fileType: file.type, size: file.size, entityType: 'lead-file', entityId: leadId, uploadedBy: 'User' }),
+  }).catch(() => {});
+  return key;
+}
+
+function FilesPanel({
+  leadId, files, loading, onRefresh, afterChange, uploadedBy,
+}: {
+  leadId: string;
+  files: any[];
+  loading: boolean;
+  onRefresh: () => Promise<void>;
+  afterChange: () => void;
+  uploadedBy: string;
+}) {
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const arr = Array.from(list);
+    setUploading(arr.map(f => f.name));
+    try {
+      for (const f of arr) {
+        try {
+          const key = await uploadLeadFile(f, leadId);
+          await fetch('/api/sales-leads/files/create', {
+            method: 'POST',
+            headers: headers_json,
+            body: JSON.stringify({ leadId, name: f.name, key, type: f.type, size: f.size, uploadedBy }),
+          });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : `Failed to upload ${f.name}`);
+        }
+      }
+      await onRefresh();
+      afterChange();
+    } finally {
+      setUploading([]);
+    }
+  };
+
+  const remove = async (id: string) => {
+    const res = await fetch('/api/sales-leads/files/delete', {
+      method: 'DELETE', headers: headers_json, body: JSON.stringify({ id }),
+    });
+    if (!res.ok) { toast.error('Could not delete file'); return; }
+    await onRefresh();
+  };
+
+  return (
+    <div className="space-y-3">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault(); setDragOver(false);
+          handleFiles(e.dataTransfer.files);
+        }}
+        onClick={() => fileInputRef.current?.click()}
+        className={`bg-white border-2 border-dashed rounded-lg px-4 py-6 text-center cursor-pointer transition-colors ${
+          dragOver ? 'border-indigo-400 bg-indigo-50/40' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/40'
+        }`}
+      >
+        <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1.5" />
+        <p className="text-[12.5px] font-semibold text-slate-700">Drop files or click to upload</p>
+        <p className="text-[11px] text-slate-500 mt-0.5">Mockups, proofs, specs — anything reps need to share</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+      </div>
+
+      {uploading.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-[12px] text-slate-600">
+          Uploading {uploading.length} file{uploading.length === 1 ? '' : 's'}…
+        </div>
+      )}
+
+      {loading ? (
+        <div className="bg-white border border-slate-200 rounded-lg p-8 text-center text-[12px] text-slate-400">Loading…</div>
+      ) : files.length === 0 ? null : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {files.map((f) => {
+            const isImage = typeof f.type === 'string' && f.type.startsWith('image/');
+            return (
+              <div key={f.id} className="group bg-white border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 transition-colors">
+                <a href={f.url || '#'} target="_blank" rel="noopener noreferrer" className="block aspect-[4/3] bg-slate-50 flex items-center justify-center overflow-hidden">
+                  {isImage && f.url ? (
+                    <img src={f.url} alt={f.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-slate-400">
+                      <File className="w-7 h-7" />
+                      <span className="text-[10px] uppercase tracking-wider">{(f.type || 'file').split('/').pop()?.slice(0, 6)}</span>
+                    </div>
+                  )}
+                </a>
+                <div className="px-3 py-2 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-slate-900 truncate">{f.name}</p>
+                    <p className="text-[10.5px] text-slate-500">
+                      {f.size ? `${(f.size / 1024).toFixed(1)} KB` : ''}
+                      {f.uploadedBy ? ` · ${f.uploadedBy}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => remove(f.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                    title="Remove"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ────── Main Detail View ──────
 export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageChange }: {
   lead: SalesLead;
@@ -565,6 +1195,46 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
   const [filter, setFilter] = useState<ActivityType | 'all'>('all');
+
+  // Tab state for the right rail
+  type RailTab = 'activity' | 'lineitems' | 'files' | 'shipto' | 'contacts';
+  const [activeTab, setActiveTab] = useState<RailTab>('activity');
+
+  // Tab-specific data
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [files, setFiles] = useState<any[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  // Local copies of embedded arrays for optimistic editing
+  const [lineItems, setLineItems] = useState<any[]>(Array.isArray(lead.lineItems) ? lead.lineItems : []);
+  const [shipToAddresses, setShipToAddresses] = useState<any[]>(Array.isArray(lead.shipToAddresses) ? lead.shipToAddresses : []);
+
+  useEffect(() => { setLineItems(Array.isArray(lead.lineItems) ? lead.lineItems : []); }, [lead.id, lead.lineItems]);
+  useEffect(() => { setShipToAddresses(Array.isArray(lead.shipToAddresses) ? lead.shipToAddresses : []); }, [lead.id, lead.shipToAddresses]);
+
+  // Fetch contacts + files up front so tab counts are correct
+  const fetchContacts = useCallback(async () => {
+    try {
+      setContactsLoading(true);
+      const res = await fetch(`/api/sales-leads/contacts/list?leadId=${encodeURIComponent(lead.id)}`, { headers: headers_json });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.contacts)) setContacts(data.contacts);
+    } catch { /* soft-fail */ } finally { setContactsLoading(false); }
+  }, [lead.id]);
+
+  const fetchFiles = useCallback(async () => {
+    try {
+      setFilesLoading(true);
+      const res = await fetch(`/api/sales-leads/files/list?leadId=${encodeURIComponent(lead.id)}`, { headers: headers_json });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.files)) setFiles(data.files);
+    } catch { /* soft-fail */ } finally { setFilesLoading(false); }
+  }, [lead.id]);
+
+  useEffect(() => { fetchContacts(); }, [fetchContacts]);
+  useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
   // Fetch activity for this lead.
   const fetchActivity = useCallback(async () => {
@@ -942,13 +1612,48 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
             )}
           </aside>
 
-          {/* Right rail — activity */}
+          {/* Right rail — tabs */}
           <main className="lg:col-span-8 space-y-3">
+            {/* Tab nav */}
+            <div className="flex items-center gap-1 border-b border-slate-200">
+              {([
+                { id: 'activity',  label: 'Activity',   count: activities.length },
+                { id: 'lineitems', label: 'Line items', count: lineItems.length },
+                { id: 'files',     label: 'Files',      count: files.length },
+                { id: 'shipto',    label: 'Ship-to',    count: shipToAddresses.length },
+                { id: 'contacts',  label: 'Contacts',   count: contacts.length },
+              ] as const).map((t) => {
+                const active = activeTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id as RailTab)}
+                    className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-semibold transition-colors ${
+                      active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {t.label}
+                    {t.count > 0 && (
+                      <span className={`tabular-nums text-[11.5px] px-1.5 py-0.5 rounded ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        {t.count}
+                      </span>
+                    )}
+                    {active && (
+                      <motion.span layoutId="rail-tab-underline" className="absolute -bottom-px left-2 right-2 h-0.5 bg-slate-900 rounded-full" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Activity tab */}
+            {activeTab === 'activity' && (
+            <div className="space-y-3">
             <ActivityComposer onAdd={addActivity} />
 
             {/* Filter chips */}
             <div className="flex flex-wrap items-center gap-1.5">
-              {(['all', 'note', 'task', 'call', 'email', 'stage-change', 'edit', 'file-upload', 'order-linked', 'created'] as const).map((f) => {
+              {(['all', 'note', 'task', 'call', 'email', 'stage-change', 'edit', 'file-upload', 'lineitem-added', 'lineitem-removed', 'shipto-added', 'shipto-removed', 'contact-added', 'contact-removed', 'order-linked', 'created'] as const).map((f) => {
                 const count = f === 'all' ? activities.length : activities.filter(a => a.type === f).length;
                 if (f !== 'all' && count === 0) return null;
                 const label = f === 'all' ? 'All'
@@ -957,7 +1662,13 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
                   : f === 'created' ? 'Created'
                   : f === 'file-upload' ? 'File'
                   : f === 'edit' ? 'Edit'
-                  : ACTIVITY_TYPE_META[f as ActivityType].label;
+                  : f === 'lineitem-added' ? 'Item +'
+                  : f === 'lineitem-removed' ? 'Item −'
+                  : f === 'shipto-added' ? 'Ship-to +'
+                  : f === 'shipto-removed' ? 'Ship-to −'
+                  : f === 'contact-added' ? 'Contact +'
+                  : f === 'contact-removed' ? 'Contact −'
+                  : ACTIVITY_TYPE_META[f as ActivityType]?.label ?? f;
                 const active = filter === f;
                 return (
                   <button
@@ -1036,6 +1747,69 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
                 ))
               )}
             </div>
+            </div>
+            )}
+
+            {/* Line items tab */}
+            {activeTab === 'lineitems' && (
+              <LineItemsPanel
+                leadId={lead.id}
+                items={lineItems}
+                amountIsManual={!!lead.amountIsManual}
+                onChange={async (next, opts) => {
+                  setLineItems(next);
+                  await fetch('/api/sales-leads/update', {
+                    method: 'PATCH',
+                    headers: headers_json,
+                    body: JSON.stringify({
+                      id: lead.id,
+                      lineItems: next,
+                      ...(opts?.amountIsManual !== undefined ? { amountIsManual: opts.amountIsManual } : {}),
+                    }),
+                  });
+                  fetchActivity();
+                }}
+              />
+            )}
+
+            {/* Ship-to tab */}
+            {activeTab === 'shipto' && (
+              <ShipToPanel
+                addresses={shipToAddresses}
+                onChange={async (next) => {
+                  setShipToAddresses(next);
+                  await fetch('/api/sales-leads/update', {
+                    method: 'PATCH',
+                    headers: headers_json,
+                    body: JSON.stringify({ id: lead.id, shipToAddresses: next }),
+                  });
+                  fetchActivity();
+                }}
+              />
+            )}
+
+            {/* Contacts tab */}
+            {activeTab === 'contacts' && (
+              <ContactsPanel
+                leadId={lead.id}
+                contacts={contacts}
+                loading={contactsLoading}
+                onRefresh={fetchContacts}
+                afterChange={fetchActivity}
+              />
+            )}
+
+            {/* Files tab */}
+            {activeTab === 'files' && (
+              <FilesPanel
+                leadId={lead.id}
+                files={files}
+                loading={filesLoading}
+                onRefresh={fetchFiles}
+                afterChange={fetchActivity}
+                uploadedBy={lead.owner || 'You'}
+              />
+            )}
           </main>
 
         </div>

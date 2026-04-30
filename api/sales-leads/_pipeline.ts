@@ -29,6 +29,9 @@ export interface RawLeadInput {
   tags?: string[] | null;
   documents?: any[] | null;
   disqualifiedReason?: string | null;
+  // Tier 1 bundle — line items + ship-to addresses
+  lineItems?: any[] | null;
+  shipToAddresses?: any[] | null;
   // Attribution (Phase 2 — only set on public capture)
   utm?: { source?: string; medium?: string; campaign?: string; term?: string; content?: string } | null;
   referrer?: string | null;
@@ -127,6 +130,9 @@ export async function runPipeline(db: Db, input: RawLeadInput): Promise<Pipeline
     quantity: typeof input.quantity === 'number' ? input.quantity : Number(input.quantity) || 0,
     tags: Array.isArray(input.tags) ? input.tags : [],
     documents: Array.isArray(input.documents) ? input.documents : [],
+    lineItems: Array.isArray(input.lineItems) ? input.lineItems : [],
+    shipToAddresses: Array.isArray(input.shipToAddresses) ? input.shipToAddresses : [],
+    amountIsManual: false,
     normalizedEmail,
     normalizedPhone,
     emailDomain,
