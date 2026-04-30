@@ -534,6 +534,22 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
 
   useEffect(() => { if (isOpen && customers.length === 0) fetchCustomers(); }, [isOpen]);
 
+  // When editing an existing lead that's linked to a customer, pull the
+  // customer's contacts up front so the contact dropdown is populated.
+  useEffect(() => {
+    if (!isOpen) return;
+    const linkedCustomerId = lead?.companyId;
+    if (!linkedCustomerId) return;
+    fetch(`/api/customers/contacts/list?customerId=${encodeURIComponent(linkedCustomerId)}`, { headers: headers_json })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (data && Array.isArray(data.contacts)) {
+          setSelectedCustomerContacts(data.contacts);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen, lead?.companyId]);
+
   const filteredCustomers = customers.filter(c =>
     c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
     c.contactName?.toLowerCase().includes(customerSearch.toLowerCase()) ||

@@ -166,6 +166,35 @@ function stageLabel(stageId?: string | null): string {
   return PIPELINE_STAGES.find(s => s.id === stageId)?.label ?? stageId;
 }
 
+function groupActivitiesByDate(items: ActivityItem[]): Array<{ key: string; label: string; items: ActivityItem[] }> {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const today = startOfDay(now);
+  const yesterday = today - 86400000;
+  const weekAgo = today - 7 * 86400000;
+  const monthAgo = today - 30 * 86400000;
+
+  const groups = new Map<string, { key: string; label: string; items: ActivityItem[] }>();
+  const ensure = (key: string, label: string) => {
+    let g = groups.get(key);
+    if (!g) { g = { key, label, items: [] }; groups.set(key, g); }
+    return g;
+  };
+
+  for (const item of items) {
+    const t = new Date(item.timestamp).getTime();
+    if (Number.isNaN(t)) { ensure('older', 'Older').items.push(item); continue; }
+    if (t >= today) ensure('today', 'Today').items.push(item);
+    else if (t >= yesterday) ensure('yesterday', 'Yesterday').items.push(item);
+    else if (t >= weekAgo) ensure('week', 'This week').items.push(item);
+    else if (t >= monthAgo) ensure('month', 'This month').items.push(item);
+    else ensure('older', 'Older').items.push(item);
+  }
+  // Preserve a deterministic order regardless of insertion.
+  const order = ['today', 'yesterday', 'week', 'month', 'older'];
+  return order.map(k => groups.get(k)).filter((g): g is { key: string; label: string; items: ActivityItem[] } => !!g);
+}
+
 // ────── EditableField — click any value to inline-edit ──────
 type EditableType = 'text' | 'select' | 'date' | 'number' | 'currency' | 'textarea' | 'email';
 
@@ -645,19 +674,19 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
   const taskCount = activities.filter(a => a.type === 'task' && !a.taskCompleted).length;
   const daysSinceActivity = lead.lastActivity ? Math.floor((Date.now() - new Date(lead.lastActivity).getTime()) / 86400000) : 0;
 
+  const scoreTier = typeof lead.score === 'number'
+    ? (lead.score >= 71 ? 'hot' : lead.score >= 41 ? 'warm' : 'cold')
+    : null;
+
   return (
     <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 via-white to-blue-50/30 overflow-hidden h-full">
-      {/* Top Bar */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-2.5">
+      {/* Top Bar — slim breadcrumb + actions */}
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-2">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <button onClick={onBack} className="flex items-center gap-1 text-[13px] font-semibold text-slate-600 hover:text-slate-900 transition-colors">
-              <ArrowLeft className="w-4 h-4" />
-              <span>Deals</span>
-            </button>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-            <span className="text-[13px] font-semibold text-slate-900 truncate max-w-[420px]">{lead.title}</span>
-          </div>
+          <button onClick={onBack} className="flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-slate-900 transition-colors">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            All deals
+          </button>
           <div className="flex items-center gap-1">
             <button onClick={onEdit} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50 rounded-md transition-colors">
               <Edit className="w-3.5 h-3.5" /> Edit
@@ -668,6 +697,97 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
           </div>
         </div>
       </div>
+
+      {/* Hero — document-style header */}
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white border-b border-slate-200"
+      >
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+          <div className="flex items-start justify-between gap-5 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-2 text-[12px] text-slate-500 mb-1.5">
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="truncate font-medium text-slate-700">{lead.company || '—'}</span>
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-[0.08em]"
+                  style={{ backgroundColor: stage.color + '1A', color: stage.color }}
+                >
+                  <span className="w-1 h-1 rounded-full" style={{ backgroundColor: stage.color }} />
+                  {stage.label}
+                </span>
+              </p>
+              <h1 className="text-[26px] sm:text-[32px] font-bold tracking-tight text-slate-900 leading-[1.1]">
+                {lead.title}
+              </h1>
+              <div className="mt-3 flex items-baseline gap-x-5 gap-y-1.5 flex-wrap text-[13px] text-slate-500">
+                <span>
+                  <strong className="text-slate-900 tabular-nums text-[18px] font-bold">${lead.amount.toLocaleString()}</strong>
+                  <span className="ml-1.5">deal value</span>
+                </span>
+                {lead.quantity > 0 && (
+                  <span>
+                    <strong className="text-slate-900 font-semibold tabular-nums">{lead.quantity.toLocaleString()}</strong> units
+                  </span>
+                )}
+                {lead.inHandsDate && (
+                  <span>
+                    In-hands <strong className="text-slate-900 font-semibold">{formatDate(lead.inHandsDate)}</strong>
+                  </span>
+                )}
+                <span>
+                  <strong className="text-slate-900 font-semibold tabular-nums">{lead.probability}%</strong> probability
+                </span>
+                {lead.owner && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center">
+                      <span className="text-[8px] font-semibold text-white tracking-wide">{lead.ownerInitials}</span>
+                    </span>
+                    <strong className="text-slate-900 font-medium">{lead.owner}</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {scoreTier && (
+              <div
+                className={`shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-xl border-2 ${
+                  scoreTier === 'hot' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : scoreTier === 'warm' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-slate-50 text-slate-600 border-slate-200'
+                }`}
+                title="Lead score (0-100)"
+              >
+                <span className="text-[8.5px] font-bold uppercase tracking-[0.16em] opacity-75 mb-0.5">Score</span>
+                <span className="text-[28px] font-bold tabular-nums leading-none">{lead.score}</span>
+                <span className="text-[8.5px] font-bold uppercase tracking-[0.16em] mt-0.5">
+                  {scoreTier === 'hot' ? 'Hot' : scoreTier === 'warm' ? 'Warm' : 'Cold'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {((lead.stage === 'closed-lost' && lead.disqualifiedReason) || (daysSinceActivity > 7 && lead.stage !== 'closed-lost' && lead.stage !== 'closed-won')) && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {lead.stage === 'closed-lost' && lead.disqualifiedReason && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded text-[11.5px] text-red-700">
+                  <X className="w-3 h-3 shrink-0" />
+                  <span className="font-semibold">Lost · {DISQUALIFIED_REASON_LABELS[lead.disqualifiedReason] || lead.disqualifiedReason}</span>
+                </div>
+              )}
+              {daysSinceActivity > 7 && lead.stage !== 'closed-lost' && lead.stage !== 'closed-won' && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 rounded text-[11.5px] text-amber-700">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  <span className="font-semibold">Stale</span>
+                  <span>· {daysSinceActivity} days since last activity</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
 
       {/* Stage Progress */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-2.5">
@@ -699,64 +819,14 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
 
           {/* Left rail — spec sheet */}
-          <aside className="lg:col-span-4 space-y-4">
-
-            {/* Header card */}
-            <section className="bg-white border border-slate-200 rounded-lg p-4">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="min-w-0">
-                  <h2 className="text-[15px] font-semibold text-slate-900 leading-tight truncate">{lead.title}</h2>
-                  <p className="text-[12px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                    <Building2 className="w-3 h-3" /> {lead.company || '—'}
-                  </p>
-                </div>
-                {typeof lead.score === 'number' && (
-                  <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-bold ${
-                    lead.score >= 71 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : lead.score >= 41 ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
-                  }`}>
-                    <Star className="w-2.5 h-2.5" /> {lead.score}
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="px-3 py-2 bg-slate-50 rounded">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Amount</p>
-                  <p className="text-[15px] font-semibold text-slate-900 tabular-nums">${lead.amount.toLocaleString()}</p>
-                </div>
-                <div className="px-3 py-2 bg-slate-50 rounded">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Probability</p>
-                  <p className="text-[15px] font-semibold text-slate-900 tabular-nums">{lead.probability}%</p>
-                </div>
-              </div>
-
-              <div className="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-semibold border" style={{ backgroundColor: stage.color + '15', color: stage.color, borderColor: stage.color + '40' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stage.color }} />
-                {stage.label}
-              </div>
-
-              {lead.stage === 'closed-lost' && lead.disqualifiedReason && (
-                <div className="mt-3 flex items-center gap-2 px-2.5 py-1.5 bg-red-50 border border-red-200 rounded text-[11px] text-red-700">
-                  <X className="w-3 h-3 shrink-0" />
-                  <span className="font-semibold">Lost: {DISQUALIFIED_REASON_LABELS[lead.disqualifiedReason] || lead.disqualifiedReason}</span>
-                </div>
-              )}
-
-              {daysSinceActivity > 7 && (
-                <div className="mt-3 flex items-center gap-2 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-700">
-                  <AlertTriangle className="w-3 h-3 shrink-0" />
-                  Stale — {daysSinceActivity} days inactive
-                </div>
-              )}
-            </section>
+          <aside className="lg:col-span-4 space-y-5">
 
             {/* Properties — click any row to edit */}
             <section className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Properties</h3>
-                <span className="text-[10px] text-slate-400">Click to edit</span>
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                <span className="w-1 h-3.5 rounded-full bg-slate-700" />
+                <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Properties</h3>
+                <span className="ml-auto text-[10px] text-slate-400 italic">click to edit</span>
               </div>
               <div className="divide-y divide-slate-100 px-1.5 py-1.5">
                 <EditableField label="Title" value={lead.title} type="text" onSave={(v) => saveField({ title: v })} />
@@ -775,8 +845,9 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
 
             {/* Contact */}
             <section className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-slate-100">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Contact</h3>
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                <span className="w-1 h-3.5 rounded-full bg-cyan-500" />
+                <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Contact</h3>
               </div>
               <div className="divide-y divide-slate-100 px-1.5 py-1.5">
                 <EditableField label="Name" value={lead.contactName} type="text" onSave={(v) => {
@@ -792,16 +863,19 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
 
             {/* Linked order */}
             {lead.sourceOrderId && (
-              <section className="bg-emerald-50/40 border border-emerald-200 rounded-lg p-4">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 mb-2">Linked Order</h3>
+              <section className="bg-white border border-emerald-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-emerald-100 flex items-center gap-2 bg-emerald-50/40">
+                  <span className="w-1 h-3.5 rounded-full bg-emerald-500" />
+                  <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-emerald-800">Linked Order</h3>
+                </div>
                 <button
                   onClick={() => { window.location.hash = `#orders/${lead.sourceOrderId}`; }}
-                  className="flex items-center justify-between w-full text-left bg-white border border-emerald-200 rounded-md px-3 py-2 hover:border-emerald-300 transition-colors"
+                  className="flex items-center justify-between w-full text-left px-4 py-3 hover:bg-emerald-50/30 transition-colors"
                 >
                   <div>
-                    <p className="text-[13px] font-semibold text-slate-900">{lead.sourceOrderNumber || 'Order'}</p>
+                    <p className="text-[13px] font-semibold text-slate-900 tabular-nums">{lead.sourceOrderNumber || 'Order'}</p>
                     {lead.orderLinkedAt && (
-                      <p className="text-[11px] text-slate-500">Linked {formatDate(lead.orderLinkedAt)}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Linked {formatDate(lead.orderLinkedAt)}</p>
                     )}
                   </div>
                   <ExternalLink className="w-4 h-4 text-emerald-600" />
@@ -812,8 +886,9 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
             {/* Attribution */}
             {(lead.utm || lead.referrer || lead.landingPage || lead.capturedAt || lead.gclid || lead.fbclid || (lead.formSubmitCount ?? 0) > 0) && (
               <section className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <span className="w-1 h-3.5 rounded-full bg-indigo-500" />
+                  <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700 flex items-center gap-1.5">
                     <Globe className="w-3 h-3" /> Attribution
                   </h3>
                 </div>
@@ -835,24 +910,30 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
 
             {/* Score breakdown */}
             {lead.scoreBreakdown && (
-              <section className="bg-white border border-slate-200 rounded-lg p-4">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Score Breakdown</h3>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px]">
-                  <div className="flex justify-between"><span className="text-slate-500">Source</span><span className="font-semibold text-slate-700 tabular-nums">{lead.scoreBreakdown.source}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-semibold text-slate-700 tabular-nums">{lead.scoreBreakdown.email}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Phone</span><span className="font-semibold text-slate-700 tabular-nums">{lead.scoreBreakdown.phone}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Amount</span><span className="font-semibold text-slate-700 tabular-nums">{lead.scoreBreakdown.amount}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Existing</span><span className="font-semibold text-slate-700 tabular-nums">{lead.scoreBreakdown.existingCustomer}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-500">Penalty</span><span className="font-semibold text-slate-700 tabular-nums">{lead.scoreBreakdown.disposablePenalty + lead.scoreBreakdown.disqualifiedPenalty}</span></div>
+              <section className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <span className="w-1 h-3.5 rounded-full bg-amber-500" />
+                  <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Score Breakdown</h3>
+                </div>
+                <div className="px-4 py-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11.5px]">
+                  <div className="flex justify-between"><span className="text-slate-500">Source</span><span className="font-semibold text-slate-800 tabular-nums">{lead.scoreBreakdown.source}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Email</span><span className="font-semibold text-slate-800 tabular-nums">{lead.scoreBreakdown.email}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Phone</span><span className="font-semibold text-slate-800 tabular-nums">{lead.scoreBreakdown.phone}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Amount</span><span className="font-semibold text-slate-800 tabular-nums">{lead.scoreBreakdown.amount}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Existing</span><span className="font-semibold text-slate-800 tabular-nums">{lead.scoreBreakdown.existingCustomer}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Penalty</span><span className="font-semibold text-slate-800 tabular-nums">{lead.scoreBreakdown.disposablePenalty + lead.scoreBreakdown.disqualifiedPenalty}</span></div>
                 </div>
               </section>
             )}
 
             {/* Tags */}
             {lead.tags && lead.tags.length > 0 && (
-              <section className="bg-white border border-slate-200 rounded-lg p-4">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Tags</h3>
-                <div className="flex flex-wrap gap-1.5">
+              <section className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                  <span className="w-1 h-3.5 rounded-full bg-violet-500" />
+                  <h3 className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-slate-700">Tags</h3>
+                </div>
+                <div className="px-4 py-3 flex flex-wrap gap-1.5">
                   {lead.tags.map(t => (
                     <span key={t} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700">{t}</span>
                   ))}
@@ -900,42 +981,59 @@ export function SalesLeadDetailView({ lead, onBack, onEdit, onDelete, onStageCha
               )}
             </div>
 
-            {/* Activity list */}
-            <div className="space-y-2">
+            {/* Activity list — grouped by recency */}
+            <div className="space-y-5">
               {loadingActivity ? (
                 <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
                   <p className="text-[12px] text-slate-400">Loading activity…</p>
                 </div>
               ) : filteredActivities.length === 0 ? (
-                <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
-                  <MessageSquare className="w-6 h-6 text-slate-300 mx-auto mb-2" />
-                  <p className="text-[13px] font-semibold text-slate-700">
-                    {filter === 'all' ? 'No activity yet' : `No ${filter} activity yet`}
+                <div className="bg-white border border-slate-200 rounded-lg p-10 text-center">
+                  <MessageSquare className="w-7 h-7 text-slate-300 mx-auto mb-3" />
+                  <p className="text-[14px] font-semibold text-slate-700">
+                    {filter === 'all' ? 'No activity yet' : `No ${filter === 'stage-change' ? 'stage' : filter === 'order-linked' ? 'order' : filter === 'file-upload' ? 'file' : filter} activity yet`}
                   </p>
-                  <p className="text-[12px] text-slate-500 mt-1">
-                    {filter === 'all' ? 'Notes, calls, stage changes — everything lives here.' : ''}
+                  <p className="text-[12px] text-slate-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                    {filter === 'all' ? 'Notes, calls, stage changes, file uploads — everything lives here. Use the composer above to add the first one.' : 'Activity of this type will appear here once it happens.'}
                   </p>
                 </div>
               ) : (
-                <AnimatePresence initial={false}>
-                  {filteredActivities.map(a => (
-                    <motion.div
-                      key={a.id}
-                      layout
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <ActivityCard
-                        activity={a}
-                        onDelete={deleteActivity}
-                        onToggleTask={toggleTask}
-                        onOpenOrder={(orderId) => { window.location.hash = `#orders/${orderId}`; }}
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                groupActivitiesByDate(filteredActivities).map((group, gIdx) => (
+                  <motion.div
+                    key={group.key}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: gIdx * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                        {group.label}
+                      </h4>
+                      <span className="text-[10.5px] text-slate-400 tabular-nums">{group.items.length}</span>
+                      <div className="flex-1 h-px bg-slate-200/70" />
+                    </div>
+                    <AnimatePresence initial={false}>
+                      {group.items.map((a, idx) => (
+                        <motion.div
+                          key={a.id}
+                          layout
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4, transition: { duration: 0.15 } }}
+                          transition={{ duration: 0.2, delay: gIdx === 0 && idx < 6 ? idx * 0.03 : 0, ease: [0.16, 1, 0.3, 1] }}
+                        >
+                          <ActivityCard
+                            activity={a}
+                            onDelete={deleteActivity}
+                            onToggleTask={toggleTask}
+                            onOpenOrder={(orderId) => { window.location.hash = `#orders/${orderId}`; }}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
+                ))
               )}
             </div>
           </main>
