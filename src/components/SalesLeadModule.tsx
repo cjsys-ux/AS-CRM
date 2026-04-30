@@ -480,7 +480,7 @@ function LeadDrawer({ isOpen, onClose, onSave, lead, onOpenExistingLead }: { isO
     if (isOpen && users.length === 0) {
       fetch('/api/users/list', { headers: headers_json })
         .then(r => r.json())
-        .then(data => { if (data.success) setUsers(data.users || []); })
+        .then(data => { if (Array.isArray(data.users)) setUsers(data.users); })
         .catch(() => {});
     }
     if (isOpen && productCategories === null) {
@@ -1866,7 +1866,7 @@ export function SalesLeadModule() {
                       try {
                         const res = await fetch('/api/users/list', { headers: headers_json });
                         const data = await res.json();
-                        if (data.success) setBulkUsers(data.users || []);
+                        if (Array.isArray(data.users)) setBulkUsers(data.users);
                       } catch {}
                     }
                     setShowBulkOwnerList(!showBulkOwnerList);
